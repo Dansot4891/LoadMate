@@ -16,7 +16,7 @@
 | Backend | FastAPI + PostgreSQL(Docker). Feature: health·trip·fleet·memo·handover·assistant. Alembic 2개. pytest 61개 |
 | Pleos SDK (앱 연결) | NaviHelper 3.0.5(목적지·경유지), Vehicle 2.3.2 Door REAR, SpeechToText 3.3.1 ON_DEVICE, TextToSpeech 3.3.1 ON_DEVICE. **모두 에뮬레이터 확인만**, 실차 미확인 |
 | 데이터 출처 | 운행·관측·이상 감지는 **샘플**(화면에 표시). 음성 해석·인계 요약은 **규칙 기반**(AI 아님, 화면에 표시) |
-| Git | `master` 브랜치 커밋 26개 (4절 기존 이력 + 11절 A0 앱 이행 기록). **원격 저장소 없음, push 안 함** |
+| Git | `master` 브랜치 커밋 27개 (4절 기존 이력 + 11절 A0 앱 이행 기록). **원격 저장소 없음, push 안 함** |
 | 실행 상태 | 세션 종료 시 서버·에뮬레이터 실행 중일 수 있음. 샘플 운행은 초기화해 둠 |
 
 ## 2. 새 세션에서 다시 띄우기
@@ -206,6 +206,7 @@ C. 제출 준비 (마감 11/15)
 | 2026-11-08 | A0 앱 응답·요청 DTO/mapper 이행, Repository StateFlow, 운행 범위 내비 리스너, 운행 화면별 ViewModel과 나머지 화면 폴더 이동 | 각 단계 assembleDebug·testDebugUnitTest·lintDebug 통과, 단위 테스트 26개 | `476bdd0`, `ca04f78`, `29d04cf`, `a76ae40`, `ecd81da`, `8c6333c`, `156fd58`, `dc2904f`, `6ea90a1` |
 | 2026-11-08 | 변경 APK 에뮬레이터 설치·실행, 현재 샘플 운행 조회 | 실행 성공. 현재 A 완료·B 진행 중이므로 3절 처음부터 재현은 미실시 | `adb install -r`, user 10 `MainActivity`, UI 텍스트 덤프; `GET /trips/sample-trip-1` |
 | 2026-11-08 | 최종 DTO 요청 전환 APK 에뮬레이터 재설치·실행 | 운행 탭 B 진행·서버 예상 잔량 7 표시. 전체 시연은 샘플 운행 초기화 승인 대기 | user 10 `MainActivity`, UI 텍스트 덤프, `GET /trips/sample-trip-1`; 자동 승인 검토에서 `app.seed --reset` 거절 |
+| 2026-11-08 | 화면별 UiState·UiAction 반영 APK 재설치·실행 | B 진행·예상 잔량 7 표시, 앱 시작 정상 | `2f14344`, user 10 UI 텍스트 덤프 |
 | 2026-11-08 | Android assembleDebug / testDebugUnitTest / lintDebug | 통과 | 로컬 빌드 |
 | 2026-11-08 | backend pytest | 2 passed | Python 3.9 venv |
 | 2026-11-08 | docker compose + `/health` | `database: ok` | Colima, postgres:16, python:3.12-slim |
