@@ -1,5 +1,6 @@
 package com.loadmate.app.core.notify
 
+import com.loadmate.app.R
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -35,7 +36,7 @@ class DriverNotifier(context: Context) {
         nm.notify(
             id,
             NotificationCompat.Builder(ctx, CHANNEL)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setSmallIcon(R.drawable.pleos_ic_info_line)
                 .setContentTitle(title)
                 .setContentText(text)
                 .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
