@@ -1,6 +1,10 @@
 package com.loadmate.app.feature.trip.presentation.shared
 
-import com.loadmate.app.core.designsystem.localTime
+import com.loadmate.app.shared.designsystem.components.PleosTitle
+import com.loadmate.app.shared.designsystem.components.PleosToast
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
+import com.loadmate.app.shared.format.localTime
 import com.loadmate.app.feature.trip.presentation.overview.OverviewScreen
 import com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckScreen
 import com.loadmate.app.feature.trip.presentation.driving.DrivingScreen
@@ -34,14 +38,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.loadmate.app.core.designsystem.Pleos
-import com.loadmate.app.core.designsystem.PleosButton
-import com.loadmate.app.core.designsystem.PleosButtonStyle
-import com.loadmate.app.core.designsystem.PleosCard
-import com.loadmate.app.core.designsystem.PleosShape
-import com.loadmate.app.core.designsystem.PleosSpacing
-import com.loadmate.app.core.designsystem.PleosStepper
-import com.loadmate.app.core.designsystem.PleosTag
+import com.loadmate.app.shared.designsystem.theme.Pleos
+import com.loadmate.app.shared.designsystem.components.PleosButton
+import com.loadmate.app.shared.designsystem.components.PleosButtonStyle
+import com.loadmate.app.shared.designsystem.project.PleosCard
+import com.loadmate.app.shared.designsystem.dimens.PleosShape
+import com.loadmate.app.shared.designsystem.dimens.PleosSpacing
+import com.loadmate.app.shared.designsystem.components.PleosStepper
+import com.loadmate.app.shared.designsystem.project.PleosTag
 import com.loadmate.app.core.pleos.RearDoorConnection
 import com.loadmate.app.feature.trip.domain.Comparison
 import com.loadmate.app.feature.trip.domain.ComparisonState
@@ -90,15 +94,11 @@ private fun TripContent(
     Box(Modifier.fillMaxSize().background(c.backgroundPrimary)) {
         Column(Modifier.fillMaxSize().padding(PleosSpacing.xl), verticalArrangement = Arrangement.spacedBy(PleosSpacing.l)) {
             // 상단: 앱 이름 · 운행 · 출처
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(PleosSpacing.l)) {
-                s.trip?.let {
-                    BasicText(it.name, style = t.bodyLarge.copy(color = c.textSecondary))
-                    if (it.dataSource == "sample") PleosTag("샘플 데이터")
-                }
-                Box(Modifier.weight(1f))
-                PleosButton("새로고침", style = PleosButtonStyle.Basic, enabled = !s.loading) { on(TripUiAction.Refresh) }
-            }
-            s.message?.let { MessageBar(it) { on(TripUiAction.DismissMessage) } }
+            PleosTitle(
+                title = s.trip?.name.orEmpty(),
+                accessory = { if (s.trip?.dataSource == "sample") PleosTag("샘플 데이터") },
+                suffix = { PleosButton("새로고침", style = PleosButtonStyle.Basic, enabled = !s.loading) { on(TripUiAction.Refresh) } },
+            )
             s.offlineSince?.let {
                 MessageBar(UiMessage("오프라인 · ${localTime(it.toString())} 에 받은 정보를 표시 중입니다. 변경 요청은 연결 후 다시 보내세요", true)) {
                     on(TripUiAction.Refresh)
@@ -134,6 +134,17 @@ private fun TripContent(
         s.routeDialog?.let { RouteDialog(it, on) }
         s.pickupDraft?.let { PickupDialog(it, s.trip?.currentStop, s.busy, on) }
         if (s.endDialog) s.trip?.let { EndTripDialog(it, on) }
+        s.message?.let { m ->
+            // 일반 안내는 자동으로 닫고, 오류는 기사가 확인할 때까지 남긴다
+            LaunchedEffect(m) {
+                if (!m.isError) {
+                    delay(TOAST_MILLIS)
+                    on(TripUiAction.DismissMessage)
+                }
+            }
+            PleosToast(m.text, Modifier.align(Alignment.BottomCenter)) { on(TripUiAction.DismissMessage) }
+        }
     }
 }
 
+private const val TOAST_MILLIS = 4_000L
