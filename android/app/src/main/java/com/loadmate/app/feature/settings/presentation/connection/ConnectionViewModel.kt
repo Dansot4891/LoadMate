@@ -14,17 +14,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class ConnectionUiState(
-    val baseUrl: String,
-    val status: ServerStatus? = null,
-    val isChecking: Boolean = false,
-)
-
-sealed interface ConnectionUiAction {
-    data object Refresh : ConnectionUiAction
-}
-
-/** 단방향 흐름: UiAction → 상태 갱신 → StateFlow<UiState>. */
 class ConnectionViewModel(
     private val repository: ConnectionRepository,
     baseUrl: String,

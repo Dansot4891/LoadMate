@@ -30,39 +30,6 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 /** 음성 대화 상태: 대기·청취·처리·응답·확인 대기·실패 (기획서 11장) */
-enum class VoicePhase { IDLE, LISTENING, PROCESSING, ANSWERED, CONFIRMING, CLARIFYING, FAILED }
-
-data class VoiceUiState(
-    val open: Boolean = false,
-    val phase: VoicePhase = VoicePhase.IDLE,
-    val sttReady: Boolean = false,
-    val sttError: String? = null,
-    val partial: String? = null,
-    val heard: String? = null,
-    val reply: AssistantReply? = null,
-    val typed: String = "",
-    val busy: Boolean = false,
-)
-
-sealed interface VoiceUiAction {
-    data object Open : VoiceUiAction
-    data object Close : VoiceUiAction
-    data object Listen : VoiceUiAction
-    data class Typed(val text: String) : VoiceUiAction
-    data object SubmitTyped : VoiceUiAction
-    data object Confirm : VoiceUiAction
-    data object Cancel : VoiceUiAction
-}
-
-sealed interface VoiceEffect {
-    /** 다음 장소 안내: 운행 화면의 내비 확인창을 연다 (확인은 거기서 한 번 더) */
-    data object AskRoute : VoiceEffect
-}
-
-/**
- * 조회는 즉시 답하고, 업무 변경은 요약을 보여 주고 확인을 받은 뒤에만 저장한다 (R08·F41).
- * 인식 문장을 화면에 보여 주고 기사가 맞다고 확인해야 실행한다 (2026-11-08 결정).
- */
 class VoiceViewModel(
     private val stt: SpeechGateway,
     private val tts: SpeechOutput?,

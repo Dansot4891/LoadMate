@@ -19,24 +19,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
 /** S10 Pleos 연동 상태 (F65). 실측용 샘플 목적지는 화면에 "샘플"로 표시한다. */
-data class PleosStatusUiState(
-    val navi: NaviState = NaviState(),
-    val rearDoor: RearDoorState = RearDoorState(),
-    val speech: SpeechState = SpeechState(),
-    val sampleDestination: NaviDestination = PleosStatusViewModel.SAMPLE_DESTINATION,
-)
-
-sealed interface PleosStatusUiAction {
-    /** 화면 표시 시작: 내비 연결 + 뒷문 구독 */
-    data object Start : PleosStatusUiAction
-    /** 화면 이탈: 뒷문·음성 리스너 해제 (내비는 운행 범위라 유지) */
-    data object Stop : PleosStatusUiAction
-    data object RequestSampleRoute : PleosStatusUiAction
-    data object CancelRoute : PleosStatusUiAction
-    data object Listen : PleosStatusUiAction
-    data object StopListening : PleosStatusUiAction
-}
-
 class PleosStatusViewModel(
     private val navi: NaviGateway,
     private val rearDoor: RearDoorGateway,

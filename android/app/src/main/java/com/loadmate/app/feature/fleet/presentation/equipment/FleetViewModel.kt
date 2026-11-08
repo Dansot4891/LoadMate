@@ -24,30 +24,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-data class FleetUiState(
-    val drivers: List<Driver> = emptyList(),
-    val driverId: String? = null,
-    val tripDriverId: String? = null,
-    val equipment: List<Equipment> = emptyList(),
-    val preview: HandoverPreview? = null,
-    val handover: Handover? = null,
-    val toDriverId: String? = null,
-    val note: String = "",
-    val busy: Boolean = false,
-    val message: String? = null,
-)
-
-sealed interface FleetUiAction {
-    data object Refresh : FleetUiAction
-    data class SelectDriver(val id: String) : FleetUiAction
-    data class SetEquipment(val id: String, val status: String) : FleetUiAction
-    data class ToDriver(val id: String) : FleetUiAction
-    data class Note(val text: String) : FleetUiAction
-    data object CreateHandover : FleetUiAction
-    data object AcceptHandover : FleetUiAction
-}
-
-/** S09 차량 장비 및 인계 (F56~F62). 인계 확정과 인수는 구분한다 (R13) */
 class FleetViewModel(
     private val fleet: FleetRepository,
     private val trips: TripRepository,

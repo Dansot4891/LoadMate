@@ -22,34 +22,6 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 /** 메모 범위 선택 (F52). place 는 현재(또는 선택한) 방문지의 장소 */
-data class MemoScope(val type: String, val id: String, val label: String)
-
-data class MemoDraft(val body: String = "", val shared: Boolean = false, val thisTripOnly: Boolean = false, val editingId: Int? = null)
-
-data class RecordsUiState(
-    val trip: Trip? = null,
-    val history: List<HistoryItem> = emptyList(),
-    val scopes: List<MemoScope> = emptyList(),
-    val scope: MemoScope? = null,
-    val query: String = "",
-    val memos: List<Memo> = emptyList(),
-    val draft: MemoDraft = MemoDraft(),
-    val driverId: String? = null,
-    val busy: Boolean = false,
-    val message: String? = null,
-)
-
-sealed interface RecordsUiAction {
-    data object Refresh : RecordsUiAction
-    data class SelectScope(val scope: MemoScope) : RecordsUiAction
-    data class Query(val text: String) : RecordsUiAction
-    data object Search : RecordsUiAction
-    data class Draft(val draft: MemoDraft) : RecordsUiAction
-    data object Save : RecordsUiAction
-    data class Edit(val memo: Memo) : RecordsUiAction
-}
-
-/** S07 기록(이력) · S08 현장 및 개인 메모. 개인 메모는 작성자만 본다 (R12) */
 class RecordsViewModel(
     private val trips: TripRepository,
     private val memos: MemoRepository,
