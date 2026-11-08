@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      권한은 실제로 호출하는 API의 것만 선언한다.
+      새 API를 연결하면 여기와 docs/planning-review.md 를 함께 갱신한다. PRIVATE_* 금지.
+    -->
+    <!-- Loadmate 백엔드 HTTP (/health) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- NaviHelper requestRoute · cancelRoute (core/pleos/PleosNaviGateway) -->
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
+    <!-- Vehicle Door checkDoorPositionCapabilities · registerDoorPosition(REAR) (core/pleos/PleosRearDoorGateway) -->
+    <uses-permission android:name="pleos.car.permission.CAR_DOORS" />
+    <!-- SpeechToText ON_DEVICE initialize · request (core/pleos/PleosSpeechGateway) -->
+    <uses-permission android:name="pleos.car.permission.STT_SERVICE" />
+
+    <application
+        android:name=".LoadmateApplication"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Loadmate"
+        tools:targetApi="34">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
+            android:theme="@style/Theme.Loadmate">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

@@ -1,0 +1,19 @@
+.DS_Store
+.idea/
+.vscode/
+
+# 자격 증명 · 로컬 설정
+.env
+*.keystore
+*.jks
+secrets.properties
+local.properties
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# 기획서 원본 등 외부 문서
+*.docx

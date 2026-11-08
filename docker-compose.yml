@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: loadmate
+      POSTGRES_PASSWORD: loadmate   # 로컬 개발 전용 값
+      POSTGRES_DB: loadmate
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U loadmate -d loadmate"]
+      interval: 3s
+      retries: 20
+
+  backend:
+    build: ./backend
+    environment:
+      LOADMATE_DATABASE_URL: postgresql+psycopg://loadmate:loadmate@db:5432/loadmate
+    ports:
+      - "8000:8000"   # 에뮬레이터에서는 http://10.0.2.2:8000
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
