@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 
-from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
 from app.core.time import iso_utc, utcnow
-from app.features.fleet.models import Driver, Equipment
+from app.features.fleet.repository import FleetRepository
 from app.features.handover.models import Handover
-from app.features.memo.models import Memo
+from app.features.handover.repository import HandoverRepository
+from app.features.memo.repository import MemoRepository
 from app.features.trip.models import TripEvent
 from app.features.trip.service import ZONE_NAMES, TripService, request_hash
 
@@ -22,11 +22,14 @@ class HandoverService:
     def __init__(self, session: Session):
         self.s = session
         self.trips = TripService(session)
+        self.repo = HandoverRepository(session)
+        self.fleet = FleetRepository(session)
+        self.memos = MemoRepository(session)
 
     def preview(self, trip_id: str) -> dict:
         """공유 대상 기록과 미완료 업무만 요약한다. 개인 기록은 자동 포함하지 않는다 (R12)."""
         t = self.trips.get_trip(trip_id)
-        names = {d.id: d.name for d in self.s.scalars(select(Driver))}
+        names = {d.id: d.name for d in self.fleet.drivers()}
         kind_names = {c.kind: c.item_name for st in t.stops for c in st.cargo}
         kn = lambda k: kind_names.get(k, k)  # noqa: E731
         remaining = [
@@ -38,14 +41,11 @@ class HandoverService:
         issues = [{"kind": i.kind, "zone": i.zone, "note": i.note} for i in t.issues if i.status == "open"]
         equipment = []
         if t.vehicle_id:
-            for e in self.s.scalars(select(Equipment).where(Equipment.vehicle_id == t.vehicle_id, Equipment.status != "ok")):
+            for e in self.fleet.alert_equipment(t.vehicle_id):
                 equipment.append({"name": e.name, "status": e.status, "location": e.location, "note": e.note})
         place_keys = [st.place_key for st in t.stops if st.status == "pending"]
-        memo_q = select(Memo).where(Memo.visibility == "shared").where(
-            or_(Memo.scope_type == "trip", Memo.scope_type == "vehicle", Memo.scope_id.in_(place_keys))
-        ).where(or_(Memo.persistence == "always", Memo.trip_id == trip_id))
         memos = [{"scope_type": m.scope_type, "scope_id": m.scope_id, "body": m.body, "author": names.get(m.author_id, m.author_id)}
-                 for m in self.s.scalars(memo_q.order_by(Memo.updated_at.desc()))]
+                 for m in self.memos.shared_for_handover(trip_id, place_keys)]
 
         lines = []
         if remaining:
@@ -73,30 +73,30 @@ class HandoverService:
         if not actor:
             raise AppError(422, "driver_required", "기사를 먼저 선택하세요 (X-Driver-Id)")
         trip = self.trips._trip(trip_id, for_update=True)
-        existing = self.s.scalars(select(Handover).where(Handover.trip_id == trip_id, Handover.idempotency_key == key)).first()
+        existing = self.repo.by_key(trip_id, key)
         h = request_hash({"to": to_driver_id, "note": note})
         if existing is not None:
             self.trips._check_same(request_hash({"to": existing.to_driver_id, "note": existing.note}), h)
             return {"handover": self._out(existing), "replayed": True}
         if trip.driver_id and trip.driver_id != actor:
             raise AppError(403, "not_current_driver", "현재 운행 기사만 인계할 수 있습니다")
-        if self.s.get(Driver, to_driver_id) is None or to_driver_id == actor:
+        if next((d for d in self.fleet.drivers() if d.id == to_driver_id), None) is None or to_driver_id == actor:
             raise AppError(422, "invalid_to_driver", "인수할 다른 기사를 선택하세요")
-        if self.s.scalars(select(Handover).where(Handover.trip_id == trip_id, Handover.status == "pending")).first():
+        if self.repo.pending(trip_id):
             raise AppError(409, "handover_pending", "인수 대기 중인 인계가 있습니다")
         ho = Handover(trip_id=trip_id, idempotency_key=key, from_driver_id=actor, to_driver_id=to_driver_id, note=note,
                       summary=self.preview(trip_id), created_at=utcnow())
-        self.s.add(ho)
+        self.repo.add(ho)
         self.trips._commit()
         return {"handover": self._out(ho), "replayed": False}
 
     def latest(self, trip_id: str) -> dict:
         self.trips._trip(trip_id)
-        ho = self.s.scalars(select(Handover).where(Handover.trip_id == trip_id).order_by(Handover.id.desc())).first()
+        ho = self.repo.latest(trip_id)
         return {"handover": self._out(ho) if ho else None}
 
     def accept(self, handover_id: int, actor: str | None) -> dict:
-        ho = self.s.get(Handover, handover_id)
+        ho = self.repo.get(handover_id)
         if ho is None:
             raise AppError(404, "handover_not_found", "인계를 찾을 수 없습니다")
         if ho.status == "accepted":

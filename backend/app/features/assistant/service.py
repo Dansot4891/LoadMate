@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.features.fleet.models import Equipment
-from app.features.memo.router import relevant_place_memos
+from app.features.assistant.repository import AssistantRepository
 from app.features.trip.service import TripService
 from app.integrations.assistant.rule_based import Intent, interpret, parse_item, parse_qty, parse_return_place
 
@@ -21,6 +19,7 @@ class AssistantService:
     def __init__(self, session: Session):
         self.s = session
         self.trips = TripService(session)
+        self.repo = AssistantRepository(session)
 
     def handle(self, trip_id: str, text: str, actor: str | None, pending: dict | None) -> dict:
         trip = self.trips.get_trip(trip_id)
@@ -49,7 +48,7 @@ class AssistantService:
                 return answer("남은 배송지가 없습니다.")
             left = {c.kind: c.planned_qty - c.delivered_qty for c in st.cargo}
             zone = next((c.zone for c in st.cargo if c.zone), None)
-            memos = relevant_place_memos(self.s, st.place_key, trip_id, actor)
+            memos = self.repo.memo.relevant_place_memos(st.place_key, trip_id, actor)
             parts = [f"{st.label} {st.name}에서 {_counts_text(left, names)}를 내립니다."]
             if zone:
                 parts.append(f"적재 위치는 {_ZONE.get(zone, zone)}입니다.")
@@ -67,13 +66,13 @@ class AssistantService:
         if intent.type == "query_memo":
             if current is None:
                 return answer("남은 배송지가 없습니다.")
-            memos = relevant_place_memos(self.s, current.place_key, trip_id, actor)
+            memos = self.repo.memo.relevant_place_memos(current.place_key, trip_id, actor)
             if not memos:
                 return answer(f"{current.label} 장소에 저장된 메모가 없습니다.")
             return answer(f"{current.label} 메모 {len(memos)}건. " + " / ".join(m.body for m in memos[:2]))
         if intent.type == "query_equipment":
             word = intent.slots["word"]
-            rows = [e for e in self.s.scalars(select(Equipment).where(Equipment.vehicle_id == trip.vehicle_id)) if word in e.name]
+            rows = [e for e in self.repo.fleet.equipment(trip.vehicle_id) if word in e.name]
             if not rows:
                 return answer(f"{word} 장비 기록이 없습니다.")
             e = rows[0]

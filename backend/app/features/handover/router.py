@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
+from app.features.handover.schemas import HandoverIn
 from sqlalchemy.orm import Session
 
 from app.core.actor import actor_id
@@ -9,12 +9,6 @@ from app.core.db import get_session
 from app.features.handover.service import HandoverService
 
 router = APIRouter(tags=["handover"])
-
-
-class HandoverIn(BaseModel):
-    idempotency_key: str = Field(min_length=8, max_length=64)
-    to_driver_id: str
-    note: str = Field(default="", max_length=1000)
 
 
 def svc(s: Session = Depends(get_session)) -> HandoverService:

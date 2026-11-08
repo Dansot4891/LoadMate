@@ -21,6 +21,9 @@ class TripRepository:
             q = q.with_for_update(of=Trip)  # 같은 운행 동시 요청 직렬화 (PostgreSQL)
         return self.s.scalars(q).first()
 
+    def get_stop(self, trip_id: str, stop_id: str) -> Stop | None:
+        return self.s.scalars(select(Stop).where(Stop.id == stop_id, Stop.trip_id == trip_id)).first()
+
     def events(self, trip_id: str) -> list[TripEvent]:
         return list(self.s.scalars(select(TripEvent).where(TripEvent.trip_id == trip_id).order_by(TripEvent.id)))
 
