@@ -1,7 +1,7 @@
 package com.loadmate.app.core.network
 
-import com.loadmate.app.feature.trip.domain.ApiError
-import com.loadmate.app.feature.trip.domain.ApiResult
+import com.loadmate.app.core.network.ApiError
+import com.loadmate.app.core.network.ApiResult
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

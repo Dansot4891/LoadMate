@@ -10,7 +10,7 @@ import com.loadmate.app.feature.assistant.domain.AssistantRepository
 import com.loadmate.app.feature.records.domain.Memo
 import com.loadmate.app.feature.records.domain.MemoRepository
 import com.loadmate.app.feature.records.domain.NewMemo
-import com.loadmate.app.feature.trip.domain.ApiResult
+import com.loadmate.app.core.network.ApiResult
 import com.loadmate.app.feature.trip.domain.Trip
 import com.loadmate.app.feature.trip.domain.TripRepository
 import kotlinx.coroutines.CoroutineScope

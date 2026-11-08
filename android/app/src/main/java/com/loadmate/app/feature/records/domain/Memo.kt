@@ -1,6 +1,6 @@
 package com.loadmate.app.feature.records.domain
 
-import com.loadmate.app.feature.trip.domain.ApiResult
+import com.loadmate.app.core.network.ApiResult
 
 /** 현장·차량·장비·운행 메모 (F49~F54). 개인 메모는 작성자만 본다 (R12) */
 data class Memo(

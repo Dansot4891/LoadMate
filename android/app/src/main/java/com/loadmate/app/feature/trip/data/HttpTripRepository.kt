@@ -1,7 +1,7 @@
 package com.loadmate.app.feature.trip.data
 
 import com.loadmate.app.core.network.ApiClient
-import com.loadmate.app.feature.trip.domain.ApiResult
+import com.loadmate.app.core.network.ApiResult
 import com.loadmate.app.feature.trip.domain.Comparison
 import com.loadmate.app.feature.trip.domain.CompleteResult
 import com.loadmate.app.feature.trip.domain.Counts

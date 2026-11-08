@@ -4,7 +4,7 @@ import com.loadmate.app.core.network.ApiClient
 import com.loadmate.app.feature.records.domain.Memo
 import com.loadmate.app.feature.records.domain.MemoRepository
 import com.loadmate.app.feature.records.domain.NewMemo
-import com.loadmate.app.feature.trip.domain.ApiResult
+import com.loadmate.app.core.network.ApiResult
 import org.json.JSONArray
 import org.json.JSONObject
 

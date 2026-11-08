@@ -1,6 +1,6 @@
 package com.loadmate.app.feature.assistant.domain
 
-import com.loadmate.app.feature.trip.domain.ApiResult
+import com.loadmate.app.core.network.ApiResult
 import org.json.JSONObject
 
 /** 서버 음성 해석 결과 (계약: api-contract "음성 해석"). 변경 요청은 확인 전 저장하지 않는다 (R08) */

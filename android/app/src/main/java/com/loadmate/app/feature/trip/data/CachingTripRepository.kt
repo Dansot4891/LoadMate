@@ -1,6 +1,6 @@
 package com.loadmate.app.feature.trip.data
 
-import com.loadmate.app.feature.trip.domain.ApiResult
+import com.loadmate.app.core.network.ApiResult
 import com.loadmate.app.feature.trip.domain.Trip
 import com.loadmate.app.feature.trip.domain.TripRepository
 import java.time.Instant

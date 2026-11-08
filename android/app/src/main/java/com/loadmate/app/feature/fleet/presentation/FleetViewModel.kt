@@ -12,7 +12,7 @@ import com.loadmate.app.feature.fleet.domain.Equipment
 import com.loadmate.app.feature.fleet.domain.FleetRepository
 import com.loadmate.app.feature.fleet.domain.Handover
 import com.loadmate.app.feature.fleet.domain.HandoverPreview
-import com.loadmate.app.feature.trip.domain.ApiResult
+import com.loadmate.app.core.network.ApiResult
 import com.loadmate.app.feature.trip.domain.TripRepository
 import com.loadmate.app.feature.trip.presentation.describe
 import kotlinx.coroutines.flow.MutableStateFlow

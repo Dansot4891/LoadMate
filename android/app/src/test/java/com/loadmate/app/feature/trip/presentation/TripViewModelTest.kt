@@ -7,8 +7,8 @@ import com.loadmate.app.core.pleos.NaviState
 import com.loadmate.app.core.pleos.RearDoorGateway
 import com.loadmate.app.core.pleos.RearDoorState
 import com.loadmate.app.feature.trip.data.TripJsonParser
-import com.loadmate.app.feature.trip.domain.ApiError
-import com.loadmate.app.feature.trip.domain.ApiResult
+import com.loadmate.app.core.network.ApiError
+import com.loadmate.app.core.network.ApiResult
 import com.loadmate.app.feature.trip.domain.Comparison
 import com.loadmate.app.feature.trip.domain.CompleteResult
 import com.loadmate.app.feature.trip.domain.Counts

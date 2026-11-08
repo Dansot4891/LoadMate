@@ -1,5 +1,7 @@
 package com.loadmate.app.feature.trip.domain
 
+import com.loadmate.app.core.network.ApiResult
+
 /** 종류별 개수 (예: box → 10). 서로 다른 종류는 합산하지 않는다 (기획서 16장). */
 typealias Counts = Map<String, Int>
 
@@ -119,19 +121,6 @@ data class CompleteResult(
     val expectedRemaining: Counts,
     val comparison: Comparison,
 )
-
-sealed interface ApiResult<out T> {
-    data class Success<T>(val value: T) : ApiResult<T>
-    data class Failure(val error: ApiError) : ApiResult<Nothing>
-}
-
-sealed interface ApiError {
-    /** 서버에 닿지 못함. 같은 요청 ID 로 다시 보내면 중복 반영 없이 재시도된다 */
-    data class Network(val reason: String) : ApiError
-    /** 서버 오류 응답 {"detail":{"code","message"}} */
-    data class Http(val status: Int, val code: String?, val message: String) : ApiError
-    data object NotConfigured : ApiError
-}
 
 interface TripRepository {
     suspend fun listTrips(): ApiResult<List<TripSummary>>

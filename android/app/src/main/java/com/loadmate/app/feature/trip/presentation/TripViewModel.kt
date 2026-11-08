@@ -14,8 +14,8 @@ import com.loadmate.app.core.pleos.RearDoorState
 import com.loadmate.app.core.pleos.SpeechOutput
 import com.loadmate.app.feature.records.domain.Memo
 import com.loadmate.app.feature.records.domain.MemoRepository
-import com.loadmate.app.feature.trip.domain.ApiError
-import com.loadmate.app.feature.trip.domain.ApiResult
+import com.loadmate.app.core.network.ApiError
+import com.loadmate.app.core.network.ApiResult
 import com.loadmate.app.feature.trip.domain.Comparison
 import com.loadmate.app.feature.trip.domain.Counts
 import com.loadmate.app.feature.trip.domain.NewCargo

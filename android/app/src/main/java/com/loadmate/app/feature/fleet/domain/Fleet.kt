@@ -1,6 +1,6 @@
 package com.loadmate.app.feature.fleet.domain
 
-import com.loadmate.app.feature.trip.domain.ApiResult
+import com.loadmate.app.core.network.ApiResult
 
 data class Driver(val id: String, val name: String)
 
