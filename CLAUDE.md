@@ -28,7 +28,7 @@ cd android && export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Co
 3. 상태 변경 요청은 중복 반영되지 않게 한다(멱등 키). 개인 기록은 자동 공유하지 않는다.
 4. 권한은 실제 호출하는 API의 것만 선언. PRIVATE_* 금지. 새 Pleos API를 연결하면 Manifest와 docs/planning-review.md 갱신.
 5. 샘플 데이터·녹화 영상·에뮬레이터 신호·미연결 SDK는 화면과 문서에 그렇게 표시한다. 실제 연동이나 실차 지원으로 표현하지 않는다. 실패 시 데모 데이터로 조용히 전환하지 않는다.
-6. 공식 값만 공식이라 부른다. 디자인 토큰은 `core/designsystem`(출처·PROJECT 표시 유지). 화면에서 hex 직접 사용 금지.
+6. 공식 값만 공식이라 부른다. 디자인은 공식 배포 Figma(Pleos Connect design assets·display guide 2.1.5)를 가장 우선하고, Figma에 없는 것만 직접 만든다. 위치는 `shared/designsystem`(출처·PROJECT 표시 유지). 화면에서 hex 직접 사용 금지.
 7. 자격 증명·고객 개인정보·기획서 원본은 Git에 넣지 않는다 (.env, local.properties).
 8. 빈 계층·UseCase를 미리 만들지 않는다. 구조 규칙은 영역별 CLAUDE.md 를 따른다. 내비 리스너는 운행 중(운행 시작~종료) 유지 (2026-11-08 결정).
 9. 완료 기준은 화면 생성이 아니라 빌드·서버 실행·DB 저장/복원·대표 시나리오 연속 동작. 실행 결과를 docs에 기록.

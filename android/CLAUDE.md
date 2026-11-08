@@ -27,11 +27,15 @@ app/
 ├── LoadmateApplication.kt, MainActivity.kt
 ├── AppContainer.kt          # 수동 DI. 구현체 연결은 여기서만
 ├── core/
-│   ├── designsystem/        # Pleos 토큰·타이포·PleosButton 등 (출처·PROJECT 표시 유지)
 │   ├── network/             # ApiClient, ApiResult, ApiError (모든 기능 공용)
 │   ├── pleos/               # Pleos SDK 경계: XxxGateway 인터페이스 + PleosXxxGateway 구현
 │   ├── session/             # DriverStore (현재 기사)
 │   └── notify/              # DriverNotifier (헤드업 알림)
+├── shared/
+│   ├── designsystem/        # color, typography, dimens, theme
+│   │   ├── components/      # 공식 Figma 컴포넌트 전체 (지금 안 쓰는 것도 둔다, 2026-11-09 사용자 결정)
+│   │   └── project/         # Figma 에 없어 직접 만든 컴포넌트 (PROJECT)
+│   └── format/              # 화면 공용 표시 형식
 └── feature/<name>/          # trip, records, fleet, assistant, settings ...
     ├── domain/              # 모델 + XxxRepository 인터페이스. Android·HTTP·Pleos 의존 금지
     ├── data/
@@ -61,6 +65,7 @@ test/                        # main 과 같은 패키지 경로
 - 일회성 이벤트(탭 이동, 화면 전환)는 `XxxUiEffect` 를 `SharedFlow` 로 내보내고 Screen 이 `LaunchedEffect` 로 받는다
 - 문구·판정 텍스트를 만드는 순수 함수는 ViewModel 밖 `internal fun` 으로 두고 단위 테스트한다
 - 색·간격·글꼴은 `Pleos.colors` / `Pleos.type` / `PleosSpacing` 만 쓴다. **화면에서 hex 직접 사용 금지**
+- **디자인은 공식 Figma 2.1.5 를 가장 우선한다.** Figma 에 있는 색·글자·컴포넌트·아이콘(`res/drawable/pleos_ic_*`)을 먼저 쓰고, 없을 때만 `shared/designsystem/project` 에 만든다. 하나를 고르는 묶음은 `PleosSegmentedControl`, 켜고 끄기는 `PleosSwitch`, 확인 창은 `PleosSystemPopup`, 일시 안내는 `PleosToast`
 
 ### 여러 화면이 같은 운행을 볼 때
 
