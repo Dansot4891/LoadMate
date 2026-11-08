@@ -16,6 +16,15 @@ class TripJsonParserTest {
     private fun res(name: String) = javaClass.classLoader!!.getResourceAsStream("trip/$name")!!.bufferedReader().readText()
 
     @Test
+    fun `운행 목록은 서버 출처와 건수를 유지한다`() {
+        val trips = TripJsonParser.tripList("""{"trips":[{"id":"sample-trip-1","name":"샘플 운행","status":"planned","data_source":"sample","stop_count":3}]}""")
+        assertEquals(1, trips.size)
+        assertEquals("sample-trip-1", trips.single().id)
+        assertEquals("sample", trips.single().dataSource)
+        assertEquals(3, trips.single().stopCount)
+    }
+
+    @Test
     fun `운행 응답 파싱`() {
         val t = TripJsonParser.trip(res("trip_in_progress.json"))
         assertEquals("sample", t.dataSource)

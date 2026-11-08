@@ -41,9 +41,6 @@ class AppContainer(appContext: Context) {
     val fleetRepository: FleetRepository by lazy { FleetRepositoryImpl(api) }
     val assistantRepository: AssistantRepository by lazy { AssistantRepositoryImpl(api) }
 
-    /** 시연 운행 (서버 샘플 시드). 운행 목록에서 고르는 화면이 생기면 선택으로 바꾼다 */
-    val sampleTripId = "sample-trip-1"
-
     // Pleos SDK 구현은 여기서만 연결한다. 화면은 인터페이스만 받는다.
     val naviGateway: NaviGateway by lazy { PleosNaviGateway(appContext) }
     val tripSession: TripSession by lazy { TripSession(tripRepository, naviGateway, speechOutput) { id, title, message -> notifier.notify(id, title, message) } }
@@ -51,9 +48,10 @@ class AppContainer(appContext: Context) {
     val speechGateway: SpeechGateway by lazy { PleosSpeechGateway(appContext) }
     val speechOutput: SpeechOutput by lazy { PleosSpeechOutput(appContext) }
     val notifier: DriverNotifier by lazy { DriverNotifier(appContext) }
-    val tripCoordinator: TripCoordinator by lazy {
+    private val coordinators = mutableMapOf<String, TripCoordinator>()
+    fun tripCoordinator(tripId: String): TripCoordinator = coordinators.getOrPut(tripId) {
         TripCoordinator(tripRepository, memoRepository, tripSession.navi, rearDoorGateway, speechOutput,
-            { id, title, message -> notifier.notify(id, title, message) }, { tripRepository.cached(it) }, sampleTripId,
+            { id, title, message -> notifier.notify(id, title, message) }, { tripRepository.cached(it) }, tripId,
             CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate))
     }
 

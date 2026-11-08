@@ -19,6 +19,6 @@ class DrivingViewModel(private val coordinator: TripCoordinator) : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DrivingUiState())
     fun onAction(action: DrivingUiAction) = coordinator.onAction(action.value)
     companion object {
-        fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory { initializer { DrivingViewModel(container.tripCoordinator) } }
+        fun factory(container: AppContainer, tripId: String): ViewModelProvider.Factory = viewModelFactory { initializer { DrivingViewModel(container.tripCoordinator(tripId)) } }
     }
 }

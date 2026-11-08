@@ -19,6 +19,6 @@ class OverviewViewModel(private val coordinator: TripCoordinator) : ViewModel() 
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OverviewUiState())
     fun onAction(action: OverviewUiAction) = coordinator.onAction(action.value)
     companion object {
-        fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory { initializer { OverviewViewModel(container.tripCoordinator) } }
+        fun factory(container: AppContainer, tripId: String): ViewModelProvider.Factory = viewModelFactory { initializer { OverviewViewModel(container.tripCoordinator(tripId)) } }
     }
 }

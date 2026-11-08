@@ -17,8 +17,10 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +43,9 @@ import com.loadmate.app.feature.settings.presentation.connection.ConnectionScree
 import com.loadmate.app.feature.settings.presentation.connection.ConnectionViewModel
 import com.loadmate.app.feature.settings.presentation.pleosstatus.PleosStatusSection
 import com.loadmate.app.feature.settings.presentation.pleosstatus.PleosStatusViewModel
+import com.loadmate.app.feature.trip.presentation.select.SelectScreen
+import com.loadmate.app.feature.trip.presentation.select.SelectViewModel
+import com.loadmate.app.feature.trip.presentation.select.SelectUiEffect
 import com.loadmate.app.feature.trip.presentation.TripScreen
 import com.loadmate.app.feature.trip.presentation.TripUiAction
 import com.loadmate.app.feature.trip.presentation.overview.OverviewViewModel
@@ -59,57 +64,74 @@ class MainActivity : ComponentActivity() {
         // 내비 위 헤드업 알림 (F32). 거부해도 화면·음성 안내는 동작한다
         if (Build.VERSION.SDK_INT >= 33) askNotify.launch(Manifest.permission.POST_NOTIFICATIONS)
         val container = (application as LoadmateApplication).container
-        val tripId = container.sampleTripId
         setContent {
             PleosTheme {
-                var tab by rememberSaveable { mutableIntStateOf(0) }
-                val tripVm: OverviewViewModel = viewModel(factory = OverviewViewModel.factory(container))
-                val loadCheckVm: LoadCheckViewModel = viewModel(factory = LoadCheckViewModel.factory(container))
-                val drivingVm: DrivingViewModel = viewModel(factory = DrivingViewModel.factory(container))
-                val siteWorkVm: SiteWorkViewModel = viewModel(factory = SiteWorkViewModel.factory(container))
-                val mismatchVm: MismatchViewModel = viewModel(factory = MismatchViewModel.factory(container))
-                val voiceVm: VoiceViewModel = viewModel(factory = VoiceViewModel.factory(container, tripId))
-                val voice by voiceVm.state.collectAsStateWithLifecycle()
-                val driverId by container.driverStore.driverId.collectAsState()
-                val driverName by container.driverStore.driverName.collectAsState()
-                LaunchedEffect(voiceVm) {
-                    voiceVm.effect.collect { e ->
-                        if (e == VoiceEffect.AskRoute) { tab = 0; drivingVm.onAction(com.loadmate.app.feature.trip.presentation.driving.DrivingUiAction(TripUiAction.AskRoute)) }
+                var selectedTripId by rememberSaveable { mutableStateOf<String?>(null) }
+                val selectVm: SelectViewModel = viewModel(factory = SelectViewModel.factory(container))
+                LaunchedEffect(selectVm) {
+                    selectVm.effect.collect { effect ->
+                        if (effect is SelectUiEffect.OpenTrip) selectedTripId = effect.tripId
                     }
                 }
-                val c = Pleos.colors
-                val t = Pleos.type
-                Box(Modifier.fillMaxSize().background(c.backgroundPrimary)) {
-                    Column(Modifier.fillMaxSize()) {
-                        Row(
-                            Modifier.padding(start = PleosSpacing.xl, end = PleosSpacing.xl, top = PleosSpacing.l),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m),
-                        ) {
-                            BasicText("Loadmate", style = t.titleMedium.copy(color = c.textPrimary))
-                            TABS.forEachIndexed { i, name ->
-                                PleosButton(name, style = if (tab == i) PleosButtonStyle.Filled else PleosButtonStyle.Basic) { tab = i }
-                            }
-                            Box(Modifier.weight(1f))
-                            BasicText(driverId?.let { "기사: ${driverName ?: it}" } ?: "기사 미선택 · 장비·인계에서 선택", style = t.bodyMedium.copy(color = if (driverId == null) c.negative else c.textSecondary))
-                            PleosButton("🎤 말하기") { voiceVm.onAction(VoiceUiAction.Open) }
-                        }
-                        Box(Modifier.weight(1f)) {
-                            when (tab) {
-                                0 -> TripScreen(tripVm, loadCheckVm, drivingVm, siteWorkVm, mismatchVm)
-                                1 -> RecordsScreen(viewModel(factory = RecordsViewModel.factory(container, tripId)))
-                                2 -> FleetScreen(viewModel(factory = FleetViewModel.factory(container, tripId)))
-                                else -> {
-                                    val vm: ConnectionViewModel = viewModel(factory = ConnectionViewModel.factory(container))
-                                    val pleosVm: PleosStatusViewModel = viewModel(factory = PleosStatusViewModel.factory(container))
-                                    ConnectionScreen(vm, onBack = null) { PleosStatusSection(pleosVm) }
-                                }
-                            }
-                        }
-                    }
-                    VoicePanel(voice, voiceVm::onAction)
+                val tripId = selectedTripId
+                if (tripId == null) {
+                    SelectScreen(selectVm)
+                } else key(tripId) {
+                    TripTabs(container, tripId, onSelectTrip = { selectedTripId = null })
                 }
             }
         }
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun TripTabs(container: AppContainer, tripId: String, onSelectTrip: () -> Unit) {
+    var tab by rememberSaveable(tripId) { mutableIntStateOf(0) }
+    val tripVm: OverviewViewModel = viewModel(key = "overview-$tripId", factory = OverviewViewModel.factory(container, tripId))
+    val loadCheckVm: LoadCheckViewModel = viewModel(key = "loadcheck-$tripId", factory = LoadCheckViewModel.factory(container, tripId))
+    val drivingVm: DrivingViewModel = viewModel(key = "driving-$tripId", factory = DrivingViewModel.factory(container, tripId))
+    val siteWorkVm: SiteWorkViewModel = viewModel(key = "sitework-$tripId", factory = SiteWorkViewModel.factory(container, tripId))
+    val mismatchVm: MismatchViewModel = viewModel(key = "mismatch-$tripId", factory = MismatchViewModel.factory(container, tripId))
+    val voiceVm: VoiceViewModel = viewModel(key = "voice-$tripId", factory = VoiceViewModel.factory(container, tripId))
+    val voice by voiceVm.state.collectAsStateWithLifecycle()
+    val driverId by container.driverStore.driverId.collectAsState()
+    val driverName by container.driverStore.driverName.collectAsState()
+    LaunchedEffect(voiceVm) {
+        voiceVm.effect.collect { e ->
+            if (e == VoiceEffect.AskRoute) { tab = 0; drivingVm.onAction(com.loadmate.app.feature.trip.presentation.driving.DrivingUiAction(TripUiAction.AskRoute)) }
+        }
+    }
+    val c = Pleos.colors
+    val t = Pleos.type
+    Box(Modifier.fillMaxSize().background(c.backgroundPrimary)) {
+        Column(Modifier.fillMaxSize()) {
+            Row(
+                Modifier.padding(start = PleosSpacing.xl, end = PleosSpacing.xl, top = PleosSpacing.l),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m),
+            ) {
+                BasicText("Loadmate", style = t.titleMedium.copy(color = c.textPrimary))
+                PleosButton("운행 선택", style = PleosButtonStyle.Basic, onClick = onSelectTrip)
+                TABS.forEachIndexed { i, name ->
+                    PleosButton(name, style = if (tab == i) PleosButtonStyle.Filled else PleosButtonStyle.Basic) { tab = i }
+                }
+                Box(Modifier.weight(1f))
+                BasicText(driverId?.let { "기사: ${driverName ?: it}" } ?: "기사 미선택 · 장비·인계에서 선택", style = t.bodyMedium.copy(color = if (driverId == null) c.negative else c.textSecondary))
+                PleosButton("🎤 말하기") { voiceVm.onAction(VoiceUiAction.Open) }
+            }
+            Box(Modifier.weight(1f)) {
+                when (tab) {
+                    0 -> TripScreen(tripVm, loadCheckVm, drivingVm, siteWorkVm, mismatchVm)
+                    1 -> RecordsScreen(viewModel(key = "records-$tripId", factory = RecordsViewModel.factory(container, tripId)))
+                    2 -> FleetScreen(viewModel(key = "fleet-$tripId", factory = FleetViewModel.factory(container, tripId)))
+                    else -> {
+                        val vm: ConnectionViewModel = viewModel(factory = ConnectionViewModel.factory(container))
+                        val pleosVm: PleosStatusViewModel = viewModel(factory = PleosStatusViewModel.factory(container))
+                        ConnectionScreen(vm, onBack = null) { PleosStatusSection(pleosVm) }
+                    }
+                }
+            }
+        }
+        VoicePanel(voice, voiceVm::onAction)
     }
 }

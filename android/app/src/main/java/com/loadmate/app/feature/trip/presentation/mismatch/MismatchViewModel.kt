@@ -19,6 +19,6 @@ class MismatchViewModel(private val coordinator: TripCoordinator) : ViewModel() 
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MismatchUiState())
     fun onAction(action: MismatchUiAction) = coordinator.onAction(action.value)
     companion object {
-        fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory { initializer { MismatchViewModel(container.tripCoordinator) } }
+        fun factory(container: AppContainer, tripId: String): ViewModelProvider.Factory = viewModelFactory { initializer { MismatchViewModel(container.tripCoordinator(tripId)) } }
     }
 }

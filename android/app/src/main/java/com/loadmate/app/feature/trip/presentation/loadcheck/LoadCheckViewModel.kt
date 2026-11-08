@@ -19,6 +19,6 @@ class LoadCheckViewModel(private val coordinator: TripCoordinator) : ViewModel()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LoadCheckUiState())
     fun onAction(action: LoadCheckUiAction) = coordinator.onAction(action.value)
     companion object {
-        fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory { initializer { LoadCheckViewModel(container.tripCoordinator) } }
+        fun factory(container: AppContainer, tripId: String): ViewModelProvider.Factory = viewModelFactory { initializer { LoadCheckViewModel(container.tripCoordinator(tripId)) } }
     }
 }

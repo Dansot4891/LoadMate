@@ -12,7 +12,7 @@
 |---|---|
 | 단계 | 기획서 14장(대표 시나리오)·15장(회수·메모·인계)까지 **앱+서버 구현 완료**. 제출 준비(3순위)는 **아직 시작 안 함** |
 | 사용자 방침 | "기능을 먼저 끝까지 구현" (2026-11-08). 남은 코드 기능 vs vision vs 제출 준비 순서는 사용자에게 확인할 것 |
-| Android | 탭 4개(운행 · 기록·메모 · 장비·인계 · 연결 상태) + 음성 패널. 단위 테스트 26개, lint 버전 경고만 |
+| Android | 운행 선택 첫 화면 + 탭 4개(운행 · 기록·메모 · 장비·인계 · 연결 상태) + 음성 패널. 단위 테스트 29개, lint 버전 경고만 |
 | Backend | FastAPI + PostgreSQL(Docker). Feature: health·trip·fleet·memo·handover·assistant. Alembic 2개. pytest 61개 |
 | Pleos SDK (앱 연결) | NaviHelper 3.0.5(목적지·경유지), Vehicle 2.3.2 Door REAR, SpeechToText 3.3.1 ON_DEVICE, TextToSpeech 3.3.1 ON_DEVICE. **모두 에뮬레이터 확인만**, 실차 미확인 |
 | 데이터 출처 | 운행·관측·이상 감지는 **샘플**(화면에 표시). 음성 해석·인계 요약은 **규칙 기반**(AI 아님, 화면에 표시) |
@@ -38,12 +38,12 @@ adb -s emulator-5554 shell am start --user 10 -n com.loadmate.app/.MainActivity 
 cd .. && docker run --rm -v "$PWD/backend:/srv" -w /srv loadmate-backend sh -c "pip install -q -r requirements-dev.txt && pytest -q"
 ```
 
-앱 첫 실행: **장비·인계 탭 → 기사 선택**(기사 1/2, 샘플). 선택 전에는 메모 저장·인계가 막힌다.
+앱 첫 실행: **오늘의 운행 → 샘플 운행 선택 → 장비·인계 탭 → 기사 선택**(기사 1/2, 샘플). 선택 전에는 메모 저장·인계가 막힌다.
 종료: `docker compose stop`, `adb -s emulator-5554 emu kill`.
 
 ## 3. 시연 순서 (현재 구현 기준)
 
-1. 장비·인계 → 기사 1 선택 → 운행 탭 S01 "적재 확인 시작"
+1. 오늘의 운행 → 샘플 운행 선택 → 장비·인계 → 기사 1 선택 → 운행 탭 S01 "적재 확인 시작"
 2. S05: 샘플 관측 10 "관측 기록" → (스크롤) "이 수량으로 기준 확정"
 3. S03: "내비 안내 보내기 (A부터)" → 확인창 "보내기" → 내비가 화면을 덮음 → 앱으로 돌아오면 "안내 시작됨 · 3.1km · 11분"
 4. "A 도착 · 현장 작업 시작" → S04: 뒷문(Virtual Console 트렁크) 열림 표시, 관측 수량 +1(8) "관측 기록" → "하차 완료 요청"
@@ -95,7 +95,7 @@ A0. 구조 이행 (2026-11-08 결정, 영상 분석 붙이기 전에) — 규칙
   - [x] `HttpXxxRepository` → `XxxRepositoryImpl`, 운행 데이터는 Repository StateFlow 로 보관
   - [x] 운행 탭 분리: `trip/presentation/{overview,loadcheck,driving,sitework,mismatch}/` 화면별 ViewModel, 내비 리스너는 운행 범위 객체로 이동
   - [x] 나머지 기능(records·fleet·assistant·settings)도 `presentation/<screen>/` 폴더로
-  - [ ] 운행 선택 첫 화면 (F02, `GET /trips`), `AppContainer.sampleTripId` 제거
+  - [x] 운행 선택 첫 화면 (F02, `GET /trips`), `AppContainer.sampleTripId` 제거
   - [ ] 단위 테스트 26개 통과 + 에뮬레이터 대표 시나리오 재확인 (샘플 운행 초기화 승인 대기: 자동 승인 검토가 `app.seed --reset` 거절)
 
 A. 남은 코드 기능 (선택)
@@ -209,6 +209,7 @@ C. 제출 준비 (마감 11/15)
 | 2026-11-08 | 화면별 UiState·UiAction 반영 APK 재설치·실행 | B 진행·예상 잔량 7 표시, 앱 시작 정상 | `2f14344`, user 10 UI 텍스트 덤프 |
 | 2026-11-08 | 화면별 상태·액션 파일 및 운행 공통 Composable 분리 | 각 변경 후 assembleDebug·testDebugUnitTest·lintDebug 통과. 최종 APK 에뮬레이터 재설치 후 B 진행·잔량 7 표시 | `016a527`, `09b474b`, `bad9f8f`; user 10 UI 텍스트 덤프 |
 | 2026-11-08 | 동작 보존 점검: 관측·방문지 완료 뒤 중복 운행 조회 제거 | 화면의 기존 재조회 흐름 유지, assembleDebug·testDebugUnitTest·lintDebug 통과 | `CachingTripRepository`, 로컬 빌드 |
+| 2026-11-08 | F02 운행 선택 첫 화면, 샘플 출처 표시, 선택 운행으로 탭 전환 | assembleDebug·testDebugUnitTest(29개)·lintDebug 통과. 에뮬레이터 user 10에서 목록·샘플 표시 → 운행 열기 → 운행 선택 복귀 확인. 전체 시연은 기존 샘플 운행 상태 보존으로 미실시 | `GET /trips` UI 텍스트 덤프, emulator-5554 |
 | 2026-11-08 | Android assembleDebug / testDebugUnitTest / lintDebug | 통과 | 로컬 빌드 |
 | 2026-11-08 | backend pytest | 2 passed | Python 3.9 venv |
 | 2026-11-08 | docker compose + `/health` | `database: ok` | Colima, postgres:16, python:3.12-slim |
