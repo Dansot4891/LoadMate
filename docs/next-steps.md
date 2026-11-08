@@ -90,7 +90,7 @@ A0. 구조 이행 (2026-11-08 결정, 영상 분석 붙이기 전에) — 규칙
   - [x] `trip/service.py`(517줄) → `trip/service/{trips,stops,loading,pickups,issues,common}.py`
   - [x] pytest 61개 유지 + PostgreSQL 대표 시나리오 재확인
 - 앱
-  - [ ] `ApiResult`·`ApiError` 를 `feature/trip/domain` → `core/network` 로 이동
+  - [x] `ApiResult`·`ApiError` 를 `feature/trip/domain` → `core/network` 로 이동
   - [ ] kotlinx.serialization 도입(AGP 8.7.3·Kotlin 2.0.0 호환 버전), org.json 파서 9개 파일 → `dto/` + `mapper/`
   - [ ] `HttpXxxRepository` → `XxxRepositoryImpl`, 운행 데이터는 Repository StateFlow 로 보관
   - [ ] 운행 탭 분리: `trip/presentation/{overview,loadcheck,driving,sitework,mismatch}/` 화면별 ViewModel, 내비 리스너는 운행 범위 객체로 이동
@@ -201,6 +201,8 @@ C. 제출 준비 (마감 11/15)
 
 | 날짜 | 항목 | 결과 | 근거 |
 |---|---|---|---|
+| 2026-11-08 | A0 앱 구조 이행 1단계: `ApiResult`·`ApiError` 공통 네트워크 이동 | assembleDebug·testDebugUnitTest·lintDebug 통과 | `21b864e` |
+| 2026-11-08 | A0 앱 DTO 이행 착수: kotlinx.serialization 1.6.3 도입, 연결 상태 응답 DTO·mapper 전환 | assembleDebug·testDebugUnitTest·lintDebug 통과 | `35ed274`; 나머지 파서 이행 전 |
 | 2026-11-08 | Android assembleDebug / testDebugUnitTest / lintDebug | 통과 | 로컬 빌드 |
 | 2026-11-08 | backend pytest | 2 passed | Python 3.9 venv |
 | 2026-11-08 | docker compose + `/health` | `database: ok` | Colima, postgres:16, python:3.12-slim |
