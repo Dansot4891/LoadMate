@@ -1,6 +1,8 @@
 package com.loadmate.app.feature.trip.presentation.shared
 
-import com.loadmate.app.core.designsystem.localTime
+import com.loadmate.app.shared.designsystem.components.PleosListItem
+import com.loadmate.app.shared.designsystem.components.PleosSegmentedControl
+import com.loadmate.app.shared.format.localTime
 import com.loadmate.app.feature.trip.presentation.overview.OverviewScreen
 import com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckScreen
 import com.loadmate.app.feature.trip.presentation.driving.DrivingScreen
@@ -12,7 +14,6 @@ import com.loadmate.app.core.pleos.RouteRequestStatus
 import com.loadmate.app.core.pleos.routeRequestStatus
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,14 +35,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.loadmate.app.core.designsystem.Pleos
-import com.loadmate.app.core.designsystem.PleosButton
-import com.loadmate.app.core.designsystem.PleosButtonStyle
-import com.loadmate.app.core.designsystem.PleosCard
-import com.loadmate.app.core.designsystem.PleosShape
-import com.loadmate.app.core.designsystem.PleosSpacing
-import com.loadmate.app.core.designsystem.PleosStepper
-import com.loadmate.app.core.designsystem.PleosTag
+import com.loadmate.app.shared.designsystem.theme.Pleos
+import com.loadmate.app.shared.designsystem.components.PleosButton
+import com.loadmate.app.shared.designsystem.components.PleosButtonStyle
+import com.loadmate.app.shared.designsystem.project.PleosCard
+import com.loadmate.app.shared.designsystem.dimens.PleosShape
+import com.loadmate.app.shared.designsystem.dimens.PleosSpacing
+import com.loadmate.app.shared.designsystem.components.PleosStepper
+import com.loadmate.app.shared.designsystem.project.PleosTag
+import com.loadmate.app.shared.designsystem.components.PleosTextButton
 import com.loadmate.app.core.pleos.RearDoorConnection
 import com.loadmate.app.feature.trip.domain.Comparison
 import com.loadmate.app.feature.trip.domain.ComparisonState
@@ -60,7 +62,7 @@ internal fun MessageBar(m: UiMessage, onClose: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         BasicText(m.text, Modifier.weight(1f), style = Pleos.type.bodyMedium.copy(color = if (m.isError) c.negative else c.textPrimary))
-        BasicText("닫기", Modifier.clickable(onClick = onClose).padding(PleosSpacing.m), style = Pleos.type.bodyMedium.copy(color = c.textSecondary))
+        PleosTextButton("닫기", onClick = onClose)
     }
 }
 
@@ -77,41 +79,36 @@ internal fun StopsPanel(trip: Trip, modifier: Modifier) {
             )
         }
         val current = trip.currentStop?.id
-        trip.stops.forEach { st -> StopRow(st, trip, isCurrent = st.id == current && trip.baseline != null) }
+        PleosCard {
+            trip.stops.forEach { st -> StopRow(st, isCurrent = st.id == current && trip.baseline != null) }
+        }
     }
 }
 
 @Composable
-private fun StopRow(st: Stop, trip: Trip, isCurrent: Boolean) {
+private fun StopRow(st: Stop, isCurrent: Boolean) {
     val c = Pleos.colors
     val t = Pleos.type
-    Column(
-        Modifier.fillMaxWidth()
-            .background(if (isCurrent) c.surfaceAccent else c.surfaceBasic, RoundedCornerShape(PleosShape.medium))
-            .padding(PleosSpacing.l),
-        verticalArrangement = Arrangement.spacedBy(PleosSpacing.xs),
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m), verticalAlignment = Alignment.CenterVertically) {
-            BasicText(st.label, style = t.titleSmall.copy(color = c.textPrimary))
-            BasicText(st.name, Modifier.weight(1f), style = t.bodyMedium.copy(color = c.textPrimary))
-            val (label, tone) = when (st.status) {
-                StopStatus.PENDING -> (if (isCurrent) "현재" else "예정") to c.textSecondary
-                StopStatus.COMPLETED -> "완료" to c.positive
-                StopStatus.PARTIAL -> "부분 납품" to c.regulationOrange
-                StopStatus.CANCELLED -> "취소" to c.textTertiary
-                StopStatus.UNKNOWN -> "?" to c.textSecondary
-            }
-            BasicText(label, style = t.bodyMedium.copy(color = tone))
-        }
-        val cargo = st.cargo.joinToString(" · ") { "${it.itemName} ${it.deliveredQty}/${it.plannedQty}" }
-        val how = when (st.resolution) {
-            "driver_confirmed" -> " · 기사 확인"
-            "matched" -> " · 관측 일치"
-            else -> ""
-        }
-        BasicText("하차 $cargo$how", style = t.labelMedium.copy(color = c.textSecondary))
-        st.cancelReason?.let { BasicText("취소 사유: $it", style = t.labelMedium.copy(color = c.textTertiary)) }
+    val (label, tone) = when (st.status) {
+        StopStatus.PENDING -> (if (isCurrent) "현재" else "예정") to c.textSecondary
+        StopStatus.COMPLETED -> "완료" to c.positive
+        StopStatus.PARTIAL -> "부분 납품" to c.regulationOrange
+        StopStatus.CANCELLED -> "취소" to c.textTertiary
+        StopStatus.UNKNOWN -> "?" to c.textSecondary
     }
+    val cargo = st.cargo.joinToString(" · ") { "${it.itemName} ${it.deliveredQty}/${it.plannedQty}" }
+    val how = when (st.resolution) {
+        "driver_confirmed" -> " · 기사 확인"
+        "matched" -> " · 관측 일치"
+        else -> ""
+    }
+    PleosListItem(
+        title = st.name,
+        subtitle = "하차 $cargo$how" + st.cancelReason?.let { "\n취소 사유: $it" }.orEmpty(),
+        selected = isCurrent,
+        leading = { BasicText(st.label, style = t.titleSmall.copy(color = c.textPrimary)) },
+        trailing = { BasicText(label, style = t.bodyMedium.copy(color = tone)) },
+    )
 }
 
 /** 관측 입력: 카메라 API가 없어 샘플·기사 입력만 (원칙 5: 출처 표시) */
@@ -128,13 +125,8 @@ internal fun ObservationInput(s: ObservationUiState, trip: Trip, on: (TripUiActi
             "Pleos SDK에 카메라 API가 없어 시연에서는 샘플 값 또는 기사 입력으로 관측을 기록합니다.",
             style = t.labelMedium.copy(color = c.textTertiary),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {
-            listOf(ObservationSource.SAMPLE, ObservationSource.MANUAL).forEach { src ->
-                PleosButton(
-                    src.label,
-                    style = if (s.observationSource == src) PleosButtonStyle.Filled else PleosButtonStyle.Basic,
-                ) { on(TripUiAction.ObservationSourceSelect(src)) }
-            }
+        PleosSegmentedControl(listOf(ObservationSource.SAMPLE, ObservationSource.MANUAL), s.observationSource, { it.label }) {
+            on(TripUiAction.ObservationSourceSelect(it))
         }
         trip.kindNames.forEach { (kind, name) ->
             PleosStepper(name, s.observationDraft[kind] ?: 0, { on(TripUiAction.ObservationCount(kind, it)) })
