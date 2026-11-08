@@ -127,7 +127,6 @@ class TripViewModel(
     private val speech: SpeechOutput?,
     private val notify: (id: Int, title: String, text: String) -> Unit,
     private val cached: (String) -> Pair<Trip, Instant>?,
-    externalChanges: Flow<Unit>,
     private val tripId: String,
     private val now: () -> Instant = Instant::now,
     private val newKey: () -> String = { UUID.randomUUID().toString() },
@@ -149,7 +148,7 @@ class TripViewModel(
 
     init {
         refresh()
-        viewModelScope.launch { externalChanges.collect { reloadQuietly() } }
+        viewModelScope.launch { repo.currentTrip.collect { trip -> if (trip != null && trip.id == tripId && trip != local.value.trip) applyTrip(trip, keepStep = true) } }
         // 내비 결과를 짧게 알린다. 내비가 화면을 덮고 있어도 들리고 보이게 (실측: 헤드업·TTS 동작)
         viewModelScope.launch {
             navi.state.collect { n ->
@@ -442,7 +441,7 @@ class TripViewModel(
                     repo = container.tripRepository, memos = container.memoRepository, navi = container.naviGateway,
                     rearDoor = container.rearDoorGateway, speech = container.speechOutput,
                     notify = { id, title, text -> container.notifier.notify(id, title, text) },
-                    cached = { container.tripRepository.cached(it) }, externalChanges = container.tripChanged, tripId = tripId,
+                    cached = { container.tripRepository.cached(it) }, tripId = tripId,
                 )
             }
         }

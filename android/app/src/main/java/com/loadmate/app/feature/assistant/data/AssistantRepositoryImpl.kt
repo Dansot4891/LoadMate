@@ -11,7 +11,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
 
-class HttpAssistantRepository(private val api: ApiClient) : AssistantRepository {
+class AssistantRepositoryImpl(private val api: ApiClient) : AssistantRepository {
     override suspend fun interpret(tripId: String, text: String, pending: AssistantAction?) =
         api.post("/assistant/interpret", JSONObject().put("trip_id", tripId).put("text", text)
             .put("pending", pending?.let { JSONObject(json.encodeToString(it.toDto())) } ?: JSONObject.NULL), ::parse)

@@ -52,7 +52,6 @@ class FleetViewModel(
     private val fleet: FleetRepository,
     private val trips: TripRepository,
     private val drivers: DriverStore,
-    private val onTripChanged: () -> Unit,
     private val tripId: String,
 ) : ViewModel() {
     private val local = MutableStateFlow(FleetUiState())
@@ -108,7 +107,7 @@ class FleetViewModel(
         val h = state.value.handover ?: return
         viewModelScope.launch {
             when (val r = fleet.acceptHandover(h.id)) {
-                is ApiResult.Success -> { local.update { it.copy(handover = r.value, message = "인수했습니다. 이어서 운행하세요") }; onTripChanged(); refresh() }
+                is ApiResult.Success -> { local.update { it.copy(handover = r.value, message = "인수했습니다. 이어서 운행하세요") }; refresh() }
                 is ApiResult.Failure -> local.update { it.copy(message = describe(r.error)) }
             }
         }
@@ -116,7 +115,7 @@ class FleetViewModel(
 
     companion object {
         fun factory(c: AppContainer, tripId: String): ViewModelProvider.Factory = viewModelFactory {
-            initializer { FleetViewModel(c.fleetRepository, c.tripRepository, c.driverStore, c::notifyTripChanged, tripId) }
+            initializer { FleetViewModel(c.fleetRepository, c.tripRepository, c.driverStore, tripId) }
         }
     }
 }

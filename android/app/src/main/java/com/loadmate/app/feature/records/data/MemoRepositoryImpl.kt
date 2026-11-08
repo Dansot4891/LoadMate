@@ -13,7 +13,7 @@ import com.loadmate.app.feature.records.data.dto.MemoListDto
 import com.loadmate.app.feature.records.data.mapper.toDomain
 import kotlinx.serialization.json.Json
 
-class HttpMemoRepository(private val api: ApiClient) : MemoRepository {
+class MemoRepositoryImpl(private val api: ApiClient) : MemoRepository {
     override suspend fun list(scopeType: String?, scopeId: String?, tripId: String?, query: String?) =
         api.get("/memos", mapOf("scope_type" to scopeType, "scope_id" to scopeId, "trip_id" to tripId, "q" to query), ::memos)
 

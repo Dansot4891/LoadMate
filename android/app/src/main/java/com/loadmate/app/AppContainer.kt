@@ -12,19 +12,16 @@ import com.loadmate.app.core.pleos.RearDoorGateway
 import com.loadmate.app.core.pleos.SpeechGateway
 import com.loadmate.app.core.pleos.SpeechOutput
 import com.loadmate.app.core.session.DriverStore
-import com.loadmate.app.feature.assistant.data.HttpAssistantRepository
+import com.loadmate.app.feature.assistant.data.AssistantRepositoryImpl
 import com.loadmate.app.feature.assistant.domain.AssistantRepository
-import com.loadmate.app.feature.fleet.data.HttpFleetRepository
+import com.loadmate.app.feature.fleet.data.FleetRepositoryImpl
 import com.loadmate.app.feature.fleet.domain.FleetRepository
-import com.loadmate.app.feature.records.data.HttpMemoRepository
+import com.loadmate.app.feature.records.data.MemoRepositoryImpl
 import com.loadmate.app.feature.records.domain.MemoRepository
-import com.loadmate.app.feature.settings.data.HttpConnectionRepository
+import com.loadmate.app.feature.settings.data.ConnectionRepositoryImpl
 import com.loadmate.app.feature.settings.domain.ConnectionRepository
 import com.loadmate.app.feature.trip.data.CachingTripRepository
-import com.loadmate.app.feature.trip.data.HttpTripRepository
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import com.loadmate.app.feature.trip.data.TripRepositoryImpl
 
 /** 수동 의존성 주입 컨테이너. 구현체 연결은 여기서만 한다. */
 class AppContainer(appContext: Context) {
@@ -33,11 +30,11 @@ class AppContainer(appContext: Context) {
     val driverStore = DriverStore(appContext)
     private val api = ApiClient(apiBaseUrl, driverId = { driverStore.driverId.value })
 
-    val connectionRepository: ConnectionRepository by lazy { HttpConnectionRepository(apiBaseUrl) }
-    val tripRepository: CachingTripRepository by lazy { CachingTripRepository(HttpTripRepository(api)) }
-    val memoRepository: MemoRepository by lazy { HttpMemoRepository(api) }
-    val fleetRepository: FleetRepository by lazy { HttpFleetRepository(api) }
-    val assistantRepository: AssistantRepository by lazy { HttpAssistantRepository(api) }
+    val connectionRepository: ConnectionRepository by lazy { ConnectionRepositoryImpl(apiBaseUrl) }
+    val tripRepository: CachingTripRepository by lazy { CachingTripRepository(TripRepositoryImpl(api)) }
+    val memoRepository: MemoRepository by lazy { MemoRepositoryImpl(api) }
+    val fleetRepository: FleetRepository by lazy { FleetRepositoryImpl(api) }
+    val assistantRepository: AssistantRepository by lazy { AssistantRepositoryImpl(api) }
 
     /** 시연 운행 (서버 샘플 시드). 운행 목록에서 고르는 화면이 생기면 선택으로 바꾼다 */
     val sampleTripId = "sample-trip-1"
@@ -49,10 +46,4 @@ class AppContainer(appContext: Context) {
     val speechOutput: SpeechOutput by lazy { PleosSpeechOutput(appContext) }
     val notifier: DriverNotifier by lazy { DriverNotifier(appContext) }
 
-    /** 운행 데이터가 다른 화면(음성·기록·인계)에서 바뀌었음을 운행 화면에 알린다 */
-    private val _tripChanged = MutableSharedFlow<Unit>(extraBufferCapacity = 8)
-    val tripChanged: SharedFlow<Unit> = _tripChanged.asSharedFlow()
-    fun notifyTripChanged() {
-        _tripChanged.tryEmit(Unit)
-    }
 }

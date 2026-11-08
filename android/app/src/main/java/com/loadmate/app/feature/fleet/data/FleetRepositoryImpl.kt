@@ -13,7 +13,7 @@ import com.loadmate.app.feature.fleet.data.dto.*
 import com.loadmate.app.feature.fleet.data.mapper.toDomain
 import kotlinx.serialization.json.Json
 
-class HttpFleetRepository(private val api: ApiClient) : FleetRepository {
+class FleetRepositoryImpl(private val api: ApiClient) : FleetRepository {
     override suspend fun drivers() = api.get("/drivers") { b ->
         json.decodeFromString<DriversDto>(b).drivers.map { it.toDomain() }
     }

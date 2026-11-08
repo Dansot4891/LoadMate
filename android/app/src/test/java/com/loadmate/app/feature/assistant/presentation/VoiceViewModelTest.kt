@@ -4,7 +4,7 @@ import com.loadmate.app.core.pleos.SpeechConnection
 import com.loadmate.app.core.pleos.SpeechGateway
 import com.loadmate.app.core.pleos.SpeechOutput
 import com.loadmate.app.core.pleos.SpeechState
-import com.loadmate.app.feature.assistant.data.HttpAssistantRepository
+import com.loadmate.app.feature.assistant.data.AssistantRepositoryImpl
 import com.loadmate.app.feature.assistant.domain.AssistantReply
 import com.loadmate.app.feature.assistant.domain.AssistantRepository
 import com.loadmate.app.feature.records.domain.Memo
@@ -54,7 +54,7 @@ class VoiceViewModelTest {
         val calls = mutableListOf<Pair<String, AssistantAction?>>()
         override suspend fun interpret(tripId: String, text: String, pending: AssistantAction?): ApiResult<AssistantReply> {
             calls += text to pending
-            return ApiResult.Success(HttpAssistantRepository.parse(replies.removeFirst()))
+            return ApiResult.Success(AssistantRepositoryImpl.parse(replies.removeFirst()))
         }
     }
 
@@ -80,7 +80,7 @@ class VoiceViewModelTest {
         "action":{"type":"add_pickup","payload":{"item_name":"빈 용기","kind":"container","qty":2},"summary":null},"intent":"add_pickup","method":"rule_based"}"""
 
     private fun vm(stt: FakeStt, tts: FakeTts, a: FakeAssistant, changed: () -> Unit = {}): VoiceViewModel {
-        val v = VoiceViewModel(stt, tts, a, trips, memos, changed, "sample-trip-1")
+        val v = VoiceViewModel(stt, tts, a, trips, memos, "sample-trip-1")
         CoroutineScope(UnconfinedTestDispatcher()).launch { v.state.collect {} }
         return v
     }
@@ -98,7 +98,7 @@ class VoiceViewModelTest {
         assertEquals(1, pickupCalls.size)
         assertEquals(listOf("sample-trip-1"), pickupCalls[0].take(1))
         assertEquals(listOf("stop-a", "빈 용기", "container", 2, "창고", "voice"), pickupCalls[0].drop(2))
-        assertEquals(1, changed)
+        assertEquals(0, changed)
     }
 
     @Test

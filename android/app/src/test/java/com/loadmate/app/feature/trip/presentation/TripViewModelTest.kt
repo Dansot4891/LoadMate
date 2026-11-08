@@ -45,6 +45,7 @@ class TripViewModelTest {
     private val needsConfirmation: CompleteResult by lazy { TripJsonParser.completeResult(res("complete_needs_confirmation.json")) }
 
     private class FakeRepo(var trip: Trip) : TripRepository {
+        override val currentTrip = kotlinx.coroutines.flow.MutableStateFlow<Trip?>(trip)
         val completeCalls = mutableListOf<Triple<String, Counts, Boolean>>() // key, delivered, driverConfirmed
         var completeResults = ArrayDeque<ApiResult<CompleteResult>>()
         override suspend fun listTrips(): ApiResult<List<TripSummary>> = ApiResult.Success(emptyList())
@@ -97,7 +98,7 @@ class TripViewModelTest {
     private fun vm(repo: FakeRepo, navi: FakeNavi = FakeNavi(), cached: Pair<Trip, Instant>? = null) =
         TripViewModel(
             repo, memos = null, navi = navi, rearDoor = FakeDoor(), speech = null, notify = { _, _, _ -> }, cached = { cached },
-            externalChanges = emptyFlow(), tripId = "sample-trip-1", now = { Instant.parse("2026-11-08T07:00:00Z") }, newKey = { "key-${++keyN}" },
+            tripId = "sample-trip-1", now = { Instant.parse("2026-11-08T07:00:00Z") }, newKey = { "key-${++keyN}" },
         )
 
     private fun completed(): ApiResult<CompleteResult> {
@@ -185,7 +186,7 @@ class TripViewModelTest {
             override suspend fun getTrip(tripId: String): ApiResult<Trip> = ApiResult.Failure(ApiError.Network("ConnectException"))
         }
         val at = Instant.parse("2026-11-08T06:59:00Z")
-        val v = TripViewModel(repo, null, FakeNavi(), FakeDoor(), null, { _, _, _ -> }, { tripInProgress to at }, emptyFlow(), "sample-trip-1")
+        val v = TripViewModel(repo, null, FakeNavi(), FakeDoor(), null, { _, _, _ -> }, { tripInProgress to at }, "sample-trip-1")
         val job = CoroutineScope(UnconfinedTestDispatcher()).launch { v.state.collect {} }
         assertEquals(at, v.state.value.offlineSince)
         assertEquals("sample-trip-1", v.state.value.trip?.id)

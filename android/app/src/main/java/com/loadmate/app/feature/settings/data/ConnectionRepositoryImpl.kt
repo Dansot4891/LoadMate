@@ -10,7 +10,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /** 의존성 없는 최소 HTTP 구현. 업무 API가 늘면 공통 네트워크 모듈(OkHttp/Ktor 등)로 교체한다. */
-class HttpConnectionRepository(
+class ConnectionRepositoryImpl(
     private val baseUrl: String,
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : ConnectionRepository {

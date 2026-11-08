@@ -69,7 +69,6 @@ class VoiceViewModel(
     private val assistant: AssistantRepository,
     private val trips: TripRepository,
     private val memos: MemoRepository,
-    private val onTripChanged: () -> Unit,
     private val tripId: String,
 ) : ViewModel() {
 
@@ -206,7 +205,6 @@ class VoiceViewModel(
                     actionKey = null
                     local.update { it.copy(busy = false, phase = VoicePhase.ANSWERED, reply = reply.copy(kind = AssistantReply.Kind.ANSWER, display = "저장했습니다 · ${reply.display}", actionType = null)) }
                     tts?.speak("저장했습니다.")
-                    onTripChanged()
                 }
                 is ApiResult.Failure -> {
                     // 같은 키로 다시 확인하면 중복 없이 재시도된다
@@ -226,7 +224,7 @@ class VoiceViewModel(
 
         fun factory(c: AppContainer, tripId: String): ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                VoiceViewModel(c.speechGateway, c.speechOutput, c.assistantRepository, c.tripRepository, c.memoRepository, c::notifyTripChanged, tripId)
+                VoiceViewModel(c.speechGateway, c.speechOutput, c.assistantRepository, c.tripRepository, c.memoRepository, tripId)
             }
         }
     }

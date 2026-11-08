@@ -15,7 +15,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /** 운행 API. 계약: docs/api-contract.md "운행", "운행 관리·회수·이상·이력" */
-class HttpTripRepository(private val api: ApiClient) : TripRepository {
+class TripRepositoryImpl(private val api: ApiClient) : TripRepository {
+    override val currentTrip = kotlinx.coroutines.flow.MutableStateFlow<Trip?>(null)
 
     override suspend fun listTrips(): ApiResult<List<TripSummary>> = api.get("/trips", parse = TripJsonParser::tripList)
 

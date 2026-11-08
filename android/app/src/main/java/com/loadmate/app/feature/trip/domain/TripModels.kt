@@ -1,6 +1,7 @@
 package com.loadmate.app.feature.trip.domain
 
 import com.loadmate.app.core.network.ApiResult
+import kotlinx.coroutines.flow.StateFlow
 
 /** 종류별 개수 (예: box → 10). 서로 다른 종류는 합산하지 않는다 (기획서 16장). */
 typealias Counts = Map<String, Int>
@@ -123,6 +124,7 @@ data class CompleteResult(
 )
 
 interface TripRepository {
+    val currentTrip: StateFlow<Trip?>
     suspend fun listTrips(): ApiResult<List<TripSummary>>
     suspend fun getTrip(tripId: String): ApiResult<Trip>
     suspend fun recordObservation(
