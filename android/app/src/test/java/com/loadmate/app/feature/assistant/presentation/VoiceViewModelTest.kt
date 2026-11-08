@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import org.json.JSONObject
+import com.loadmate.app.feature.assistant.domain.AssistantAction
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -51,8 +51,8 @@ class VoiceViewModelTest {
     }
 
     private class FakeAssistant(val replies: ArrayDeque<String>) : AssistantRepository {
-        val calls = mutableListOf<Pair<String, JSONObject?>>()
-        override suspend fun interpret(tripId: String, text: String, pending: JSONObject?): ApiResult<AssistantReply> {
+        val calls = mutableListOf<Pair<String, AssistantAction?>>()
+        override suspend fun interpret(tripId: String, text: String, pending: AssistantAction?): ApiResult<AssistantReply> {
             calls += text to pending
             return ApiResult.Success(HttpAssistantRepository.parse(replies.removeFirst()))
         }
@@ -126,7 +126,7 @@ class VoiceViewModelTest {
         stt.say("창고")
         assertEquals(2, a.calls.size)
         assertNull(a.calls[0].second)
-        assertEquals("add_pickup", a.calls[1].second!!.getString("type"))
+        assertEquals("add_pickup", a.calls[1].second!!.type)
         assertEquals(VoicePhase.CONFIRMING, v.state.value.phase)
     }
 }

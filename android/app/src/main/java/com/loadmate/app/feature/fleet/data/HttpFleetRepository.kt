@@ -9,40 +9,36 @@ import com.loadmate.app.feature.fleet.domain.HandoverPreview
 import org.json.JSONArray
 import org.json.JSONObject
 
+import com.loadmate.app.feature.fleet.data.dto.*
+import com.loadmate.app.feature.fleet.data.mapper.toDomain
+import kotlinx.serialization.json.Json
+
 class HttpFleetRepository(private val api: ApiClient) : FleetRepository {
     override suspend fun drivers() = api.get("/drivers") { b ->
-        JSONObject(b).getJSONArray("drivers").objs().map { Driver(it.getString("id"), it.getString("name")) }
+        json.decodeFromString<DriversDto>(b).drivers.map { it.toDomain() }
     }
 
     override suspend fun equipment(vehicleId: String) = api.get("/vehicles/$vehicleId/equipment") { b ->
-        JSONObject(b).getJSONArray("equipment").objs().map(::equipment)
+        json.decodeFromString<EquipmentListDto>(b).equipment.map { it.toDomain() }
     }
 
     override suspend fun setEquipmentStatus(id: String, status: String, note: String?) =
-        api.post("/equipment/$id/status", JSONObject().put("status", status).apply { note?.let { put("note", it) } }) { equipment(JSONObject(it)) }
+        api.post("/equipment/$id/status", JSONObject().put("status", status).apply { note?.let { put("note", it) } }) { json.decodeFromString<EquipmentDto>(it).toDomain() }
 
     override suspend fun handoverPreview(tripId: String) = api.get("/trips/$tripId/handover/preview") { b ->
-        val o = JSONObject(b)
-        HandoverPreview(o.getJSONArray("summary_lines").strings(), o.getString("summary_method"), o.optString("current_driver_id").ifBlank { null })
+        json.decodeFromString<HandoverPreviewDto>(b).toDomain()
     }
 
     override suspend fun latestHandover(tripId: String) = api.get("/trips/$tripId/handover") { b ->
-        JSONObject(b).optJSONObject("handover")?.let(::handover)
+        json.decodeFromString<HandoverEnvelopeDto>(b).handover?.toDomain()
     }
 
     override suspend fun createHandover(tripId: String, key: String, toDriverId: String, note: String) =
         api.post("/trips/$tripId/handover", JSONObject().put("idempotency_key", key).put("to_driver_id", toDriverId).put("note", note)) {
-            handover(JSONObject(it).getJSONObject("handover"))
+            json.decodeFromString<HandoverEnvelopeDto>(it).handover!!.toDomain()
         }
 
-    override suspend fun acceptHandover(id: Int) = api.post("/handovers/$id/accept", JSONObject()) { handover(JSONObject(it).getJSONObject("handover")) }
+    override suspend fun acceptHandover(id: Int) = api.post("/handovers/$id/accept", JSONObject()) { json.decodeFromString<HandoverEnvelopeDto>(it).handover!!.toDomain() }
 
-    private fun equipment(o: JSONObject) = Equipment(o.getString("id"), o.getString("name"), o.getString("location"), o.getString("status"),
-        o.optString("note"), o.optString("updated_by").ifBlank { null }.takeUnless { o.isNull("updated_by") })
-
-    private fun handover(o: JSONObject) = Handover(o.getInt("id"), o.getString("from_driver_id"), o.getString("to_driver_id"), o.optString("note"),
-        o.getString("status") == "accepted", o.getJSONObject("summary").getJSONArray("summary_lines").strings())
-
-    private fun JSONArray.objs() = (0 until length()).map { getJSONObject(it) }
-    private fun JSONArray.strings() = (0 until length()).map { getString(it) }
+    companion object { private val json = Json { ignoreUnknownKeys = true } }
 }

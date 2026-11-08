@@ -7,6 +7,11 @@ import com.loadmate.app.feature.records.domain.NewMemo
 import com.loadmate.app.core.network.ApiResult
 import org.json.JSONArray
 import org.json.JSONObject
+import com.loadmate.app.feature.records.data.dto.MemoDto
+import com.loadmate.app.feature.records.data.dto.MemoEnvelopeDto
+import com.loadmate.app.feature.records.data.dto.MemoListDto
+import com.loadmate.app.feature.records.data.mapper.toDomain
+import kotlinx.serialization.json.Json
 
 class HttpMemoRepository(private val api: ApiClient) : MemoRepository {
     override suspend fun list(scopeType: String?, scopeId: String?, tripId: String?, query: String?) =
@@ -20,7 +25,7 @@ class HttpMemoRepository(private val api: ApiClient) : MemoRepository {
             .put("tags", JSONArray(memo.tags)).put("visibility", if (memo.shared) "shared" else "private")
             .put("persistence", if (memo.thisTripOnly) "this_trip" else "always").put("trip_id", memo.tripId ?: JSONObject.NULL)
             .put("source", memo.source),
-    ) { memo(JSONObject(it).getJSONObject("memo")) }
+    ) { json.decodeFromString<MemoEnvelopeDto>(it).memo.toDomain() }
 
     override suspend fun update(id: Int, body: String?, shared: Boolean?): ApiResult<Memo> = api.put(
         "/memos/$id",
@@ -28,17 +33,10 @@ class HttpMemoRepository(private val api: ApiClient) : MemoRepository {
             body?.let { put("body", it) }
             shared?.let { put("visibility", if (it) "shared" else "private") }
         },
-    ) { memo(JSONObject(it)) }
+    ) { json.decodeFromString<MemoDto>(it).toDomain() }
 
     companion object {
-        fun memos(body: String): List<Memo> = JSONObject(body).getJSONArray("memos").let { a -> (0 until a.length()).map { memo(a.getJSONObject(it)) } }
-
-        fun memo(o: JSONObject) = Memo(
-            id = o.getInt("id"), scopeType = o.getString("scope_type"), scopeId = o.getString("scope_id"), body = o.getString("body"),
-            tags = o.optJSONArray("tags")?.let { t -> (0 until t.length()).map { t.getString(it) } }.orEmpty(),
-            shared = o.getString("visibility") == "shared", thisTripOnly = o.getString("persistence") == "this_trip",
-            source = o.optString("source", "screen"), authorId = o.getString("author_id"), updatedAt = o.getString("updated_at"),
-            updatedBy = o.getString("updated_by"),
-        )
+        private val json = Json { ignoreUnknownKeys = true }
+        fun memos(body: String): List<Memo> = json.decodeFromString<MemoListDto>(body).memos.map { it.toDomain() }
     }
 }

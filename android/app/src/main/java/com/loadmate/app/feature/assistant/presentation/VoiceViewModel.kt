@@ -9,6 +9,8 @@ import com.loadmate.app.AppContainer
 import com.loadmate.app.core.pleos.SpeechConnection
 import com.loadmate.app.core.pleos.SpeechGateway
 import com.loadmate.app.core.pleos.SpeechOutput
+import com.loadmate.app.feature.assistant.domain.AssistantAction
+import com.loadmate.app.feature.assistant.domain.AssistantPayload
 import com.loadmate.app.feature.assistant.domain.AssistantReply
 import com.loadmate.app.feature.assistant.domain.AssistantRepository
 import com.loadmate.app.feature.records.domain.MemoRepository
@@ -25,7 +27,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 import java.util.UUID
 
 /** 음성 대화 상태: 대기·청취·처리·응답·확인 대기·실패 (기획서 11장) */
@@ -86,7 +87,7 @@ class VoiceViewModel(
 
     private var awaitingResult = false
     private var timeout: kotlinx.coroutines.Job? = null
-    private var pending: JSONObject? = null
+    private var pending: AssistantAction? = null
     private var actionKey: String? = null
 
     init {
@@ -176,7 +177,7 @@ class VoiceViewModel(
 
     private fun confirm() {
         val reply = local.value.reply ?: return
-        val p = reply.actionPayload ?: JSONObject()
+        val p = reply.actionPayload ?: AssistantPayload()
         val key = actionKey ?: UUID.randomUUID().toString().also { actionKey = it }
         if (local.value.busy) return
         when (reply.actionType) {
@@ -190,13 +191,13 @@ class VoiceViewModel(
         viewModelScope.launch {
             val result: ApiResult<*> = when (reply.actionType) {
                 "add_pickup" -> trips.addPickup(
-                    tripId, key, p.optString("stop_id").ifBlank { null }, p.getString("item_name"), p.getString("kind"),
-                    p.getInt("qty"), p.getString("return_place"), "voice",
+                    tripId, key, p.stopId, requireNotNull(p.itemName), requireNotNull(p.kind),
+                    requireNotNull(p.qty), requireNotNull(p.returnPlace), "voice",
                 )
                 "add_memo" -> memos.create(
                     key,
-                    NewMemo(p.getString("scope_type"), p.getString("scope_id"), p.getString("body"), shared = p.optString("visibility") == "shared",
-                        thisTripOnly = p.optString("persistence") == "this_trip", tripId = tripId, source = "voice"),
+                    NewMemo(requireNotNull(p.scopeType), requireNotNull(p.scopeId), requireNotNull(p.body), shared = p.visibility == "shared",
+                        thisTripOnly = p.persistence == "this_trip", tripId = tripId, source = "voice"),
                 )
                 else -> ApiResult.Success(Unit)
             }

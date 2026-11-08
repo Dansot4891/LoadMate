@@ -5,7 +5,8 @@ import com.loadmate.app.core.network.ApiResult
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONException
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -60,7 +61,7 @@ class ApiClient(
                 }
             } catch (e: IOException) {
                 ApiResult.Failure(ApiError.Network(e.javaClass.simpleName))
-            } catch (e: JSONException) {
+            } catch (e: SerializationException) {
                 ApiResult.Failure(ApiError.Http(-1, "bad_response", "응답 형식 오류"))
             } finally {
                 conn.disconnect()
@@ -70,9 +71,13 @@ class ApiClient(
 
     companion object {
         /** {"detail":{"code","message"}} → (code, message). FastAPI 422 는 detail 이 배열이라 code 없음 */
+        private val json = Json { ignoreUnknownKeys = true }
         fun errorOf(body: String): Pair<String?, String?> = runCatching {
-            val d = JSONObject(body).opt("detail")
-            if (d is JSONObject) d.optString("code").ifBlank { null } to d.optString("message").ifBlank { null } else null to "입력값을 확인하세요"
+            val root = json.parseToJsonElement(body) as? kotlinx.serialization.json.JsonObject ?: return@runCatching null to null
+            val detail = root["detail"]
+            if (detail is kotlinx.serialization.json.JsonArray) return@runCatching null to "입력값을 확인하세요"
+            val error = json.decodeFromString<ErrorEnvelopeDto>(body).detail
+            error?.code to error?.message
         }.getOrDefault(null to null)
     }
 }
