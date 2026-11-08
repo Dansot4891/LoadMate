@@ -1,8 +1,8 @@
 # Loadmate — Pleos 물류 동반자
 
 Pleos Connect(AAOS 차량 IVI) 앱 + FastAPI 서버 + 영상 분석. 현대자동차그룹 차량용 앱 개발 공모전 출품작 (접수 마감 2026-11-15, 2차 PT 2026-12-03).
-기획 기준: 기획자가 작성한 `Pleos_물류동반자_기획개발안.docx` v2.1 (저장소 밖). 검토 결과는 `docs/planning-review.md`.
-**지금 할 일: `docs/next-steps.md`** (작업 후 검증 기록·체크리스트 갱신).
+기획 기준: 기획자가 작성한 `docs/Pleos_물류동반자_기획개발안.docx` v2.1 (Git 제외). 검토 결과는 `docs/planning-review.md`.
+**새 세션은 `docs/next-steps.md`부터** (인수인계: 현재 상태·재실행 명령·결정·다음 할 일·주의). 작업 후 검증 기록·체크리스트 갱신. 기능별 현황 `docs/feature-status.md`.
 SDK 실측 기록은 형제 저장소 `../hyundai_app` (PleosLab: docs/sdk-catalog.md, docs/vehicle-api-matrix.md).
 
 ## 명령

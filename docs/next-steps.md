@@ -1,41 +1,136 @@
-# 다음 작업 (인수인계)
+# 인수인계 · 다음 작업
 
-작성: 2026-11-08 · 접수 마감 **2026-11-15** · 2차 PT 2026-12-03
-배경과 근거: [planning-review.md](planning-review.md) · 구조와 실행: [architecture.md](architecture.md) · 계약: [api-contract.md](api-contract.md)
+최종 갱신: **2026-11-08** · 접수 마감 **2026-11-15(일)** · 1차 결과 11/23 · 2차 PT 12/03~04 · 2월 행사 최종 APK
+이 문서 하나로 새 세션을 시작할 수 있게 정리했다. 근거·규칙은 링크 문서를 본다.
+[기획 대조 planning-review](planning-review.md) · [기능 현황 F01~F66 feature-status](feature-status.md) · [API 계약 api-contract](api-contract.md) · [구조·실행 architecture](architecture.md) · 기획서 원본 `docs/Pleos_물류동반자_기획개발안.docx`(Git 제외)
 
-## 현재 상태 (2026-11-08 확인)
+---
 
-| 항목 | 상태 |
+## 1. 한눈에 보기
+
+| 항목 | 상태 (2026-11-08) |
 |---|---|
-| Android | 탭 4개(운행·기록·메모·장비·인계·연결 상태) + 음성 패널. S01~S10 화면 묶음 구현. 단위 테스트 25개, lint 통과(버전 경고만). 기능별 현황: [feature-status.md](feature-status.md) 화면은 서버 연결 상태(S10) 하나. 에뮬레이터(Pleos Connect v2.1, user 10)에서 서버·DB 연결 표시 확인 |
-| Backend | `docker compose up --build -d` 로 실행, `GET /health` → `{"status":"ok","version":"0.1.0","database":"ok"}` 확인. pytest 2개 통과 |
-| Pleos SDK | `core/pleos` 에 NaviHelper(목적지 전달)·Vehicle Door(REAR 구독)·SpeechToText(ON_DEVICE) 연결. 권한 `NAVI_ROUTE_SEARCH`, `CAR_DOORS`, `STT_SERVICE`. S10에 "Pleos 연동" 실측 섹션 |
-| Git | `git init` + 스테이징만. **커밋 없음.** 원격 저장소 없음 |
+| 단계 | 기획서 14장(대표 시나리오)·15장(회수·메모·인계)까지 **앱+서버 구현 완료**. 제출 준비(3순위)는 **아직 시작 안 함** |
+| 사용자 방침 | "기능을 먼저 끝까지 구현" (2026-11-08). 남은 코드 기능 vs vision vs 제출 준비 순서는 사용자에게 확인할 것 |
+| Android | 탭 4개(운행 · 기록·메모 · 장비·인계 · 연결 상태) + 음성 패널. 단위 테스트 25개, lint 버전 경고만 |
+| Backend | FastAPI + PostgreSQL(Docker). Feature: health·trip·fleet·memo·handover·assistant. Alembic 2개. pytest 61개 |
+| Pleos SDK (앱 연결) | NaviHelper 3.0.5(목적지·경유지), Vehicle 2.3.2 Door REAR, SpeechToText 3.3.1 ON_DEVICE, TextToSpeech 3.3.1 ON_DEVICE. **모두 에뮬레이터 확인만**, 실차 미확인 |
+| 데이터 출처 | 운행·관측·이상 감지는 **샘플**(화면에 표시). 음성 해석·인계 요약은 **규칙 기반**(AI 아님, 화면에 표시) |
+| Git | `master` 브랜치 커밋 6개 (아래 4절). **원격 저장소 없음, push 안 함** |
+| 실행 상태 | 세션 종료 시 서버·에뮬레이터 실행 중일 수 있음. 샘플 운행은 초기화해 둠 |
 
-## 개발 환경 메모
+## 2. 새 세션에서 다시 띄우기
 
-- Docker 엔진: **Colima** (Homebrew 설치, Docker Desktop 아님). 재부팅 후 `colima start` 필요. 자동 시작은 `brew services start colima`. `docker`/`docker compose` 명령은 그대로 사용.
-- Compose 플러그인 경로: `~/.docker/config.json` 의 `cliPluginsExtraDirs` = `/opt/homebrew/lib/docker/cli-plugins`.
-- 시스템 Python은 3.9 → 서버는 Docker(Python 3.12)로 실행. 로컬 venv가 필요하면 `brew install python@3.12`.
-- Android 빌드는 VS Code 터미널에서도 가능. `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"` 필요 (Android Studio는 SDK·JBR·에뮬레이터 때문에 삭제 금지).
-- 에뮬레이터: `~/Library/Android/sdk/emulator/emulator -avd Pleos_Connect_v2.1 -no-snapshot-save -no-boot-anim -feature -Vulkan,-GLDirectMem` · AAOS 사용자 10 (`am start --user 10 -n com.loadmate.app/.MainActivity`).
-- 호스트 마이크(STT 시험): `adb emu avd hostmicon` / 끝나면 `hostmicoff`.
-- Virtual Console: `adb forward tcp:8088 tcp:8088` → http://127.0.0.1:8088/ (열린 세션이 없으면 상태 변경 503. CLI는 1초마다 `curl -X POST .../browser/session?client=cli`). 트렁크: `curl -X PUT '.../vehicle/body?trunk=true'`.
+```bash
+cd ~/StudioProjects/loadmate
+colima start                                   # 재부팅 후 필요 (Docker 엔진)
+docker compose up -d --build                   # backend + db. 시작 시 alembic upgrade + 샘플 시드(없을 때만)
+curl -s localhost:8000/health                  # {"status":"ok","version":"0.1.0","database":"ok"}
+docker compose exec backend python -m app.features.trip.seed --reset   # 샘플 운행 초기화(시연 반복)
 
-## 1순위 — 지금 할 일 (11/8~9)
+~/Library/Android/sdk/emulator/emulator -avd Pleos_Connect_v2.1 -no-snapshot-save -no-boot-anim -feature -Vulkan,-GLDirectMem &
+cd android && export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
+adb -s emulator-5554 shell am start --user 10 -n com.loadmate.app/.MainActivity   # AAOS 사용자 10
 
-1. ✅ **앱↔서버 에뮬레이터 연결 확인** (2026-11-08)
-   - `docker compose up -d` → 에뮬레이터 실행 → debug APK 설치 → 화면에 "정상 · 서버 0.1.0 · DB 연결됨" 확인.
-   - 결과를 아래 "검증 기록"에 남긴다.
-2. ✅ **Pleos 연동 모듈 `core/pleos` 생성** (2026-11-08)
-   - `app/.../core/pleos/` 패키지 (core/designsystem 과 같은 방식, Gradle 모듈 아님). 인터페이스 `NaviGateway` · `RearDoorGateway` · `SpeechGateway` + Pleos 구현. SDK 타입은 이 패키지 밖으로 나가지 않는다.
-   - 조립은 `AppContainer` 에서만. 화면(S10)은 `LifecycleStartEffect` 로 화면이 보일 때만 연결·구독하고 ON_STOP 에서 해제.
-3. ✅ **에뮬레이터 SDK 실측 3건** (2026-11-08) — 상세는 아래 "실측 결과". **대표 시나리오 설계에 영향 → 결정 대기(아래 "결정 필요")**
-   - [x] NaviHelper `requestRoute` — 내비 앱이 실제로 경로 안내 시작. 실패 콜백 `onError(CAUSE_SEARCH_ROUTE)`.
-   - [x] SpeechToText **ON_DEVICE** — Client ID/Secret 없이 initialize·인식 성공(한국어). 오인식 있음.
-   - [x] Door `REAR` 구독 — Virtual Console Trunk Open/Close → 100/0 알림 수신, 화면 이탈 시 해제 확인.
+# 서버 테스트 (로컬 venv 없음 → Docker 이미지에 마운트)
+cd .. && docker run --rm -v "$PWD/backend:/srv" -w /srv loadmate-backend sh -c "pip install -q -r requirements-dev.txt && pytest -q"
+```
 
-### 실측 결과 (2026-11-08, Pleos Connect Emulator v2.1.0 · Navi Service 3.0.4 · CAAS 4.2.10 · user 10)
+앱 첫 실행: **장비·인계 탭 → 기사 선택**(기사 1/2, 샘플). 선택 전에는 메모 저장·인계가 막힌다.
+종료: `docker compose stop`, `adb -s emulator-5554 emu kill`.
+
+## 3. 시연 순서 (현재 구현 기준)
+
+1. 장비·인계 → 기사 1 선택 → 운행 탭 S01 "적재 확인 시작"
+2. S05: 샘플 관측 10 "관측 기록" → (스크롤) "이 수량으로 기준 확정"
+3. S03: "내비 안내 보내기 (A부터)" → 확인창 "보내기" → 내비가 화면을 덮음 → 앱으로 돌아오면 "안내 시작됨 · 3.1km · 11분"
+4. "A 도착 · 현장 작업 시작" → S04: 뒷문(Virtual Console 트렁크) 열림 표시, 관측 수량 +1(8) "관측 기록" → "하차 완료 요청"
+5. S06: "예상 7 / 관측 8", 배치도에서 A 구역 강조 → ① "남은 물품을 찾아 내림·다시 관측" ② "회수품이에요·회수 기록" ③ "이미 다 내렸음·기사 확인" 중 선택
+6. B를 내비에 다시 보내기 → B·C 진행 → 회수품 "반납 완료" → 운행 완료
+7. 곁가지: 🎤 말하기("다음 장소에 뭐 내려야 해", "빈 용기 두 개 회수했어 창고로 반납해" → 확인), 기록·메모 탭(메모·이력), 장비·인계 탭(장비 상태 → 인계 확정 → 기사 2 선택 → 인수 확정), 운행 종료(남은 업무 있으면 사유 선택), 운행 화면 "시연 도구 열기"(샘플 이상 의심)
+
+## 4. 지금까지 한 일 (커밋 순)
+
+| 커밋 | 내용 |
+|---|---|
+| `55124f6` | 저장소 뼈대(앱 S10·서버 /health·Docker) + `core/pleos`(NaviHelper·Door REAR·STT) + 에뮬레이터 실측 3건 |
+| `1b01341` | 추가 실측 문서: 경유지 2개, 헤드업 알림 카테고리, TTS, 백그라운드 STT, 도착 신호 확인 불가 |
+| `8bffa9b` | API 계약(운행) + 서버 `features/trip`(예상 잔량·비교·멱등 키·확인 필요 미반영) + 마이그레이션 1 + 시드 |
+| `8b78386` | 앱 대표 시나리오(S01·S05·S03·S04·S06) + 에뮬레이터 연속 실행 검증 |
+| `6406f9d` | 서버 확장: 운행 관리·회수·이상·이력, 기사·장비, 메모(개인/공유), 인계·인수, 음성 해석(규칙 기반) + 마이그레이션 2 |
+| `cd7e87b` | 앱 확장: 탭 구조, 방문지 관리, 회수, 이상, 2D 적재 배치, 현장 메모, 기록·메모·장비·인계 화면, 음성 패널, TTS·헤드업, 오프라인 표시, `feature-status.md` |
+
+코드 위치 요약 (상세: architecture.md)
+- 앱 `android/app/src/main/java/com/loadmate/app/`: `core/{designsystem,network,session,notify,pleos}`, `feature/{trip,records,fleet,assistant,settings}`, 조립 `AppContainer.kt`, 탭 `MainActivity.kt`
+- 서버 `backend/app/`: `core/{config,db,errors,actor}`, `features/{health,trip,fleet,memo,handover,assistant}`, `integrations/assistant/rule_based.py`
+- 실측 증거 화면 `docs/evidence/2026-11-08/` (01~25)
+
+## 5. 확정된 결정 (사용자, 2026-11-08)
+
+| 결정 | 내용 | 반영 위치 |
+|---|---|---|
+| 내비 리스너 | 운행 중(시작~종료) 계속 수신, 종료 시 해제. 앱이 내비 기반으로 동작하므로 당연한 기본값 | CLAUDE.md 원칙 8, `TripViewModel` |
+| 목적지 전달 | 보내기 전 기사 확인, 실패 시 실패 표시·다시 보내기·목적지 유지. 출발 시 남은 방문지를 경유지로 한 번에 | `RouteDialog`, `routeRequestStatus` |
+| 음성 변경 | 인식 문장을 보여 주고 기사가 맞다고 확인해야 저장 | `VoicePanel`·서버 `assistant` |
+| 관측값 | Pleos SDK에 카메라 API 없음 → **샘플 관측·기사 입력**, 출처 표시 | `ObservationInput`, `sampleZones` |
+| 작업 순서 | 제출 준비보다 기능 구현 먼저 | — |
+| 진행 중 기본값(사용자 확인 전) | 대화 이해 = 규칙 기반 해석기(LLM 교체 가능), 인계 요약 = 규칙 기반, 바코드(F06) 제외 | feature-status.md |
+
+## 6. 다음 할 일 (사용자에게 순서 확인)
+
+A. 남은 코드 기능 (선택)
+- [ ] 운행 목록 선택 화면 (F02) — 지금은 `AppContainer.sampleTripId` 고정
+- [ ] 메모 사진 첨부 (F51)
+- [ ] 오프라인 디스크 보관·요청 대기열 (F66) — 지금은 이번 실행 중 메모리만
+- [ ] 임시 반출·재적재 (F29 일부)
+- [ ] S10에 TTS·알림 권한 상태 표시 (F65)
+- [ ] 앱 재실행 시 내비 현재 안내 조회 (`getRouteStateInfo`, 권한 `NAVI_ROUTE` 추가 필요)
+
+B. 녹화 영상 분석 `vision/` (짐칸 녹화 영상 필요 — 사용자 준비 여부 확인)
+- 관측 API(`POST /trips/{id}/observations`, `source: recorded_video`, `zones`)는 이미 받을 수 있음
+
+C. 제출 준비 (마감 11/15)
+- [ ] 시연 영상 녹화 (실제 동작 / 에뮬레이터 신호 / 샘플 / 규칙 기반 자막 구분)
+- [ ] release APK → `apk/Loadmate_Loadmate_release.apk` (팀명 확인), 서명 키 생성·Git 제외, release 서버 주소 `-Ploadmate.apiBaseUrl=`
+- [ ] README 필수 항목(앱 이름·한 줄 소개·실행 방법·테스트 환경·APK 위치) 점검
+- [ ] GitHub 원격 저장소 생성(공개 여부 결정), push
+- [ ] 기획서 수정 반영 요청 (planning-review §5) — 기획자와 공유
+
+## 7. 남은 결정 (사용자·기획자)
+
+- [ ] 2월 현장 시연 서버: 클라우드 배포 vs 앱 내 데모 모드(명확 표시) — release APK가 서버에 닿지 못하면 동작 안 함
+- [ ] 대화 AI 모델·실행 위치(외부 API / 로컬), 비용·개인정보 — 지금은 규칙 기반
+- [ ] 외부 서버·외부 AI 사용 가능 여부 공모전 문의 (/guide/help)
+- [ ] GitHub 공개 여부, 팀명(APK 파일명)
+
+## 8. 알려진 문제·주의 (다음 세션이 같은 데서 막히지 않게)
+
+- **내비가 화면을 덮는다**: `requestRoute` 시 내비 앱이 Loadmate와 같은 패널을 차지(Loadmate ON_STOP). 결과는 운행 범위 리스너로 받는다. 앱 재실행 후에는 이전 요청 결과를 모른다 → "이번 실행에서 보낸 기록 없음"
+- **도착 신호 확인 불가**: `adb emu geo fix` 위치는 내비가 NMEA 체크섬 오류로 버림. Virtual Console 가상 주행은 속도만 바뀌고 내비 위치는 그대로 → 도착은 기사 확인 버튼
+- **호스트 마이크**: `adb emu avd hostmicon/off`. 껐다 켠 뒤 입력이 안 들어오는 경우가 있었음(에뮬레이터 재시작 필요할 수 있음). 듣기 준비(`onReady`) 전에 말하면 인식되지 않음 → 앱에 12초 시간 제한. TTS 소리가 마이크로 다시 들어가 오인식될 수 있음
+- **Virtual Console**: 열린 세션이 없으면 상태 변경 503. 세션 활성화 시 드라이빙뷰 주행가능거리가 0km로 초기화되는 부작용
+- **탭 스크립트 오조작**: `scripts/emu-ui.sh`가 버튼이 촘촘한 화면에서 다른 버튼을 누른 적 있음(이상 의심 3건이 잘못 기록됨). 상태 변경 탭 뒤에는 `curl .../trips/sample-trip-1`로 서버 상태 확인. 한글은 `adb input text` 불가
+- **헤드업 알림**: 알림 카테고리를 지정해야 내비 위에 뜸. Android 13+ 알림 권한 필요(앱 첫 실행 시 요청)
+- **TTS**: `speak(text, isFinal=true)` 로 호출해야 끝남(false면 onDone 없음)
+- **경유지**: 최대 2개(+목적지). 남은 방문지가 4곳 이상이면 앞의 3곳만 보내고 다음에 이어서
+- **AGP 8.7.3 고정**(Studio 2024.2.1). 시스템 Python 3.9 → 서버 테스트는 Docker에서
+
+## 9. 개발 환경 메모
+
+- Docker 엔진: **Colima**(Homebrew). 재부팅 후 `colima start`. 자동 시작 `brew services start colima`. Compose 플러그인: `~/.docker/config.json` `cliPluginsExtraDirs` = `/opt/homebrew/lib/docker/cli-plugins`
+- Android Studio는 SDK·JBR·에뮬레이터 때문에 삭제 금지. `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`
+- 에뮬레이터 AVD `Pleos_Connect_v2.1`, AAOS 사용자 10
+- Virtual Console: `adb forward tcp:8088 tcp:8088` → http://127.0.0.1:8088/ · CLI 세션 유지 `while true; do curl -s -X POST "http://127.0.0.1:8088/browser/session?client=cli"; sleep 1; done` · 트렁크 `curl -X PUT 'http://127.0.0.1:8088/vehicle/body?trunk=true'`
+- SDK 바이너리 확인: `~/.gradle/caches/modules-2/files-2.1/ai.pleos.playground/` 의 aar → `javap` (공식 문서 페이지가 클라이언트 렌더링이라 내용이 안 읽힘)
+- 형제 저장소 `../hyundai_app`(PleosLab): SDK 카탈로그·Vehicle API 실측. 공식 샘플 코드는 LICENSE 없음 → 복사 금지
+
+---
+
+## 10. 에뮬레이터 실측 기록
+
+### 10-1. 1차 실측 (2026-11-08, Pleos Connect Emulator v2.1.0 · Navi Service 3.0.4 · CAAS 4.2.10 · user 10)
 
 에뮬레이터 결과이며 실차 지원을 뜻하지 않는다. 증거 화면: `docs/evidence/2026-11-08/`.
 
@@ -71,7 +166,7 @@
 | 화면 이탈 중 Trunk Open | 알림 없음 (해제 확인). 복귀 시 재구독 초기 알림 100 |
 | 부작용 | Virtual Console 세션 활성화 시 드라이빙뷰 주행가능거리 500→0km 로 초기화됨 (PleosLab 관찰과 동일) |
 
-### 추가 실측 (2026-11-08 오후, 임시 debug 리시버로 시험 · 코드는 커밋하지 않음)
+### 10-2. 추가 실측 (2026-11-08 오후, 임시 debug 리시버로 시험 · 코드는 커밋하지 않음)
 
 | 항목 | 결과 | 시나리오 영향 |
 |---|---|---|
@@ -83,45 +178,9 @@
 | 앱이 백그라운드일 때 내비 콜백 | ✅ 리스너를 유지하면 수신 | 결정 1 근거 |
 | 도착 신호 `onWayPointArrived` / `onDestinationArrived` | ❌ 확인 불가. `adb emu geo fix` 위치는 내비가 NMEA 체크섬 오류로 버림. Virtual Console 가상 주행(D·60km/h)은 차량 속도만 바뀌고 내비 위치는 그대로 | 도착은 **기사 확인 버튼**을 기본 유지 (기존 방침과 같음) |
 
-## 2순위 — 대표 시나리오 (11/10~12)
+---
 
-기획서 14장 A·B·C 운행, 목적지 A에서 1개 미하차.
-
-1. ✅ `docs/api-contract.md` 에 엔드포인트 먼저 작성 (운행 목록 · 최초 적재 확정 · 하차 완료 요청 · 잔량 비교 · 기사 정정). 상태 변경 요청은 멱등 키. (2026-11-08)
-2. ✅ Backend `features/trip` (물품·관측도 같은 Feature에 둠 — 지금은 나눌 만큼 크지 않음) + Alembic 첫 마이그레이션 `c4994a640ec7` + 샘플 시드(방문지 3곳, 박스 10개 = A3·B3·C4). 서버 시작 시 없으면 생성. (2026-11-08)
-3. ✅ 예상 잔량 = 확정 직전 잔량 − 이번 하차 (+ 회수·추가 상차는 15장 구현 때) — `rules.py` 순수 함수 + 단위 테스트. (2026-11-08)
-4. ✅ 관측값: Pleos SDK에 카메라 API가 없어 **샘플 관측·기사 입력**으로 기록, 화면에 출처("샘플 관측"/"기사 입력")와 "카메라 미연결" 표시 (2026-11-08 결정). 녹화 영상 분석(vision)은 미구현
-5. ✅ Android 화면 `feature/trip`: S01 운행 준비 → S05 적재 확정 → S02/S03 내비 전달(남은 방문지를 경유지로 한 번에, 확인창 후 전송, 실패 시 다시 보내기) → S04 현장 작업(뒷문 신호 표시, 하차 수량) → S06 불일치 확인(다시 관측 / 기사 확인으로 완료) → 운행 완료. 내비 리스너는 운행 범위로 유지, 완료 시 해제. (2026-11-08)
-6. ✅ 완료 기준: 앱 재실행 후 상태 복원(서버 기준), 완료 요청 중복 차감 없음(앱은 확인 필요·네트워크 실패 후 재시도에 같은 요청 ID 사용, 서버는 멱등 키). (2026-11-08)
-
-### 기능 확장 (2026-11-08, 사용자 결정: 제출 준비 전에 기능 먼저)
-
-- 서버: 운행 관리·회수·이상·이력, 기사·장비, 메모(개인/공유), 인계·인수, 음성 해석(규칙 기반). 테스트 61개
-- 앱: 방문지 관리, 회수(화면·음성·S06 분기), 적재 이상(샘플 관측·처리), 2D 적재 배치, 현장 메모, 기록·메모 탭, 장비·인계 탭, 음성 패널(STT→해석→TTS, 확인 후 저장, 직접 입력), 주행 중 TTS·헤드업 알림, 오프라인 표시
-- 상태별 구분은 [feature-status.md](feature-status.md)
-
-**미구현으로 남긴 것 (사유):** F05·F06 연동 대상·방식 없음, F08 카메라 API 없음, F63 차량 주행 신호 없음, 3D 시각화·근거 영상(vision 미구현), 사진 첨부, 임시 반출·재적재, 디스크 오프라인 대기열, 대화 AI 모델(규칙 기반으로 대체).
-
-## 3순위 — 제출 준비 (11/13~15)
-
-- [ ] 시연 영상 녹화 (실제 동작 / 에뮬레이터 신호 / 녹화 영상 / 샘플 데이터 구분 자막)
-- [ ] release APK → `apk/Loadmate_Loadmate_release.apk`. release 서버 주소 `-Ploadmate.apiBaseUrl=` 결정 (없으면 앱이 "서버 미설정" 표시)
-- [ ] 서명 키 생성·보관 (Git 제외)
-- [ ] GitHub 원격 저장소 생성 (공개/비공개 결정, 비공개면 심사 계정 Collaborator·쓰기 권한 주의), README 필수 항목 점검
-- [ ] 기획서 수정 반영 요청 (planning-review.md §5) — 기획자와 공유
-
-## 결정 필요 (사용자·기획자)
-
-- [x] **(실측 반영) 내비 리스너 수명**: 운행 중(시작~종료)에는 유지, 운행 종료 시 해제 (2026-11-08 결정. 앱이 내비 기반으로 동작하므로 기본값). CLAUDE.md 원칙 8 갱신
-- [x] **(실측 반영) 목적지 전달**: 전달 전 기사 확인, 실패 시 실패 표시·다시 보내기·목적지 정보 유지 (2026-11-08 결정, 기획서 16장 "내비 요청 실패"와 같음). 출발 시 A·B·C를 경유지로 한 번에 전달해 재요청 자체를 줄인다
-- [x] **(실측 반영) 음성 명령 확인**: 인식 문장을 보여 주고 기사가 맞다고 확인한 뒤 실행 (2026-11-08 사용자 결정). 기획서 5장 "업무를 바꾸는 요청은 요약 후 확인"과 같은 방향
-
-- [ ] 2월 현장 시연 서버: 클라우드 배포 vs 앱 내 데모 모드(명확 표시)
-- [ ] 대화 AI 모델·실행 위치(외부 API / 로컬), 비용·개인정보 처리
-- [ ] 외부 서버·외부 AI 사용 가능 여부 공모전 문의 (/guide/help)
-- [ ] GitHub 공개 여부
-
-## 검증 기록
+## 11. 검증 기록
 
 | 날짜 | 항목 | 결과 | 근거 |
 |---|---|---|---|
