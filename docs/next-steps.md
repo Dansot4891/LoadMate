@@ -12,11 +12,11 @@
 |---|---|
 | 단계 | 기획서 14장(대표 시나리오)·15장(회수·메모·인계)까지 **앱+서버 구현 완료**. 제출 준비(3순위)는 **아직 시작 안 함** |
 | 사용자 방침 | "기능을 먼저 끝까지 구현" (2026-11-08). 남은 코드 기능 vs vision vs 제출 준비 순서는 사용자에게 확인할 것 |
-| Android | 탭 4개(운행 · 기록·메모 · 장비·인계 · 연결 상태) + 음성 패널. 단위 테스트 25개, lint 버전 경고만 |
+| Android | 탭 4개(운행 · 기록·메모 · 장비·인계 · 연결 상태) + 음성 패널. 단위 테스트 26개, lint 버전 경고만 |
 | Backend | FastAPI + PostgreSQL(Docker). Feature: health·trip·fleet·memo·handover·assistant. Alembic 2개. pytest 61개 |
 | Pleos SDK (앱 연결) | NaviHelper 3.0.5(목적지·경유지), Vehicle 2.3.2 Door REAR, SpeechToText 3.3.1 ON_DEVICE, TextToSpeech 3.3.1 ON_DEVICE. **모두 에뮬레이터 확인만**, 실차 미확인 |
 | 데이터 출처 | 운행·관측·이상 감지는 **샘플**(화면에 표시). 음성 해석·인계 요약은 **규칙 기반**(AI 아님, 화면에 표시) |
-| Git | `master` 브랜치 커밋 6개 (아래 4절). **원격 저장소 없음, push 안 함** |
+| Git | `master` 브랜치 커밋 25개 (4절 기존 이력 + 11절 A0 앱 이행 기록). **원격 저장소 없음, push 안 함** |
 | 실행 상태 | 세션 종료 시 서버·에뮬레이터 실행 중일 수 있음. 샘플 운행은 초기화해 둠 |
 
 ## 2. 새 세션에서 다시 띄우기
@@ -71,7 +71,7 @@ cd .. && docker run --rm -v "$PWD/backend:/srv" -w /srv loadmate-backend sh -c "
 
 | 결정 | 내용 | 반영 위치 |
 |---|---|---|
-| 내비 리스너 | 운행 중(시작~종료) 계속 수신, 종료 시 해제. 앱이 내비 기반으로 동작하므로 당연한 기본값 | CLAUDE.md 원칙 8, `TripViewModel` |
+| 내비 리스너 | 운행 중(시작~종료) 계속 수신, 종료 시 해제. 앱이 내비 기반으로 동작하므로 당연한 기본값 | CLAUDE.md 원칙 8, `TripSession` |
 | 목적지 전달 | 보내기 전 기사 확인, 실패 시 실패 표시·다시 보내기·목적지 유지. 출발 시 남은 방문지를 경유지로 한 번에 | `RouteDialog`, `routeRequestStatus` |
 | 음성 변경 | 인식 문장을 보여 주고 기사가 맞다고 확인해야 저장 | `VoicePanel`·서버 `assistant` |
 | 관측값 | Pleos SDK에 카메라 API 없음 → **샘플 관측·기사 입력**, 출처 표시 | `ObservationInput`, `sampleZones` |
@@ -91,12 +91,12 @@ A0. 구조 이행 (2026-11-08 결정, 영상 분석 붙이기 전에) — 규칙
   - [x] pytest 61개 유지 + PostgreSQL 대표 시나리오 재확인
 - 앱
   - [x] `ApiResult`·`ApiError` 를 `feature/trip/domain` → `core/network` 로 이동
-  - [ ] kotlinx.serialization 도입(AGP 8.7.3·Kotlin 2.0.0 호환 버전), org.json 파서 9개 파일 → `dto/` + `mapper/`
-  - [ ] `HttpXxxRepository` → `XxxRepositoryImpl`, 운행 데이터는 Repository StateFlow 로 보관
-  - [ ] 운행 탭 분리: `trip/presentation/{overview,loadcheck,driving,sitework,mismatch}/` 화면별 ViewModel, 내비 리스너는 운행 범위 객체로 이동
-  - [ ] 나머지 기능(records·fleet·assistant·settings)도 `presentation/<screen>/` 폴더로
+  - [x] kotlinx.serialization 도입(AGP 8.7.3·Kotlin 2.0.0 호환 버전), org.json 파서 9개 파일 → `dto/` + `mapper/`
+  - [x] `HttpXxxRepository` → `XxxRepositoryImpl`, 운행 데이터는 Repository StateFlow 로 보관
+  - [x] 운행 탭 분리: `trip/presentation/{overview,loadcheck,driving,sitework,mismatch}/` 화면별 ViewModel, 내비 리스너는 운행 범위 객체로 이동
+  - [x] 나머지 기능(records·fleet·assistant·settings)도 `presentation/<screen>/` 폴더로
   - [ ] 운행 선택 첫 화면 (F02, `GET /trips`), `AppContainer.sampleTripId` 제거
-  - [ ] 단위 테스트 25개 유지 + 에뮬레이터 대표 시나리오 재확인
+  - [ ] 단위 테스트 26개 통과 + 에뮬레이터 대표 시나리오 재확인 (샘플 운행 초기화 승인 대기)
 
 A. 남은 코드 기능 (선택)
 - [ ] 메모 사진 첨부 (F51)
@@ -203,6 +203,8 @@ C. 제출 준비 (마감 11/15)
 |---|---|---|---|
 | 2026-11-08 | A0 앱 구조 이행 1단계: `ApiResult`·`ApiError` 공통 네트워크 이동 | assembleDebug·testDebugUnitTest·lintDebug 통과 | `21b864e` |
 | 2026-11-08 | A0 앱 DTO 이행 착수: kotlinx.serialization 1.6.3 도입, 연결 상태 응답 DTO·mapper 전환 | assembleDebug·testDebugUnitTest·lintDebug 통과 | `35ed274`; 나머지 파서 이행 전 |
+| 2026-11-08 | A0 앱 응답·요청 DTO/mapper 이행, Repository StateFlow, 운행 범위 내비 리스너, 운행 화면별 ViewModel과 나머지 화면 폴더 이동 | 각 단계 assembleDebug·testDebugUnitTest·lintDebug 통과, 단위 테스트 26개 | `476bdd0`, `ca04f78`, `29d04cf`, `a76ae40`, `ecd81da`, `8c6333c`, `156fd58`, `dc2904f`, `6ea90a1` |
+| 2026-11-08 | 변경 APK 에뮬레이터 설치·실행, 현재 샘플 운행 조회 | 실행 성공. 현재 A 완료·B 진행 중이므로 3절 처음부터 재현은 미실시 | `adb install -r`, user 10 `MainActivity`, UI 텍스트 덤프; `GET /trips/sample-trip-1` |
 | 2026-11-08 | Android assembleDebug / testDebugUnitTest / lintDebug | 통과 | 로컬 빌드 |
 | 2026-11-08 | backend pytest | 2 passed | Python 3.9 venv |
 | 2026-11-08 | docker compose + `/health` | `database: ok` | Colima, postgres:16, python:3.12-slim |

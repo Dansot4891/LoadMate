@@ -80,8 +80,6 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.ui.tooling.preview)
     testImplementation(libs.junit)
-    // 단위 테스트에서 android.jar의 org.json 스텁 대신 실제 구현 사용
-    testImplementation(libs.org.json)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
