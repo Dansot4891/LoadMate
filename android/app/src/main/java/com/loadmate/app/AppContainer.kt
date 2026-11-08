@@ -22,6 +22,7 @@ import com.loadmate.app.feature.settings.data.ConnectionRepositoryImpl
 import com.loadmate.app.feature.settings.domain.ConnectionRepository
 import com.loadmate.app.feature.trip.data.CachingTripRepository
 import com.loadmate.app.feature.trip.data.TripRepositoryImpl
+import com.loadmate.app.feature.trip.data.TripSession
 
 /** 수동 의존성 주입 컨테이너. 구현체 연결은 여기서만 한다. */
 class AppContainer(appContext: Context) {
@@ -41,6 +42,7 @@ class AppContainer(appContext: Context) {
 
     // Pleos SDK 구현은 여기서만 연결한다. 화면은 인터페이스만 받는다.
     val naviGateway: NaviGateway by lazy { PleosNaviGateway(appContext) }
+    val tripSession: TripSession by lazy { TripSession(tripRepository, naviGateway, speechOutput) { id, title, message -> notifier.notify(id, title, message) } }
     val rearDoorGateway: RearDoorGateway by lazy { PleosRearDoorGateway(appContext) }
     val speechGateway: SpeechGateway by lazy { PleosSpeechGateway(appContext) }
     val speechOutput: SpeechOutput by lazy { PleosSpeechOutput(appContext) }

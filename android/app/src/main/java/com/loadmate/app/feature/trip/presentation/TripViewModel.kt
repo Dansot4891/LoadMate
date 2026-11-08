@@ -1,5 +1,8 @@
 package com.loadmate.app.feature.trip.presentation
 
+import com.loadmate.app.core.pleos.RouteRequestStatus
+import com.loadmate.app.core.pleos.routeRequestStatus
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -144,28 +147,9 @@ class TripViewModel(
     private fun keyFor(op: String) = keys.getOrPut(op) { newKey() }
     private fun done(op: String) { keys.remove(op) }
 
-    private var lastAnnouncedRoute: RouteRequestStatus = RouteRequestStatus.None
-
     init {
         refresh()
         viewModelScope.launch { repo.currentTrip.collect { trip -> if (trip != null && trip.id == tripId && trip != local.value.trip) applyTrip(trip, keepStep = true) } }
-        // 내비 결과를 짧게 알린다. 내비가 화면을 덮고 있어도 들리고 보이게 (실측: 헤드업·TTS 동작)
-        viewModelScope.launch {
-            navi.state.collect { n ->
-                val st = routeRequestStatus(n.events)
-                if (st != lastAnnouncedRoute) {
-                    when (st) {
-                        is RouteRequestStatus.Started -> speech?.speak("${st.name}으로 안내를 시작했습니다.")
-                        is RouteRequestStatus.Failed -> {
-                            speech?.speak("내비 안내 요청이 실패했습니다. 앱에서 다시 보내 주세요.")
-                            notify(DriverNotifier.ID_ROUTE, "내비 안내 실패", "${st.reason} · Loadmate 에서 다시 보내기")
-                        }
-                        else -> Unit
-                    }
-                    lastAnnouncedRoute = st
-                }
-            }
-        }
     }
 
     fun onAction(a: TripUiAction) {
@@ -246,8 +230,6 @@ class TripViewModel(
             }
             s.copy(loading = false, loadError = null, offlineSince = null, trip = trip, step = step, lastComparison = trip.comparison)
         }
-        if (trip.baseline != null && !trip.isEnded) navi.connect()
-        if (trip.isEnded) navi.release()
     }
 
     private fun recordObservation(unavailable: Boolean) {
@@ -415,7 +397,6 @@ class TripViewModel(
     private fun sendRoute() {
         val plan = local.value.routeDialog ?: return
         local.update { it.copy(routeDialog = null, lastRoutePlan = plan) }
-        navi.connect()
         navi.requestRoute(plan.destination, plan.waypoints)
     }
 
@@ -430,7 +411,6 @@ class TripViewModel(
     }
 
     override fun onCleared() {
-        navi.release()
         rearDoor.stop()
     }
 
@@ -438,7 +418,7 @@ class TripViewModel(
         fun factory(container: AppContainer, tripId: String): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 TripViewModel(
-                    repo = container.tripRepository, memos = container.memoRepository, navi = container.naviGateway,
+                    repo = container.tripRepository, memos = container.memoRepository, navi = container.tripSession.navi,
                     rearDoor = container.rearDoorGateway, speech = container.speechOutput,
                     notify = { id, title, text -> container.notifier.notify(id, title, text) },
                     cached = { container.tripRepository.cached(it) }, tripId = tripId,

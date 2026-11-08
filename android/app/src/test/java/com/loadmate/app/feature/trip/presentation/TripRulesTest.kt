@@ -1,5 +1,8 @@
 package com.loadmate.app.feature.trip.presentation
 
+import com.loadmate.app.core.pleos.RouteRequestStatus
+import com.loadmate.app.core.pleos.routeRequestStatus
+
 import com.loadmate.app.core.pleos.NaviEvent
 import com.loadmate.app.feature.trip.domain.Stop
 import com.loadmate.app.feature.trip.domain.StopStatus

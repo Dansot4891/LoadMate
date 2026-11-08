@@ -107,14 +107,14 @@ class TripViewModelTest {
     }
 
     @Test
-    fun `운행 중이면 내비 연결 유지, 화면 단계는 운행`() {
+    fun `운행 화면은 현재 단계만 표시하고 내비 수명은 관리하지 않음`() {
         val navi = FakeNavi()
         val v = vm(FakeRepo(tripInProgress), navi)
         // state 는 WhileSubscribed → 수집 중일 때 값이 갱신된다
         val job = CoroutineScope(UnconfinedTestDispatcher()).launch { v.state.collect {} }
         assertEquals(TripStep.DRIVING, v.state.value.step)
         job.cancel()
-        assertTrue(navi.connects >= 1)
+        assertEquals(0, navi.connects)
         assertEquals(0, navi.releases)
     }
 
@@ -160,10 +160,10 @@ class TripViewModelTest {
     }
 
     @Test
-    fun `운행 완료면 내비 해제`() {
+    fun `운행 화면은 종료 시 내비를 직접 해제하지 않음`() {
         val navi = FakeNavi()
         vm(FakeRepo(tripInProgress.copy(status = com.loadmate.app.feature.trip.domain.TripStatus.COMPLETED)), navi)
-        assertTrue(navi.releases >= 1)
+        assertEquals(0, navi.releases)
     }
 
     @Test

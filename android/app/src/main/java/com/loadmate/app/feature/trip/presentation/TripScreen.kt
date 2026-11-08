@@ -1,5 +1,8 @@
 package com.loadmate.app.feature.trip.presentation
 
+import com.loadmate.app.core.pleos.RouteRequestStatus
+import com.loadmate.app.core.pleos.routeRequestStatus
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
