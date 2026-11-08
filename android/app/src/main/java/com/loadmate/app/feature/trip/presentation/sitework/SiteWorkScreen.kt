@@ -45,7 +45,7 @@ import com.loadmate.app.feature.trip.domain.StopStatus
 import com.loadmate.app.feature.trip.domain.Trip
 
 @Composable
-internal fun SiteWorkPanel(s: TripUiState, trip: Trip, on: (TripUiAction) -> Unit) {
+internal fun SiteWorkScreen(s: TripUiState, trip: Trip, on: (TripUiAction) -> Unit) {
     val c = Pleos.colors
     val t = Pleos.type
     val stop = trip.currentStop ?: return

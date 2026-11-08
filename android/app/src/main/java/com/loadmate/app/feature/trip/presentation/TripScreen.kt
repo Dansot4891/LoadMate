@@ -1,11 +1,11 @@
 package com.loadmate.app.feature.trip.presentation
 
-import com.loadmate.app.feature.trip.presentation.overview.OverviewPanel
-import com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckPanel
-import com.loadmate.app.feature.trip.presentation.driving.DrivingPanel
+import com.loadmate.app.feature.trip.presentation.overview.OverviewScreen
+import com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckScreen
+import com.loadmate.app.feature.trip.presentation.driving.DrivingScreen
 import com.loadmate.app.feature.trip.presentation.driving.RouteDialog
-import com.loadmate.app.feature.trip.presentation.sitework.SiteWorkPanel
-import com.loadmate.app.feature.trip.presentation.mismatch.MismatchPanel
+import com.loadmate.app.feature.trip.presentation.sitework.SiteWorkScreen
+import com.loadmate.app.feature.trip.presentation.mismatch.MismatchScreen
 
 import com.loadmate.app.core.pleos.RouteRequestStatus
 import com.loadmate.app.core.pleos.routeRequestStatus
@@ -108,11 +108,11 @@ private fun TripContent(s: TripUiState, on: (TripUiAction) -> Unit) {
                         verticalArrangement = Arrangement.spacedBy(PleosSpacing.l),
                     ) {
                         when (s.step) {
-                            TripStep.OVERVIEW -> OverviewPanel(trip, on)
-                            TripStep.LOAD_CHECK -> LoadCheckPanel(s, trip, on)
-                            TripStep.DRIVING -> DrivingPanel(s, trip, on)
-                            TripStep.SITE_WORK -> SiteWorkPanel(s, trip, on)
-                            TripStep.MISMATCH -> MismatchPanel(s, trip, on)
+                            TripStep.OVERVIEW -> OverviewScreen(trip, on)
+                            TripStep.LOAD_CHECK -> LoadCheckScreen(s, trip, on)
+                            TripStep.DRIVING -> DrivingScreen(s, trip, on)
+                            TripStep.SITE_WORK -> SiteWorkScreen(s, trip, on)
+                            TripStep.MISMATCH -> MismatchScreen(s, trip, on)
                             TripStep.DONE -> { DonePanel(trip); PickupsCard(trip, on) }
                         }
                     }

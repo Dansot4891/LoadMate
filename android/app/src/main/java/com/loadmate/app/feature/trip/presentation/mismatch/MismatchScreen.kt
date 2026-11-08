@@ -45,7 +45,7 @@ import com.loadmate.app.feature.trip.domain.StopStatus
 import com.loadmate.app.feature.trip.domain.Trip
 
 @Composable
-internal fun MismatchPanel(s: TripUiState, trip: Trip, on: (TripUiAction) -> Unit) {
+internal fun MismatchScreen(s: TripUiState, trip: Trip, on: (TripUiAction) -> Unit) {
     val c = Pleos.colors
     val t = Pleos.type
     val cmp = s.pendingConfirmation ?: return

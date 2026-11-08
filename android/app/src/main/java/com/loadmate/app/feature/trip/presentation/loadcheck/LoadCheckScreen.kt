@@ -1,4 +1,4 @@
-package com.loadmate.app.feature.trip.presentation.overview
+package com.loadmate.app.feature.trip.presentation.loadcheck
 
 import com.loadmate.app.feature.trip.presentation.*
 
@@ -45,17 +45,24 @@ import com.loadmate.app.feature.trip.domain.StopStatus
 import com.loadmate.app.feature.trip.domain.Trip
 
 @Composable
-internal fun OverviewPanel(trip: Trip, on: (TripUiAction) -> Unit) {
+internal fun LoadCheckScreen(s: TripUiState, trip: Trip, on: (TripUiAction) -> Unit) {
     val c = Pleos.colors
     val t = Pleos.type
     PleosCard {
-        BasicText("운행 준비", style = t.titleMedium.copy(color = c.textPrimary))
-        BasicText("방문지 ${trip.stops.size}곳 · 배송품 ${countsText(trip.plannedTotals, trip)}", style = t.bodyLarge.copy(color = c.textPrimary))
-        BasicText("출발 전에 적재 공간을 확인하고 최초 기준을 확정합니다.", style = t.bodyMedium.copy(color = c.textSecondary))
-        PleosButton("적재 확인 시작") { on(TripUiAction.OpenLoadCheck) }
+        BasicText("최초 적재 확인", style = t.titleMedium.copy(color = c.textPrimary))
+        BasicText("검수 목록: ${countsText(trip.plannedTotals, trip)}", style = t.bodyLarge.copy(color = c.textPrimary))
+        BasicText("관측을 기록하고 수량이 맞으면 기준으로 확정합니다. 다르면 아래 수량을 고쳐 확정할 수 있습니다.", style = t.bodyMedium.copy(color = c.textSecondary))
     }
-    StopManageCard(trip, on, allowQty = true)
+    ObservationInput(s, trip, on)
+    (s.lastComparison ?: trip.comparison).let {
+        ComparisonView(it, trip, "검수 목록 대비")
+        ZoneView(trip, it)
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {
+        PleosButton("이 수량으로 기준 확정 (${countsText(s.observationDraft, trip)})", enabled = !s.busy) { on(TripUiAction.ConfirmBaseline) }
+        PleosButton("뒤로", style = PleosButtonStyle.Basic) { on(TripUiAction.BackToOverview) }
+    }
 }
 
-// ---------------------------------------------------------------- S05
+// ---------------------------------------------------------------- S02·S03
 
