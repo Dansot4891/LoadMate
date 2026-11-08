@@ -84,7 +84,7 @@ cd .. && docker run --rm -v "$PWD/backend:/srv" -w /srv loadmate-backend sh -c "
 A0. 구조 이행 (2026-11-08 결정, 영상 분석 붙이기 전에) — 규칙은 `android/CLAUDE.md`·`backend/CLAUDE.md`
 - 서버
   - [x] `trip/seed.py` → `app/seed.py` (Dockerfile CMD·conftest·api-contract·architecture 명령 경로 함께)
-  - [ ] `core/time.py` 로 시각 함수 통일 (memo·fleet·trip 의 `_utc`/`as_utc` 중복 제거)
+  - [x] `core/time.py` 로 시각 함수 통일 (memo·fleet·trip 의 `_utc`/`as_utc` 중복 제거)
   - [ ] memo·fleet·handover·assistant 를 router·schemas·service·repository·models 로 분리 (memo 는 멱등·공개 범위 규칙을 service 로)
   - [ ] memo 가 `trip.models.Stop` 직접 쿼리 → trip repository 공개 메서드 호출
   - [ ] `trip/service.py`(517줄) → `trip/service/{trips,stops,loading,pickups,issues,common}.py`

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
@@ -14,16 +14,13 @@ from sqlalchemy.orm import Session
 from app.core.actor import actor_id
 from app.core.db import get_session
 from app.core.errors import AppError
+from app.core.time import as_utc, iso_utc, utcnow
 from app.features.memo.models import Memo
 from app.features.trip.models import Stop
 
 router = APIRouter(tags=["memo"])
 
 ScopeType = Literal["place", "vehicle", "equipment", "trip"]
-
-
-def _utc(dt: datetime) -> datetime:
-    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
 
 
 class MemoIn(BaseModel):
@@ -61,13 +58,13 @@ class MemoOut(BaseModel):
 
     @field_serializer("created_at", "updated_at", when_used="json")
     def _ser(self, v):
-        return _utc(v).strftime("%Y-%m-%dT%H:%M:%SZ")
+        return iso_utc(v)
 
 
 def memo_out(m: Memo) -> MemoOut:
     return MemoOut(id=m.id, scope_type=m.scope_type, scope_id=m.scope_id, body=m.body, tags=m.tags or [], visibility=m.visibility,
                    persistence=m.persistence, trip_id=m.trip_id, source=m.source, author_id=m.author_id,
-                   created_at=_utc(m.created_at), updated_at=_utc(m.updated_at), updated_by=m.updated_by)
+                   created_at=as_utc(m.created_at), updated_at=as_utc(m.updated_at), updated_by=m.updated_by)
 
 
 def visible(q, actor: str | None):
@@ -120,7 +117,7 @@ def create_memo(body: MemoIn, s: Session = Depends(get_session), actor: str | No
         return {"memo": memo_out(existing).model_dump(mode="json"), "replayed": True}
     if body.persistence == "this_trip" and not body.trip_id:
         raise AppError(422, "trip_required", "이번 운행 메모에는 운행 ID 가 필요합니다")
-    now = datetime.now(timezone.utc)
+    now = utcnow()
     m = Memo(idempotency_key=body.idempotency_key, scope_type=body.scope_type, scope_id=body.scope_id, body=body.body,
              tags=body.tags, visibility=body.visibility, persistence=body.persistence, trip_id=body.trip_id, source=body.source,
              author_id=author, created_at=now, updated_at=now, updated_by=author)
@@ -147,7 +144,7 @@ def update_memo(memo_id: int, body: MemoUpdateIn, s: Session = Depends(get_sessi
         m.tags = body.tags
     if body.visibility is not None:
         m.visibility = body.visibility
-    m.updated_at = datetime.now(timezone.utc)
+    m.updated_at = utcnow()
     m.updated_by = editor  # F54 최신화: 공유 메모는 다른 기사도 고칠 수 있고 수정자가 남는다
     s.commit()
     return memo_out(m)

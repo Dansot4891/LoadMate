@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
+from app.core.time import iso_utc, utcnow
 from app.features.fleet.models import Driver, Equipment
 from app.features.handover.models import Handover
 from app.features.memo.models import Memo
@@ -85,7 +85,7 @@ class HandoverService:
         if self.s.scalars(select(Handover).where(Handover.trip_id == trip_id, Handover.status == "pending")).first():
             raise AppError(409, "handover_pending", "인수 대기 중인 인계가 있습니다")
         ho = Handover(trip_id=trip_id, idempotency_key=key, from_driver_id=actor, to_driver_id=to_driver_id, note=note,
-                      summary=self.preview(trip_id), created_at=datetime.now(timezone.utc))
+                      summary=self.preview(trip_id), created_at=utcnow())
         self.s.add(ho)
         self.trips._commit()
         return {"handover": self._out(ho), "replayed": False}
@@ -106,7 +106,7 @@ class HandoverService:
         trip = self.trips._trip(ho.trip_id, for_update=True)
         trip.driver_id = ho.to_driver_id
         ho.status = "accepted"
-        ho.accepted_at = datetime.now(timezone.utc)
+        ho.accepted_at = utcnow()
         self.s.add(TripEvent(trip_id=trip.id, idempotency_key=f"handover-{ho.id}", request_hash="-", type="handover_accepted",
                              delta={}, detail={"from": ho.from_driver_id, "to": ho.to_driver_id}, actor_id=actor,
                              created_at=ho.accepted_at))
@@ -115,6 +115,5 @@ class HandoverService:
 
     @staticmethod
     def _out(ho: Handover) -> dict:
-        f = lambda d: (d.replace(tzinfo=timezone.utc) if d.tzinfo is None else d).strftime("%Y-%m-%dT%H:%M:%SZ") if d else None  # noqa: E731
         return {"id": ho.id, "trip_id": ho.trip_id, "from_driver_id": ho.from_driver_id, "to_driver_id": ho.to_driver_id,
-                "note": ho.note, "summary": ho.summary, "status": ho.status, "created_at": f(ho.created_at), "accepted_at": f(ho.accepted_at)}
+                "note": ho.note, "summary": ho.summary, "status": ho.status, "created_at": iso_utc(ho.created_at), "accepted_at": iso_utc(ho.accepted_at)}

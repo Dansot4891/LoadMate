@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends
@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.core.actor import actor_id
 from app.core.db import get_session
 from app.core.errors import AppError
+from app.core.time import as_utc, iso_utc, utcnow
 from app.features.fleet.models import Driver, Equipment, Vehicle
 
 router = APIRouter(tags=["fleet"])
@@ -37,7 +38,7 @@ class EquipmentOut(BaseModel):
 
     @field_serializer("updated_at", when_used="json")
     def _ser(self, v):
-        return v.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ") if v else None
+        return iso_utc(v)
 
 
 class EquipmentUpdateIn(BaseModel):
@@ -47,7 +48,7 @@ class EquipmentUpdateIn(BaseModel):
 
 
 def equipment_out(e: Equipment) -> EquipmentOut:
-    at = e.updated_at.replace(tzinfo=timezone.utc) if e.updated_at and e.updated_at.tzinfo is None else e.updated_at
+    at = as_utc(e.updated_at) if e.updated_at else None
     return EquipmentOut(id=e.id, vehicle_id=e.vehicle_id, name=e.name, location=e.location, status=e.status, note=e.note,
                         updated_by=e.updated_by, updated_at=at)
 
@@ -77,6 +78,6 @@ def update_equipment(equipment_id: str, body: EquipmentUpdateIn, s: Session = De
     if body.note is not None:
         e.note = body.note
     e.updated_by = actor
-    e.updated_at = datetime.now(timezone.utc)
+    e.updated_at = utcnow()
     s.commit()
     return equipment_out(e)

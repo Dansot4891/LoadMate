@@ -10,10 +10,10 @@
 from __future__ import annotations
 
 import sys
-from datetime import datetime, timezone
 
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
+from app.core.time import utcnow
 
 from app.features.fleet.models import Driver, Equipment, Vehicle
 from app.features.handover.models import Handover
@@ -40,7 +40,7 @@ _EQUIPMENT = [
 
 def ensure_sample(session: Session, reset: bool = False) -> bool:
     """샘플 운행이 없으면 만든다. 만들었으면 True. 기사·차량·장비는 항상 맞춰 둔다."""
-    now = datetime.now(timezone.utc)
+    now = utcnow()
     for did, name in _DRIVERS:
         session.merge(Driver(id=did, name=name))
     session.merge(Vehicle(id=SAMPLE_VEHICLE_ID, name="샘플 차량"))

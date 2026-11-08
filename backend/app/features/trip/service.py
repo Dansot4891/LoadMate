@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
+from app.core.time import as_utc, utcnow
 from app.features.trip import rules
 from app.features.trip.models import CargoLine, Issue, Observation, Pickup, Stop, Trip, TripEvent
 from app.features.trip.repository import TripRepository
@@ -46,15 +47,6 @@ from app.features.trip.schemas import (
 )
 
 DEFAULT_STALE_AFTER = timedelta(seconds=300)
-
-
-def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def as_utc(dt: datetime) -> datetime:
-    """SQLite 는 tz 를 잃으므로 naive 는 UTC 로 본다."""
-    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
 
 
 def request_hash(payload: dict) -> str:

@@ -4,18 +4,15 @@ from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_serializer, model_validator
+from app.core.time import iso_utc
 
 Counts = dict[str, int]
-
-
-def _iso(dt: datetime) -> str:
-    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 class _Out(BaseModel):
     @field_serializer("*", when_used="json", check_fields=False)
     def _ser(self, v):  # 모든 datetime 을 UTC Z 형식으로
-        return _iso(v) if isinstance(v, datetime) else v
+        return iso_utc(v) if isinstance(v, datetime) else v
 
 
 def _non_negative(counts: Counts | None) -> Counts | None:
