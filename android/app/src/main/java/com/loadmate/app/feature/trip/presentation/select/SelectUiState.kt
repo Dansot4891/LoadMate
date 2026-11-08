@@ -1,5 +1,6 @@
 package com.loadmate.app.feature.trip.presentation.select
 
+import com.loadmate.app.feature.trip.presentation.shared.*
 import com.loadmate.app.feature.trip.domain.TripSummary
 
 data class SelectUiState(

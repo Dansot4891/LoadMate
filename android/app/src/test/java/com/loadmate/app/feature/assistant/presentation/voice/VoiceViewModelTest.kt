@@ -46,6 +46,7 @@ class VoiceViewModelTest {
     private class FakeTts : SpeechOutput {
         val spoken = mutableListOf<String>()
         override val available: StateFlow<Boolean?> = MutableStateFlow(true)
+        override val speaking: StateFlow<Boolean> = MutableStateFlow(false)
         override fun speak(text: String) { spoken += text }
         override fun release() = Unit
     }

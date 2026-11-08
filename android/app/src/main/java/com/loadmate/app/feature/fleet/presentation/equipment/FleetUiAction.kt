@@ -14,7 +14,7 @@ import com.loadmate.app.feature.fleet.domain.Handover
 import com.loadmate.app.feature.fleet.domain.HandoverPreview
 import com.loadmate.app.core.network.ApiResult
 import com.loadmate.app.feature.trip.domain.TripRepository
-import com.loadmate.app.feature.trip.presentation.describe
+import com.loadmate.app.core.network.describe
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

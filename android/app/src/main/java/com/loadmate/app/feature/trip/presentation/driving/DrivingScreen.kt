@@ -1,5 +1,6 @@
 package com.loadmate.app.feature.trip.presentation.driving
 
+import com.loadmate.app.feature.trip.presentation.shared.*
 import com.loadmate.app.feature.trip.presentation.*
 
 import com.loadmate.app.core.pleos.RouteRequestStatus
@@ -43,9 +44,10 @@ import com.loadmate.app.feature.trip.domain.ObservationSource
 import com.loadmate.app.feature.trip.domain.Stop
 import com.loadmate.app.feature.trip.domain.StopStatus
 import com.loadmate.app.feature.trip.domain.Trip
+import com.loadmate.app.feature.trip.presentation.driving.components.RouteOverview
 
 @Composable
-internal fun DrivingScreen(s: TripUiState, trip: Trip, on: (TripUiAction) -> Unit) {
+internal fun DrivingScreen(s: DrivingUiState, trip: Trip, on: (TripUiAction) -> Unit) {
     val c = Pleos.colors
     val t = Pleos.type
     val stop = trip.currentStop ?: run {
@@ -63,6 +65,7 @@ internal fun DrivingScreen(s: TripUiState, trip: Trip, on: (TripUiAction) -> Uni
         BasicText("${stop.label} · ${stop.name}", style = t.titleMedium.copy(color = c.textPrimary))
         BasicText("하차 예정 ${countsText(stop.plannedCounts, trip)}", style = t.bodyLarge.copy(color = c.textPrimary))
     }
+    PleosCard { RouteOverview(trip.pendingStops) }
     PleosCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {
             BasicText("내비 안내", style = t.titleSmall.copy(color = c.textPrimary))

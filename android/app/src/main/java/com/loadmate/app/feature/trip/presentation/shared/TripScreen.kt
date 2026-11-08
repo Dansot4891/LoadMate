@@ -1,5 +1,6 @@
-package com.loadmate.app.feature.trip.presentation
+package com.loadmate.app.feature.trip.presentation.shared
 
+import com.loadmate.app.core.designsystem.localTime
 import com.loadmate.app.feature.trip.presentation.overview.OverviewScreen
 import com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckScreen
 import com.loadmate.app.feature.trip.presentation.driving.DrivingScreen
@@ -58,21 +59,32 @@ fun TripScreen(
     mismatch: com.loadmate.app.feature.trip.presentation.mismatch.MismatchViewModel,
 ) {
     val screenState by overview.state.collectAsStateWithLifecycle()
-    val state = screenState.content
+    val state = screenState
+    val loadCheckState by loadcheck.state.collectAsStateWithLifecycle()
+    val drivingState by driving.state.collectAsStateWithLifecycle()
+    val siteWorkState by sitework.state.collectAsStateWithLifecycle()
+    val mismatchState by mismatch.state.collectAsStateWithLifecycle()
     val action: (TripUiAction) -> Unit = { value ->
         when (state.step) {
-            TripStep.OVERVIEW, TripStep.DONE -> overview.onAction(com.loadmate.app.feature.trip.presentation.overview.OverviewUiAction(value))
-            TripStep.LOAD_CHECK -> loadcheck.onAction(com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckUiAction(value))
-            TripStep.DRIVING -> driving.onAction(com.loadmate.app.feature.trip.presentation.driving.DrivingUiAction(value))
-            TripStep.SITE_WORK -> sitework.onAction(com.loadmate.app.feature.trip.presentation.sitework.SiteWorkUiAction(value))
-            TripStep.MISMATCH -> mismatch.onAction(com.loadmate.app.feature.trip.presentation.mismatch.MismatchUiAction(value))
+            TripStep.OVERVIEW, TripStep.DONE -> overview.onAction(com.loadmate.app.feature.trip.presentation.overview.OverviewUiAction.from(value))
+            TripStep.LOAD_CHECK -> loadcheck.onAction(com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckUiAction.from(value))
+            TripStep.DRIVING -> driving.onAction(com.loadmate.app.feature.trip.presentation.driving.DrivingUiAction.from(value))
+            TripStep.SITE_WORK -> sitework.onAction(com.loadmate.app.feature.trip.presentation.sitework.SiteWorkUiAction.from(value))
+            TripStep.MISMATCH -> mismatch.onAction(com.loadmate.app.feature.trip.presentation.mismatch.MismatchUiAction.from(value))
         }
     }
-    TripContent(state, action)
+    TripContent(state, loadCheckState, drivingState, siteWorkState, mismatchState, action)
 }
 
 @Composable
-private fun TripContent(s: TripUiState, on: (TripUiAction) -> Unit) {
+private fun TripContent(
+    s: com.loadmate.app.feature.trip.presentation.overview.OverviewUiState,
+    loadCheck: com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckUiState,
+    driving: com.loadmate.app.feature.trip.presentation.driving.DrivingUiState,
+    siteWork: com.loadmate.app.feature.trip.presentation.sitework.SiteWorkUiState,
+    mismatch: com.loadmate.app.feature.trip.presentation.mismatch.MismatchUiState,
+    on: (TripUiAction) -> Unit,
+) {
     val c = Pleos.colors
     val t = Pleos.type
     Box(Modifier.fillMaxSize().background(c.backgroundPrimary)) {
@@ -109,10 +121,10 @@ private fun TripContent(s: TripUiState, on: (TripUiAction) -> Unit) {
                     ) {
                         when (s.step) {
                             TripStep.OVERVIEW -> OverviewScreen(trip, on)
-                            TripStep.LOAD_CHECK -> LoadCheckScreen(s, trip, on)
-                            TripStep.DRIVING -> DrivingScreen(s, trip, on)
-                            TripStep.SITE_WORK -> SiteWorkScreen(s, trip, on)
-                            TripStep.MISMATCH -> MismatchScreen(s, trip, on)
+                            TripStep.LOAD_CHECK -> LoadCheckScreen(loadCheck, trip, on)
+                            TripStep.DRIVING -> DrivingScreen(driving, trip, on)
+                            TripStep.SITE_WORK -> SiteWorkScreen(siteWork, trip, on)
+                            TripStep.MISMATCH -> MismatchScreen(mismatch, trip, on)
                             TripStep.DONE -> { DonePanel(trip); PickupsCard(trip, on) }
                         }
                     }

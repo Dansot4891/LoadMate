@@ -23,7 +23,7 @@ import com.loadmate.app.feature.settings.domain.ConnectionRepository
 import com.loadmate.app.feature.trip.data.CachingTripRepository
 import com.loadmate.app.feature.trip.data.TripRepositoryImpl
 import com.loadmate.app.feature.trip.data.TripSession
-import com.loadmate.app.feature.trip.presentation.TripCoordinator
+import com.loadmate.app.feature.trip.presentation.shared.TripCoordinator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -48,11 +48,23 @@ class AppContainer(appContext: Context) {
     val speechGateway: SpeechGateway by lazy { PleosSpeechGateway(appContext) }
     val speechOutput: SpeechOutput by lazy { PleosSpeechOutput(appContext) }
     val notifier: DriverNotifier by lazy { DriverNotifier(appContext) }
-    private val coordinators = mutableMapOf<String, TripCoordinator>()
-    fun tripCoordinator(tripId: String): TripCoordinator = coordinators.getOrPut(tripId) {
+    private var activeCoordinator: Pair<String, TripCoordinator>? = null
+
+    fun releaseTripCoordinator(tripId: String) {
+        if (activeCoordinator?.first == tripId) {
+            activeCoordinator?.second?.release()
+            activeCoordinator = null
+        }
+    }
+    fun tripCoordinator(tripId: String): TripCoordinator {
+        activeCoordinator?.takeIf { it.first == tripId }?.let { return it.second }
+        activeCoordinator?.second?.release()
+        val coordinator =
         TripCoordinator(tripRepository, memoRepository, tripSession.navi, rearDoorGateway, speechOutput,
             { id, title, message -> notifier.notify(id, title, message) }, { tripRepository.cached(it) }, tripId,
             CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate))
+        activeCoordinator = tripId to coordinator
+        return coordinator
     }
 
 

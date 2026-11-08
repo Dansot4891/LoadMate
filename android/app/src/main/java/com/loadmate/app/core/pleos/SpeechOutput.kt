@@ -16,6 +16,8 @@ import java.util.Locale
 interface SpeechOutput {
     /** null = 연결 전, true = 사용 가능, false = 사용 불가(화면 표시만) */
     val available: StateFlow<Boolean?>
+    /** 음성 출력 중에는 마이크 재청취를 보류한다. */
+    val speaking: StateFlow<Boolean>
     fun speak(text: String)
     fun release()
 }
@@ -32,6 +34,8 @@ class PleosSpeechOutput(context: Context) : SpeechOutput {
     private val queue = ArrayDeque<String>()
     private val _available = MutableStateFlow<Boolean?>(null)
     override val available: StateFlow<Boolean?> = _available.asStateFlow()
+    private val _speaking = MutableStateFlow(false)
+    override val speaking: StateFlow<Boolean> = _speaking.asStateFlow()
 
     private fun ensure() {
         if (tts != null) return
@@ -42,12 +46,12 @@ class PleosSpeechOutput(context: Context) : SpeechOutput {
                 override fun onSuccess() {
                     runCatching { t.setLocale(Locale.KOREA) }
                     t.addEventListener(object : EventListener {
-                        override fun onStart() = Unit
+                        override fun onStart() { _speaking.value = true }
                         override fun onReady() = Unit
-                        override fun onDone() = Unit
-                        override fun onStop() = Unit
+                        override fun onDone() { _speaking.value = false }
+                        override fun onStop() { _speaking.value = false }
                         override fun onUpdatedRms(rms: Double) = Unit
-                        override fun onError(type: ErrorType) { Log.w(TAG, "tts error $type") }
+                        override fun onError(type: ErrorType) { _speaking.value = false; Log.w(TAG, "tts error $type") }
                     })
                     ready = true
                     _available.value = true
@@ -77,6 +81,7 @@ class PleosSpeechOutput(context: Context) : SpeechOutput {
         runCatching { tts?.release() }
         tts = null
         ready = false
+        _speaking.value = false
     }
 
     private companion object {

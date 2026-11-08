@@ -17,7 +17,7 @@ import com.loadmate.app.feature.records.domain.MemoRepository
 import com.loadmate.app.feature.records.domain.NewMemo
 import com.loadmate.app.core.network.ApiResult
 import com.loadmate.app.feature.trip.domain.TripRepository
-import com.loadmate.app.feature.trip.presentation.describe
+import com.loadmate.app.core.network.describe
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,6 +32,7 @@ import java.util.UUID
 /** 음성 대화 상태: 대기·청취·처리·응답·확인 대기·실패 (기획서 11장) */
 
 sealed interface VoiceUiAction {
+    data object ToggleAlwaysListening : VoiceUiAction
     data object Open : VoiceUiAction
     data object Close : VoiceUiAction
     data object Listen : VoiceUiAction

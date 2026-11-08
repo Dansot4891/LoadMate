@@ -1,4 +1,4 @@
-package com.loadmate.app.feature.trip.presentation
+package com.loadmate.app.feature.trip.presentation.shared
 
 import com.loadmate.app.core.pleos.NaviDestination
 import com.loadmate.app.core.pleos.NaviEvent

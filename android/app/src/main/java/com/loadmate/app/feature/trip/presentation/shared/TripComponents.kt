@@ -1,5 +1,6 @@
-package com.loadmate.app.feature.trip.presentation
+package com.loadmate.app.feature.trip.presentation.shared
 
+import com.loadmate.app.core.designsystem.localTime
 import com.loadmate.app.feature.trip.presentation.overview.OverviewScreen
 import com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckScreen
 import com.loadmate.app.feature.trip.presentation.driving.DrivingScreen
@@ -115,7 +116,7 @@ private fun StopRow(st: Stop, trip: Trip, isCurrent: Boolean) {
 
 /** 관측 입력: 카메라 API가 없어 샘플·기사 입력만 (원칙 5: 출처 표시) */
 @Composable
-internal fun ObservationInput(s: TripUiState, trip: Trip, on: (TripUiAction) -> Unit) {
+internal fun ObservationInput(s: ObservationUiState, trip: Trip, on: (TripUiAction) -> Unit) {
     val c = Pleos.colors
     val t = Pleos.type
     PleosCard {
@@ -193,9 +194,3 @@ internal fun DonePanel(trip: Trip) {
         BasicText("내비 연결을 해제했습니다.", style = t.labelMedium.copy(color = c.textTertiary))
     }
 }
-
-/** 서버 UTC ISO 시각 → 기기 현지 시각 HH:mm:ss */
-internal fun localTime(iso: String): String = runCatching {
-    java.time.Instant.parse(iso).atZone(java.time.ZoneId.systemDefault()).toLocalTime()
-        .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"))
-}.getOrDefault(iso)

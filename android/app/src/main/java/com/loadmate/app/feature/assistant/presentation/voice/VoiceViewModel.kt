@@ -17,12 +17,13 @@ import com.loadmate.app.feature.records.domain.MemoRepository
 import com.loadmate.app.feature.records.domain.NewMemo
 import com.loadmate.app.core.network.ApiResult
 import com.loadmate.app.feature.trip.domain.TripRepository
-import com.loadmate.app.feature.trip.presentation.describe
+import com.loadmate.app.core.network.describe
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -55,11 +56,15 @@ class VoiceViewModel(
     private var timeout: kotlinx.coroutines.Job? = null
     private var pending: AssistantAction? = null
     private var actionKey: String? = null
+    private var rearm: kotlinx.coroutines.Job? = null
 
     init {
         stt.connect()
         viewModelScope.launch {
             stt.state.collect { sp ->
+                if (local.value.alwaysListening && !awaitingResult && sp.connection == SpeechConnection.Ready && local.value.phase == VoicePhase.FAILED && sp.lastError == null) {
+                    listen()
+                }
                 if (!awaitingResult) return@collect
                 val final = sp.finalText
                 when {
@@ -71,6 +76,7 @@ class VoiceViewModel(
                     sp.lastError != null && !sp.listening -> {
                         awaitingResult = false
                         local.update { it.copy(phase = VoicePhase.FAILED) }
+                        scheduleNextListen()
                     }
                 }
             }
@@ -79,8 +85,20 @@ class VoiceViewModel(
 
     fun onAction(a: VoiceUiAction) {
         when (a) {
+            VoiceUiAction.ToggleAlwaysListening -> {
+                if (local.value.alwaysListening) {
+                    rearm?.cancel(); timeout?.cancel(); stt.stopListening(); awaitingResult = false
+                    local.update { it.copy(alwaysListening = false, phase = VoicePhase.IDLE) }
+                } else {
+                    local.update { it.copy(alwaysListening = true) }
+                    listen()
+                }
+            }
             VoiceUiAction.Open -> { local.update { it.copy(open = true) }; listen() }
-            VoiceUiAction.Close -> { stt.stopListening(); awaitingResult = false; pending = null; local.value = VoiceUiState() }
+            VoiceUiAction.Close -> {
+                local.update { it.copy(open = false) }
+                if (!local.value.alwaysListening) { stt.stopListening(); awaitingResult = false; pending = null; local.value = VoiceUiState() }
+            }
             VoiceUiAction.Listen -> listen()
             is VoiceUiAction.Typed -> local.update { it.copy(typed = a.text) }
             VoiceUiAction.SubmitTyped -> local.value.typed.takeIf { it.isNotBlank() }?.let { local.update { s -> s.copy(typed = "") }; handle(it) }
@@ -90,16 +108,18 @@ class VoiceViewModel(
                 actionKey = null
                 local.update { it.copy(phase = VoicePhase.IDLE, reply = null) }
                 tts?.speak("취소했습니다.")
+                scheduleNextListen()
             }
         }
     }
 
     private fun listen() {
-        if (!state.value.sttReady) {
+        if (stt.state.value.connection != SpeechConnection.Ready) {
             local.update { it.copy(phase = VoicePhase.FAILED) }
             return
         }
         awaitingResult = true
+        rearm?.cancel()
         local.update { it.copy(phase = VoicePhase.LISTENING, heard = null, partial = null) }
         stt.listen()
         // 실측: 준비 전에 말이 끝나면 무음만 들어와 인식이 끝나지 않는다 → 시간 제한 후 다시 말하기 안내
@@ -111,12 +131,13 @@ class VoiceViewModel(
                 stt.stopListening()
                 local.update { it.copy(phase = VoicePhase.FAILED, heard = "(말을 듣지 못했습니다)") }
                 tts?.speak("다시 말해 주세요.")
+                scheduleNextListen()
             }
         }
     }
 
     private fun handle(text: String) {
-        local.update { it.copy(phase = VoicePhase.PROCESSING, heard = text) }
+        local.update { it.copy(open = true, phase = VoicePhase.PROCESSING, heard = text) }
         viewModelScope.launch {
             when (val r = assistant.interpret(tripId, text, pending)) {
                 is ApiResult.Success -> {
@@ -131,11 +152,13 @@ class VoiceViewModel(
                         })
                     }
                     tts?.speak(reply.speech)
+                    if (reply.kind == AssistantReply.Kind.ANSWER) scheduleNextListen()
                 }
                 is ApiResult.Failure -> {
                     local.update { it.copy(phase = VoicePhase.FAILED, reply = null) }
                     tts?.speak("서버에 연결하지 못했습니다. 화면에서 입력해 주세요.")
                     local.update { it.copy(heard = "$text  (${describe(r.error)})") }
+                    scheduleNextListen()
                 }
             }
         }
@@ -150,6 +173,7 @@ class VoiceViewModel(
             "navigate_next" -> {
                 viewModelScope.launch { effects.send(VoiceEffect.AskRoute) }
                 local.update { it.copy(phase = VoicePhase.IDLE, reply = null, open = false) }
+                scheduleNextListen()
                 return
             }
         }
@@ -172,6 +196,7 @@ class VoiceViewModel(
                     actionKey = null
                     local.update { it.copy(busy = false, phase = VoicePhase.ANSWERED, reply = reply.copy(kind = AssistantReply.Kind.ANSWER, display = "저장했습니다 · ${reply.display}", actionType = null)) }
                     tts?.speak("저장했습니다.")
+                    scheduleNextListen()
                 }
                 is ApiResult.Failure -> {
                     // 같은 키로 다시 확인하면 중복 없이 재시도된다
@@ -183,7 +208,23 @@ class VoiceViewModel(
     }
 
     override fun onCleared() {
+        rearm?.cancel(); timeout?.cancel()
         stt.release()
+    }
+
+    private fun scheduleNextListen() {
+        if (!local.value.alwaysListening) return
+        rearm?.cancel()
+        rearm = viewModelScope.launch {
+            // TTS 시작 콜백이 speak() 호출보다 늦을 수 있으므로 시작과 종료를 순서대로 기다린다.
+            val output = tts
+            if (output != null && output.available.value != false) {
+                val started = kotlinx.coroutines.withTimeoutOrNull(2_000) { output.speaking.first { it } }
+                if (started != null) kotlinx.coroutines.withTimeoutOrNull(15_000) { output.speaking.first { !it } }
+            }
+            kotlinx.coroutines.delay(400)
+            if (local.value.alwaysListening && !awaitingResult && !local.value.busy) listen()
+        }
     }
 
     companion object {

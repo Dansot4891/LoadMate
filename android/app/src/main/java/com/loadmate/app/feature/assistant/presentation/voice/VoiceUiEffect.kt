@@ -17,7 +17,7 @@ import com.loadmate.app.feature.records.domain.MemoRepository
 import com.loadmate.app.feature.records.domain.NewMemo
 import com.loadmate.app.core.network.ApiResult
 import com.loadmate.app.feature.trip.domain.TripRepository
-import com.loadmate.app.feature.trip.presentation.describe
+import com.loadmate.app.core.network.describe
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

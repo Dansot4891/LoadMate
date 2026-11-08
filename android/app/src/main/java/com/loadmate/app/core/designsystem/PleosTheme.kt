@@ -71,6 +71,8 @@ class PleosColors(val isDark: Boolean) {
     val negative = c("informative_negative")
     val autonomous = c("informative_autonomous_driving")
     val regulationYellow = c("regulation_yellow")
+    val regulationGreen = c("regulation_green")
+    val regulationRed = c("regulation_red")
     val regulationOrange = c("regulation_orange")
 
     /**

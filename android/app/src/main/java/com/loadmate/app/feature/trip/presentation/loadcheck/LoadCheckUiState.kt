@@ -1,6 +1,17 @@
 package com.loadmate.app.feature.trip.presentation.loadcheck
 
-import com.loadmate.app.feature.trip.presentation.TripUiState
+import com.loadmate.app.feature.trip.presentation.shared.*
+import com.loadmate.app.feature.trip.domain.*
+import com.loadmate.app.core.pleos.RouteRequestStatus
+import com.loadmate.app.core.pleos.RearDoorState
+import com.loadmate.app.feature.records.domain.Memo
+import java.time.Instant
 
-/** 이 화면이 표시하는 운행 UI 값. 서버 운행 자체는 Repository StateFlow가 소유한다. */
-data class LoadCheckUiState(val content: TripUiState = TripUiState())
+data class LoadCheckUiState(
+    override val busy: Boolean = false,
+    override val observationDraft: Counts = emptyMap(),
+    override val observationSource: ObservationSource = ObservationSource.SAMPLE,
+    override val lastComparison: Comparison? = null,
+) : ObservationUiState {
+    constructor(s: TripUiState) : this(s.busy, s.observationDraft, s.observationSource, s.lastComparison)
+}

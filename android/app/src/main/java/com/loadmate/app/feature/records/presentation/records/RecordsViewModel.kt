@@ -13,7 +13,7 @@ import com.loadmate.app.core.network.ApiResult
 import com.loadmate.app.feature.trip.domain.HistoryItem
 import com.loadmate.app.feature.trip.domain.Trip
 import com.loadmate.app.feature.trip.domain.TripRepository
-import com.loadmate.app.feature.trip.presentation.describe
+import com.loadmate.app.core.network.describe
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

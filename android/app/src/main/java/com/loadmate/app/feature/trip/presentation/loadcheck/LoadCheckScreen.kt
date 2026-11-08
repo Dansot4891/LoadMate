@@ -1,5 +1,6 @@
 package com.loadmate.app.feature.trip.presentation.loadcheck
 
+import com.loadmate.app.feature.trip.presentation.shared.*
 import com.loadmate.app.feature.trip.presentation.*
 
 import com.loadmate.app.core.pleos.RouteRequestStatus
@@ -45,7 +46,7 @@ import com.loadmate.app.feature.trip.domain.StopStatus
 import com.loadmate.app.feature.trip.domain.Trip
 
 @Composable
-internal fun LoadCheckScreen(s: TripUiState, trip: Trip, on: (TripUiAction) -> Unit) {
+internal fun LoadCheckScreen(s: LoadCheckUiState, trip: Trip, on: (TripUiAction) -> Unit) {
     val c = Pleos.colors
     val t = Pleos.type
     PleosCard {

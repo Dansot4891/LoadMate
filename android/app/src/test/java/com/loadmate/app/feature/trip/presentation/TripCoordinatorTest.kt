@@ -1,5 +1,12 @@
 package com.loadmate.app.feature.trip.presentation
 
+import com.loadmate.app.feature.trip.presentation.shared.*
+import com.loadmate.app.feature.trip.presentation.driving.DrivingUiAction
+import com.loadmate.app.feature.trip.presentation.driving.DrivingViewModel
+import com.loadmate.app.feature.trip.presentation.sitework.SiteWorkUiAction
+import com.loadmate.app.feature.trip.presentation.sitework.SiteWorkViewModel
+import com.loadmate.app.feature.trip.presentation.mismatch.MismatchUiAction
+import com.loadmate.app.feature.trip.presentation.mismatch.MismatchViewModel
 import com.loadmate.app.core.pleos.NaviConnection
 import com.loadmate.app.core.pleos.NaviDestination
 import com.loadmate.app.core.pleos.NaviGateway
@@ -119,6 +126,18 @@ class TripCoordinatorTest {
     }
 
     @Test
+    fun `화면별 ViewModel을 거쳐도 확인 요청 ID를 재사용한다`() {
+        val repo = FakeRepo(tripInProgress)
+        repo.completeResults.addAll(listOf(ApiResult.Success(needsConfirmation), completed()))
+        val coordinator = vm(repo)
+        DrivingViewModel(coordinator).onAction(DrivingUiAction.Arrived)
+        SiteWorkViewModel(coordinator).onAction(SiteWorkUiAction.RequestComplete)
+        MismatchViewModel(coordinator).onAction(MismatchUiAction.DriverConfirmComplete)
+        assertEquals(2, repo.completeCalls.size)
+        assertEquals(repo.completeCalls[0].first, repo.completeCalls[1].first)
+    }
+
+    @Test
     fun `확인 필요 후 재요청과 기사 확인은 같은 요청 ID를 쓴다`() {
         val repo = FakeRepo(tripInProgress)
         repo.completeResults.addAll(listOf(ApiResult.Success(needsConfirmation), completed()))
@@ -178,6 +197,19 @@ class TripCoordinatorTest {
         v.onAction(TripUiAction.SubmitPickup)
         assertEquals(2, repo.pickupKeys.size)
         assertEquals(repo.pickupKeys[0], repo.pickupKeys[1])
+    }
+
+    @Test
+    fun `화면 운행을 놓으면 Coordinator 작업만 취소하고 내비 리스너는 유지`() {
+        val navi = FakeNavi()
+        val scope = CoroutineScope(UnconfinedTestDispatcher())
+        val coordinator = TripCoordinator(
+            FakeRepo(tripInProgress), null, navi, FakeDoor(), null, { _, _, _ -> }, { null },
+            "sample-trip-1", scope,
+        )
+        coordinator.release()
+        assertEquals(true, scope.coroutineContext[kotlinx.coroutines.Job]?.isCancelled)
+        assertEquals(0, navi.releases)
     }
 
     @Test

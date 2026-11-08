@@ -1,5 +1,6 @@
 package com.loadmate.app.feature.trip.presentation.select
 
+import com.loadmate.app.feature.trip.presentation.shared.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

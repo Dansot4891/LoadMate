@@ -1,5 +1,6 @@
 package com.loadmate.app.feature.trip.presentation.select.components
 
+import com.loadmate.app.feature.trip.presentation.shared.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth

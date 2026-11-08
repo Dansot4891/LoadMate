@@ -7,13 +7,24 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -24,12 +35,15 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.loadmate.app.core.designsystem.Pleos
 import com.loadmate.app.core.designsystem.PleosButton
 import com.loadmate.app.core.designsystem.PleosButtonStyle
 import com.loadmate.app.core.designsystem.PleosSpacing
+import com.loadmate.app.core.designsystem.PleosShape
 import com.loadmate.app.core.designsystem.PleosTheme
 import com.loadmate.app.feature.assistant.presentation.voice.VoiceEffect
 import com.loadmate.app.feature.assistant.presentation.voice.VoicePanel
@@ -46,8 +60,8 @@ import com.loadmate.app.feature.settings.presentation.pleosstatus.PleosStatusVie
 import com.loadmate.app.feature.trip.presentation.select.SelectScreen
 import com.loadmate.app.feature.trip.presentation.select.SelectViewModel
 import com.loadmate.app.feature.trip.presentation.select.SelectUiEffect
-import com.loadmate.app.feature.trip.presentation.TripScreen
-import com.loadmate.app.feature.trip.presentation.TripUiAction
+import com.loadmate.app.feature.trip.presentation.shared.TripScreen
+import com.loadmate.app.feature.trip.presentation.shared.TripUiAction
 import com.loadmate.app.feature.trip.presentation.overview.OverviewViewModel
 import com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckViewModel
 import com.loadmate.app.feature.trip.presentation.driving.DrivingViewModel
@@ -77,7 +91,17 @@ class MainActivity : ComponentActivity() {
                 if (tripId == null) {
                     SelectScreen(selectVm)
                 } else key(tripId) {
-                    TripTabs(container, tripId, onSelectTrip = { selectedTripId = null })
+                    val store = remember(tripId) { ViewModelStore() }
+                    DisposableEffect(tripId) {
+                        onDispose {
+                            store.clear()
+                            container.releaseTripCoordinator(tripId)
+                        }
+                    }
+                    val owner = remember(store) { object : ViewModelStoreOwner { override val viewModelStore = store } }
+                    CompositionLocalProvider(LocalViewModelStoreOwner provides owner) {
+                        TripTabs(container, tripId, onSelectTrip = { selectedTripId = null })
+                    }
                 }
             }
         }
@@ -94,11 +118,9 @@ private fun TripTabs(container: AppContainer, tripId: String, onSelectTrip: () -
     val mismatchVm: MismatchViewModel = viewModel(key = "mismatch-$tripId", factory = MismatchViewModel.factory(container, tripId))
     val voiceVm: VoiceViewModel = viewModel(key = "voice-$tripId", factory = VoiceViewModel.factory(container, tripId))
     val voice by voiceVm.state.collectAsStateWithLifecycle()
-    val driverId by container.driverStore.driverId.collectAsState()
-    val driverName by container.driverStore.driverName.collectAsState()
     LaunchedEffect(voiceVm) {
         voiceVm.effect.collect { e ->
-            if (e == VoiceEffect.AskRoute) { tab = 0; drivingVm.onAction(com.loadmate.app.feature.trip.presentation.driving.DrivingUiAction(TripUiAction.AskRoute)) }
+            if (e == VoiceEffect.AskRoute) { tab = 0; drivingVm.onAction(com.loadmate.app.feature.trip.presentation.driving.DrivingUiAction.AskRoute) }
         }
     }
     val c = Pleos.colors
@@ -116,8 +138,22 @@ private fun TripTabs(container: AppContainer, tripId: String, onSelectTrip: () -
                     PleosButton(name, style = if (tab == i) PleosButtonStyle.Filled else PleosButtonStyle.Basic) { tab = i }
                 }
                 Box(Modifier.weight(1f))
-                BasicText(driverId?.let { "기사: ${driverName ?: it}" } ?: "기사 미선택 · 장비·인계에서 선택", style = t.bodyMedium.copy(color = if (driverId == null) c.negative else c.textSecondary))
-                PleosButton("🎤 말하기") { voiceVm.onAction(VoiceUiAction.Open) }
+                val voiceColor = if (voice.alwaysListening) c.regulationGreen else c.regulationRed
+                Row(
+                    Modifier.heightIn(min = PleosShape.minTouch)
+                        .background(c.surfaceLow, RoundedCornerShape(PleosShape.small))
+                        .border(1.dp, voiceColor, RoundedCornerShape(PleosShape.small))
+                        .clickable(role = Role.Button) { voiceVm.onAction(VoiceUiAction.ToggleAlwaysListening) }
+                        .padding(horizontal = PleosSpacing.l),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(PleosSpacing.s),
+                ) {
+                    Box(Modifier.size(12.dp).background(voiceColor, RoundedCornerShape(50)))
+                    BasicText(
+                        if (voice.alwaysListening) "음성 ON · 끄기" else "음성 OFF · 켜기",
+                        style = t.bodyMedium.copy(color = voiceColor),
+                    )
+                }
             }
             Box(Modifier.weight(1f)) {
                 when (tab) {

@@ -1,5 +1,6 @@
 package com.loadmate.app.feature.trip.presentation.select
 
+import com.loadmate.app.feature.trip.presentation.shared.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
