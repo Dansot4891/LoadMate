@@ -208,6 +208,7 @@ C. 제출 준비 (마감 11/15)
 | 2026-11-08 | 최종 DTO 요청 전환 APK 에뮬레이터 재설치·실행 | 운행 탭 B 진행·서버 예상 잔량 7 표시. 전체 시연은 샘플 운행 초기화 승인 대기 | user 10 `MainActivity`, UI 텍스트 덤프, `GET /trips/sample-trip-1`; 자동 승인 검토에서 `app.seed --reset` 거절 |
 | 2026-11-08 | 화면별 UiState·UiAction 반영 APK 재설치·실행 | B 진행·예상 잔량 7 표시, 앱 시작 정상 | `2f14344`, user 10 UI 텍스트 덤프 |
 | 2026-11-08 | 화면별 상태·액션 파일 및 운행 공통 Composable 분리 | 각 변경 후 assembleDebug·testDebugUnitTest·lintDebug 통과. 최종 APK 에뮬레이터 재설치 후 B 진행·잔량 7 표시 | `016a527`, `09b474b`, `bad9f8f`; user 10 UI 텍스트 덤프 |
+| 2026-11-08 | 동작 보존 점검: 관측·방문지 완료 뒤 중복 운행 조회 제거 | 화면의 기존 재조회 흐름 유지, assembleDebug·testDebugUnitTest·lintDebug 통과 | `CachingTripRepository`, 로컬 빌드 |
 | 2026-11-08 | Android assembleDebug / testDebugUnitTest / lintDebug | 통과 | 로컬 빌드 |
 | 2026-11-08 | backend pytest | 2 passed | Python 3.9 venv |
 | 2026-11-08 | docker compose + `/health` | `database: ok` | Colima, postgres:16, python:3.12-slim |

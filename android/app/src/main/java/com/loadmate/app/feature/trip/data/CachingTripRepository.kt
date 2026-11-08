@@ -30,15 +30,11 @@ class CachingTripRepository(private val inner: TripRepository) : TripRepository 
     override suspend fun listTrips() = inner.listTrips()
     override suspend fun recordObservation(tripId: String, idempotencyKey: String, source: com.loadmate.app.feature.trip.domain.ObservationSource,
         counts: com.loadmate.app.feature.trip.domain.Counts?, observedAtIso: String, zones: Map<String, com.loadmate.app.feature.trip.domain.Counts>?) =
-        inner.recordObservation(tripId, idempotencyKey, source, counts, observedAtIso, zones).also {
-            if (it is ApiResult.Success) getTrip(tripId)
-        }
+        inner.recordObservation(tripId, idempotencyKey, source, counts, observedAtIso, zones)
     override suspend fun confirmBaseline(tripId: String, idempotencyKey: String, counts: com.loadmate.app.feature.trip.domain.Counts, observationId: Int?) =
         remember(inner.confirmBaseline(tripId, idempotencyKey, counts, observationId))
     override suspend fun completeStop(tripId: String, stopId: String, idempotencyKey: String, delivered: com.loadmate.app.feature.trip.domain.Counts, driverConfirmed: Boolean) =
-        inner.completeStop(tripId, stopId, idempotencyKey, delivered, driverConfirmed).also {
-            if (it is ApiResult.Success && it.value.completed) getTrip(tripId)
-        }
+        inner.completeStop(tripId, stopId, idempotencyKey, delivered, driverConfirmed)
     override suspend fun addStop(tripId: String, key: String, name: String, address: String, lat: Double, lng: Double, cargo: List<com.loadmate.app.feature.trip.domain.NewCargo>) =
         remember(inner.addStop(tripId, key, name, address, lat, lng, cargo))
     override suspend fun reorderStops(tripId: String, key: String, stopIds: List<String>) = remember(inner.reorderStops(tripId, key, stopIds))
