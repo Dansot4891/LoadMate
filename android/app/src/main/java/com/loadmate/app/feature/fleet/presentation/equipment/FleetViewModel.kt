@@ -40,10 +40,18 @@ class FleetViewModel(
     fun onAction(a: FleetUiAction) {
         when (a) {
             FleetUiAction.Refresh -> refresh()
-            is FleetUiAction.SelectDriver -> { drivers.select(a.id, local.value.drivers.firstOrNull { it.id == a.id }?.name ?: a.id); refresh() }
+            is FleetUiAction.SelectDriver -> {
+                drivers.select(a.id, local.value.drivers.firstOrNull { it.id == a.id }?.name ?: a.id)
+                local.update { it.copy(toDriverId = it.toDriverId?.takeUnless { target -> target == a.id }, message = null) }
+                refresh()
+            }
             is FleetUiAction.SetEquipment -> viewModelScope.launch {
+                if (drivers.driverId.value == null) {
+                    local.update { it.copy(message = "장비 상태를 기록할 기사를 먼저 선택하세요") }
+                    return@launch
+                }
                 when (val r = fleet.setEquipmentStatus(a.id, a.status, null)) {
-                    is ApiResult.Success -> refresh()
+                    is ApiResult.Success -> { local.update { it.copy(message = "차량 공용 도구 상태를 기록했습니다") }; refresh() }
                     is ApiResult.Failure -> local.update { it.copy(message = describe(r.error)) }
                 }
             }
@@ -58,7 +66,7 @@ class FleetViewModel(
         viewModelScope.launch {
             (fleet.drivers() as? ApiResult.Success)?.let { r -> local.update { it.copy(drivers = r.value) } }
             val trip = (trips.getTrip(tripId) as? ApiResult.Success)?.value
-            local.update { it.copy(tripDriverId = trip?.driverId) }
+            if (trip != null) local.update { it.copy(tripDriverId = trip.driverId) }
             trip?.vehicleId?.let { v -> (fleet.equipment(v) as? ApiResult.Success)?.let { r -> local.update { it.copy(equipment = r.value) } } }
             (fleet.handoverPreview(tripId) as? ApiResult.Success)?.let { r -> local.update { it.copy(preview = r.value) } }
             (fleet.latestHandover(tripId) as? ApiResult.Success)?.let { r -> local.update { it.copy(handover = r.value) } }
@@ -69,11 +77,16 @@ class FleetViewModel(
         val s = state.value
         val to = s.toDriverId ?: return
         if (s.busy) return
+        val actor = drivers.driverId.value
+        if (actor == null || (s.tripDriverId != null && actor != s.tripDriverId) || to == actor) {
+            local.update { it.copy(message = "운행 담당 기사로 선택하고, 다른 받는 기사를 지정하세요") }
+            return
+        }
         val key = handoverKey ?: UUID.randomUUID().toString().also { handoverKey = it }
         local.update { it.copy(busy = true) }
         viewModelScope.launch {
             when (val r = fleet.createHandover(tripId, key, to, s.note)) {
-                is ApiResult.Success -> { handoverKey = null; local.update { it.copy(busy = false, handover = r.value, message = "인계를 확정했습니다. 인수 기사가 인수 확정해야 넘어갑니다") } }
+                is ApiResult.Success -> { handoverKey = null; local.update { it.copy(busy = false, handover = r.value, message = "인계 요청을 보냈습니다. 받는 기사가 인수해야 운행 담당자가 바뀝니다") } }
                 is ApiResult.Failure -> local.update { it.copy(busy = false, message = describe(r.error)) }
             }
         }
@@ -81,6 +94,10 @@ class FleetViewModel(
 
     private fun accept() {
         val h = state.value.handover ?: return
+        if (drivers.driverId.value != h.toDriverId) {
+            local.update { it.copy(message = "받는 기사로 선택한 뒤 인수할 수 있습니다") }
+            return
+        }
         viewModelScope.launch {
             when (val r = fleet.acceptHandover(h.id)) {
                 is ApiResult.Success -> { local.update { it.copy(handover = r.value, message = "인수했습니다. 이어서 운행하세요") }; refresh() }
