@@ -38,12 +38,13 @@
 
 | 기획서 기능 | 필요 API | 확인 결과 | 판정 |
 |---|---|---|---|
-| F16~F18 내비 목적지·경유지 전달 | NaviHelper `requestRoute`, `requestRouteWithWaypoints`, `addWaypoint` 등 | 공식 문서: **`NAVI_ROUTE_SEARCH`** 권한 필요(`requestTrip`·`get*Info`는 `NAVI_ROUTE`, `requestNavigationScreen`은 `NAVI_CUSTOM_MAP`). **에뮬레이터(2026-11-08): `requestRoute` → 내비 앱이 메인 패널을 차지하고 안내 시작, `onRouteStarted` 수신. 실패는 `onError(CAUSE_SEARCH_ROUTE)`이며 기존 경로도 취소됨. `onRouteStarted` 직후 `onRouteEnded` 가 같이 옴** | ✅ 목적지 전달 가능(에뮬레이터 확인) · 경유지 API 미검증 · 결과 수신을 위해 운행 중 리스너 유지 필요 |
-| F19 도착 판단 · F63 주행/정차 맥락 | 차량 속도, 기어, 주행 상태 | SDK 바이너리: Vehicle 2.3.2 공개 API에 **차량 속도 없음**, Gear 3개 메서드 **모두 deprecated**. DrivingMode는 에뮬레이터에서 `ERROR_NOT_SUPPORTED_PROPERTY` | ⚠️ 신호 기반 판단 불가 → **기사 확인 버튼(기획서 16장 대체 흐름)을 기본**으로 |
+| F16~F18 내비 목적지·경유지 전달 | NaviHelper `requestRoute`, `requestRouteWithWaypoints`, `addWaypoint` 등 | 공식 문서: **`NAVI_ROUTE_SEARCH`** 권한 필요(`requestTrip`·`get*Info`는 `NAVI_ROUTE`, `requestNavigationScreen`은 `NAVI_CUSTOM_MAP`). **에뮬레이터(2026-11-08): `requestRoute` → 내비 앱이 메인 패널을 차지하고 안내 시작, `onRouteStarted` 수신. 실패는 `onError(CAUSE_SEARCH_ROUTE)`이며 기존 경로도 취소됨. `onRouteStarted` 직후 `onRouteEnded` 가 같이 옴** | ✅ 목적지 전달 가능(에뮬레이터 확인) · **경유지 2개 + 목적지 한 번에 전달 확인** (`requestRouteWithWaypoints`) · 결과 수신을 위해 운행 중 리스너 유지 필요 |
+| F19 도착 판단 · F63 주행/정차 맥락 (내비 `onWayPointArrived`·`onDestinationArrived` 는 에뮬레이터에서 위치 이동 불가로 미확인) | 차량 속도, 기어, 주행 상태 | SDK 바이너리: Vehicle 2.3.2 공개 API에 **차량 속도 없음**, Gear 3개 메서드 **모두 deprecated**. DrivingMode는 에뮬레이터에서 `ERROR_NOT_SUPPORTED_PROPERTY` | ⚠️ 신호 기반 판단 불가 → **기사 확인 버튼(기획서 16장 대체 흐름)을 기본**으로 |
 | 하역 이벤트 (기획서에 없음 · **추가 제안**) | Door `REAR` 위치 (`CAR_DOORS`) | 에뮬레이터: `checkDoorPositionCapabilities` REAR **0..100**. Loadmate 구독 실측(2026-11-08): Virtual Console Trunk Open/Close → 100/0 알림, 화면 이탈 시 해제 확인 | ✅ 뒷문 열림/닫힘을 하역 시작·재출발 확인 트리거로 사용 제안 (차량특화성) |
+| 주행 중 알림 (기획서 11장) | Android 알림 | 에뮬레이터: `CATEGORY_MESSAGE`/`CATEGORY_NAVIGATION` 지정 시 내비 위 헤드업 표시, 미지정 시 안 뜸 | ✅ 짧은 안내에 사용 (카테고리 필수) |
 | 위치 맥락 | FusedLocation | 콘솔 준비 중 | ❌ → NaviHelper `getCurrentLocationInfo` (에뮬레이터 콜백 확인) |
 | 보조 신호 | BrakePedal, Odometer 주행 거리·시간 (`CAR_DRIVE`) | 에뮬레이터 GET 동작 (BrakePedal=false 등) | 보조 근거로만 사용 가능 |
-| F32, F35~F43 음성 | SpeechToText / TextToSpeech | 콘솔 준비 중. 공식 문서: STT **ON_DEVICE 모드는 앱 등록(Client ID/Secret) 없이 사용 가능**, HYBRID·SERVER는 등록 필요. **에뮬레이터(2026-11-08): 서비스는 `ai.pleos.playground.caas` 4.2.10. ON_DEVICE initialize·한국어 인식 성공(자격 증명 없음). 오인식("에이 하차"→"내일 하체")과 주변 소음 확정 사례 있음.** TTS 미시험 | ⚠️ STT ON_DEVICE 사용 가능(에뮬레이터) · **인식 문장 확인 후 실행** · 실차·콘솔 승인 미확인이라 F43 화면 입력 병행 유지 |
+| F32, F35~F43 음성 | SpeechToText / TextToSpeech | 콘솔 준비 중. 공식 문서: STT **ON_DEVICE 모드는 앱 등록(Client ID/Secret) 없이 사용 가능**, HYBRID·SERVER는 등록 필요. **에뮬레이터(2026-11-08): 서비스는 `ai.pleos.playground.caas` 4.2.10. ON_DEVICE initialize·한국어 인식 성공(자격 증명 없음). 오인식("에이 하차"→"내일 하체")과 주변 소음 확정 사례 있음.** **TTS ON_DEVICE도 자격 증명 없이 재생. 앱이 백그라운드(내비 전면)여도 STT·TTS 동작** | ⚠️ STT·TTS ON_DEVICE 사용 가능(에뮬레이터) · **인식 문장 확인 후 실행** · 실차·콘솔 승인 미확인이라 F43 화면 입력 병행 유지 |
 | F08~F15 적재 공간 카메라 | 적재함 카메라 | Pleos SDK에 카메라 API 없음 | ⚠️ 기획서대로 별도 카메라/녹화 영상 → vision 프로세스. 시연에서 "녹화 영상 분석"으로 표시 |
 | 대화 AI | — | Pleos LLM 제공 종료 | 서버에서 외부/로컬 모델 어댑터로 연결 (미정) |
 
@@ -77,9 +78,10 @@
 - [x] 에뮬레이터 STT ON_DEVICE 동작 여부 — 동작(자격 증명 없이), 오인식 있음 (2026-11-08)
 - [x] NaviHelper `requestRoute` 에뮬레이터 동작 (`NAVI_ROUTE_SEARCH`) — 동작, 실패 코드 `CAUSE_SEARCH_ROUTE` (2026-11-08)
 - [x] Door REAR 구독 — 동작, 범위 0..100 (2026-11-08)
-- [ ] NaviHelper `onDestinationArrived` · 경유지 API (`requestRouteWithWaypoints`) 에뮬레이터 동작
+- [x] 경유지 API (`requestRouteWithWaypoints`) — 경유지 2개+목적지 동작 (2026-11-08)
+- [ ] NaviHelper `onWayPointArrived`·`onDestinationArrived` — 에뮬레이터에서 내비 위치를 움직일 방법 없음. 실차 또는 다른 방법 필요
 - [ ] 운행 중 내비 리스너 유지 방식 결정 (화면 단위 해제 시 결과 수신 불가)
-- [ ] TextToSpeech 에뮬레이터 동작
-- [ ] 내비 실행 중 앱 백그라운드 음성·알림 가능 범위 (기획서 11장)
+- [x] TextToSpeech 에뮬레이터 동작 — ON_DEVICE 재생 (2026-11-08)
+- [x] 내비 실행 중 앱 백그라운드 음성·알림 가능 범위 (기획서 11장) — 헤드업 알림(카테고리 필요)·TTS·STT 동작 (2026-11-08)
 - [ ] 외부 서버·외부 AI 사용 가능 여부 공모전 문의
 - [ ] 현장 시연 환경(기기·네트워크) — 공지 대기

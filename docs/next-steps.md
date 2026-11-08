@@ -71,6 +71,18 @@
 | 화면 이탈 중 Trunk Open | 알림 없음 (해제 확인). 복귀 시 재구독 초기 알림 100 |
 | 부작용 | Virtual Console 세션 활성화 시 드라이빙뷰 주행가능거리 500→0km 로 초기화됨 (PleosLab 관찰과 동일) |
 
+### 추가 실측 (2026-11-08 오후, 임시 debug 리시버로 시험 · 코드는 커밋하지 않음)
+
+| 항목 | 결과 | 시나리오 영향 |
+|---|---|---|
+| 경유지 한 번에 전달 `requestRouteWithWaypoints` (`NAVI_ROUTE_SEARCH`) | ✅ 경유지 A·B + 목적지 C 경로 생성. 내비 진행 막대에 경유지 2개 표시, 화면은 다음 방문지 A. `onRouteStarted.name` = 첫 경유지 이름. **경유지는 FIRST·SECOND 2개까지** | A·B·C 3곳은 한 번 요청으로 가능. 4곳 이상은 나눠서 요청 |
+| `getWaypointInfo` | `NAVI_ROUTE` 권한 필요 (SecurityException) | 쓰려면 권한 추가 |
+| 알림이 내비 위에 뜨는지 | 카테고리 미지정 → 헤드업 안 뜸 (`CarHeadsUpNotificationManager: category not set`). `CATEGORY_MESSAGE`·`CATEGORY_NAVIGATION` → **내비 위 헤드업 표시** | 주행 중 짧은 안내는 헤드업 알림 사용 가능. 카테고리 필수 |
+| TextToSpeech 3.3.1 ON_DEVICE (`TTS_SERVICE`) | ✅ 자격 증명 없이 initialize·한국어 재생(화자 seoyoon). `speak(text, isFinal)` 두 번째 인자가 false 면 문장 미완료로 처리되어 `onDone` 안 옴 → **true 로 호출** | 내비 화면 위에서도 음성 안내 가능 |
+| 앱이 백그라운드(내비 전면)일 때 STT | ✅ 인식 동작. "다음 장소에 뭐 내려야 해" → "다음 장소에 뭘 내려야 해?" | 이동 중 조회(14장 4단계) 가능. 단, 듣기 시작 트리거(버튼·알림 액션)는 별도 설계 필요 |
+| 앱이 백그라운드일 때 내비 콜백 | ✅ 리스너를 유지하면 수신 | 결정 1 근거 |
+| 도착 신호 `onWayPointArrived` / `onDestinationArrived` | ❌ 확인 불가. `adb emu geo fix` 위치는 내비가 NMEA 체크섬 오류로 버림. Virtual Console 가상 주행(D·60km/h)은 차량 속도만 바뀌고 내비 위치는 그대로 | 도착은 **기사 확인 버튼**을 기본 유지 (기존 방침과 같음) |
+
 ## 2순위 — 대표 시나리오 (11/10~12)
 
 기획서 14장 A·B·C 운행, 목적지 A에서 1개 미하차.
@@ -94,7 +106,7 @@
 
 - [ ] **(실측 반영) 내비 리스너 수명**: 화면 단위 해제(원칙 8)로는 내비가 화면을 덮는 순간 경로 시작·실패 결과를 못 받는다. 운행 중에는 앱 범위(운행 시작~종료)로 유지할지 결정 필요
 - [ ] **(실측 반영) 목적지 전달 실패 시 기존 안내가 취소됨** → 전달 전 기사 확인, 실패 시 재전송/이전 목적지 복구 흐름 필요 여부
-- [ ] **(실측 반영) 음성 명령**: 오인식·소음 확정이 있어 "인식 문장 표시 → 기사 확인" 단계를 넣을지, 방문지 이름을 A/B/C 대신 장소명·번호로 부를지
+- [x] **(실측 반영) 음성 명령 확인**: 인식 문장을 보여 주고 기사가 맞다고 확인한 뒤 실행 (2026-11-08 사용자 결정). 기획서 5장 "업무를 바꾸는 요청은 요약 후 확인"과 같은 방향
 
 - [ ] 2월 현장 시연 서버: 클라우드 배포 vs 앱 내 데모 모드(명확 표시)
 - [ ] 대화 AI 모델·실행 위치(외부 API / 로컬), 비용·개인정보 처리
@@ -113,3 +125,5 @@
 | 2026-11-08 | NaviHelper `requestRoute` 실측 | 경로 안내 시작, 실패 시 `CAUSE_SEARCH_ROUTE`, 화면 단위 리스너는 결과 수신 못 함 | logcat `LoadmateNavi`, evidence/03 |
 | 2026-11-08 | SpeechToText ON_DEVICE 실측 | 자격 증명 없이 한국어 인식 동작, 오인식 있음 | logcat `LoadmateStt`, evidence/05 |
 | 2026-11-08 | Door REAR 구독 실측 | Trunk Open/Close → 100/0 수신, 이탈 시 해제 | logcat `LoadmateRearDoor`, evidence/04 |
+| 2026-11-08 | 경유지 전달 · 헤드업 알림 · TTS · 백그라운드 STT 실측 | 경유지 2개+목적지 동작, 알림은 카테고리 지정 시 내비 위 표시, TTS·백그라운드 STT 동작, 도착 신호는 에뮬레이터에서 확인 불가 | logcat `LoadmateExp`, evidence/06~08 |
+| 2026-11-08 | 실험 코드 제거 후 assembleDebug · testDebugUnitTest | 통과 | 로컬 빌드 |
