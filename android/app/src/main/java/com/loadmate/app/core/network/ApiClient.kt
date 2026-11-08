@@ -7,7 +7,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -27,16 +26,16 @@ class ApiClient(
     suspend fun <T> get(path: String, query: Map<String, String?> = emptyMap(), parse: (String) -> T): ApiResult<T> =
         call("GET", path + queryString(query), null, parse)
 
-    suspend fun <T> post(path: String, body: JSONObject, parse: (String) -> T): ApiResult<T> = call("POST", path, body, parse)
+    suspend fun <T> post(path: String, body: String, parse: (String) -> T): ApiResult<T> = call("POST", path, body, parse)
 
-    suspend fun <T> put(path: String, body: JSONObject, parse: (String) -> T): ApiResult<T> = call("PUT", path, body, parse)
+    suspend fun <T> put(path: String, body: String, parse: (String) -> T): ApiResult<T> = call("PUT", path, body, parse)
 
     private fun queryString(q: Map<String, String?>): String {
         val parts = q.filterValues { !it.isNullOrBlank() }.map { (k, v) -> "$k=" + URLEncoder.encode(v, "UTF-8") }
         return if (parts.isEmpty()) "" else "?" + parts.joinToString("&")
     }
 
-    private suspend fun <T> call(method: String, path: String, body: JSONObject?, parse: (String) -> T): ApiResult<T> {
+    private suspend fun <T> call(method: String, path: String, body: String?, parse: (String) -> T): ApiResult<T> {
         if (baseUrl.isBlank()) return ApiResult.Failure(ApiError.NotConfigured)
         return withContext(io) {
             val conn = URL(baseUrl.trimEnd('/') + path).openConnection() as HttpURLConnection
@@ -49,7 +48,7 @@ class ApiClient(
                 if (body != null) {
                     conn.doOutput = true
                     conn.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                    conn.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+                    conn.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
                 }
                 val code = conn.responseCode
                 val text = (if (code in 200..299) conn.inputStream else conn.errorStream)

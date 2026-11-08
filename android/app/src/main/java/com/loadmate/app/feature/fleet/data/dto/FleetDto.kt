@@ -11,3 +11,7 @@ import kotlinx.serialization.Serializable
 @Serializable data class HandoverEnvelopeDto(val handover: HandoverDto?)
 @Serializable data class HandoverDto(val id: Int, @SerialName("from_driver_id") val fromDriverId: String, @SerialName("to_driver_id") val toDriverId: String, val note: String = "", val status: String, val summary: HandoverSummaryDto)
 @Serializable data class HandoverSummaryDto(@SerialName("summary_lines") val summaryLines: List<String>)
+
+@Serializable data class EquipmentStatusRequestDto(val status: String, val note: String? = null)
+@Serializable data class CreateHandoverRequestDto(@SerialName("idempotency_key") val key: String, @SerialName("to_driver_id") val toDriverId: String, val note: String)
+@Serializable class AcceptHandoverRequestDto

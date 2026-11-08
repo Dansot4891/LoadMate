@@ -11,3 +11,5 @@ import kotlinx.serialization.Serializable
     @SerialName("scope_type") val scopeType: String? = null, @SerialName("scope_id") val scopeId: String? = null,
     val body: String? = null, val visibility: String? = null, val persistence: String? = null,
 )
+
+@Serializable data class InterpretRequestDto(@SerialName("trip_id") val tripId: String, val text: String, val pending: AssistantActionDto?)

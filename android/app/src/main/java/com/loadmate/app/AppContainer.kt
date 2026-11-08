@@ -35,7 +35,7 @@ class AppContainer(appContext: Context) {
     val driverStore = DriverStore(appContext)
     private val api = ApiClient(apiBaseUrl, driverId = { driverStore.driverId.value })
 
-    val connectionRepository: ConnectionRepository by lazy { ConnectionRepositoryImpl(apiBaseUrl) }
+    val connectionRepository: ConnectionRepository by lazy { ConnectionRepositoryImpl(api) }
     val tripRepository: CachingTripRepository by lazy { CachingTripRepository(TripRepositoryImpl(api)) }
     val memoRepository: MemoRepository by lazy { MemoRepositoryImpl(api) }
     val fleetRepository: FleetRepository by lazy { FleetRepositoryImpl(api) }
