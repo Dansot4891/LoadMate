@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 // release 서버 주소: gradle.properties 또는 -Ploadmate.apiBaseUrl=https://... 로 주입 (미설정 시 앱에 "서버 미설정" 표시)
@@ -76,6 +77,7 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.foundation)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.ui.tooling.preview)
     testImplementation(libs.junit)
     // 단위 테스트에서 android.jar의 org.json 스텁 대신 실제 구현 사용

@@ -19,6 +19,7 @@ pleosTextToSpeech = "3.3.1"
 orgJson = "20240303"
 # lifecycle 2.8.7 이 쓰는 coroutines 와 맞춤
 coroutinesTest = "1.7.3"
+serialization = "1.6.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -40,6 +41,7 @@ androidx-foundation = { group = "androidx.compose.foundation", name = "foundatio
 pleos-vehicle = { module = "ai.pleos.playground:Vehicle", version.ref = "pleosVehicle" }
 org-json = { module = "org.json:json", version.ref = "orgJson" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutinesTest" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 pleos-navihelper = { module = "ai.pleos.playground:NaviHelper", version.ref = "pleosNaviHelper" }
 pleos-speechtotext = { module = "ai.pleos.playground:SpeechToText", version.ref = "pleosSpeechToText" }
 pleos-texttospeech = { module = "ai.pleos.playground:TextToSpeech", version.ref = "pleosTextToSpeech" }
@@ -48,3 +50,4 @@ pleos-texttospeech = { module = "ai.pleos.playground:TextToSpeech", version.ref 
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
