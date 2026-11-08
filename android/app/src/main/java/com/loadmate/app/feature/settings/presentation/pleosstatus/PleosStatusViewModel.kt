@@ -13,6 +13,7 @@ import com.loadmate.app.core.pleos.RearDoorGateway
 import com.loadmate.app.core.pleos.RearDoorState
 import com.loadmate.app.core.pleos.SpeechGateway
 import com.loadmate.app.core.pleos.SpeechState
+import com.loadmate.app.core.pleos.SpeechOutput
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -23,10 +24,13 @@ class PleosStatusViewModel(
     private val navi: NaviGateway,
     private val rearDoor: RearDoorGateway,
     private val speech: SpeechGateway,
+    speechOutput: SpeechOutput,
 ) : ViewModel() {
 
     val state: StateFlow<PleosStatusUiState> =
-        combine(navi.state, rearDoor.state, speech.state) { n, d, sp -> PleosStatusUiState(navi = n, rearDoor = d, speech = sp) }
+        combine(navi.state, rearDoor.state, speech.state, speechOutput.available) { n, d, sp, tts ->
+            PleosStatusUiState(navi = n, rearDoor = d, speech = sp, ttsAvailable = tts)
+        }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PleosStatusUiState())
 
     fun onAction(action: PleosStatusUiAction) {
@@ -50,7 +54,7 @@ class PleosStatusViewModel(
         val SAMPLE_DESTINATION = NaviDestination(name = "샘플 목적지 · 서울역", latitude = 37.5547, longitude = 126.9707)
 
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
-            initializer { PleosStatusViewModel(container.naviGateway, container.rearDoorGateway, container.speechGateway) }
+            initializer { PleosStatusViewModel(container.naviGateway, container.rearDoorGateway, container.speechGateway, container.speechOutput) }
         }
     }
 }

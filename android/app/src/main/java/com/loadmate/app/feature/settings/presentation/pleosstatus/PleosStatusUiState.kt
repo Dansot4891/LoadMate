@@ -24,6 +24,7 @@ data class PleosStatusUiState(
     val navi: NaviState = NaviState(),
     val rearDoor: RearDoorState = RearDoorState(),
     val speech: SpeechState = SpeechState(),
+    val ttsAvailable: Boolean? = null,
     val sampleDestination: NaviDestination = PleosStatusViewModel.SAMPLE_DESTINATION,
 )
 

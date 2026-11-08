@@ -1,5 +1,8 @@
 package com.loadmate.app.feature.settings.presentation.pleosstatus
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,7 +14,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
@@ -32,17 +39,21 @@ import java.util.Locale
 
 @Composable
 fun PleosStatusSection(vm: PleosStatusViewModel) {
+    val context = LocalContext.current
+    var notificationsAllowed by remember { mutableStateOf(false) }
     // 화면이 보일 때만 SDK 리스너 유지 (CLAUDE.md 원칙 8)
     LifecycleStartEffect(vm) {
+        notificationsAllowed = Build.VERSION.SDK_INT < 33 ||
+            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         vm.onAction(PleosStatusUiAction.Start)
         onStopOrDispose { vm.onAction(PleosStatusUiAction.Stop) }
     }
     val state by vm.state.collectAsStateWithLifecycle()
-    PleosStatusContent(state, vm::onAction)
+    PleosStatusContent(state, notificationsAllowed, vm::onAction)
 }
 
 @Composable
-private fun PleosStatusContent(state: PleosStatusUiState, onAction: (PleosStatusUiAction) -> Unit) {
+private fun PleosStatusContent(state: PleosStatusUiState, notificationsAllowed: Boolean, onAction: (PleosStatusUiAction) -> Unit) {
     val c = Pleos.colors
     val t = Pleos.type
     Column(
@@ -79,6 +90,16 @@ private fun PleosStatusContent(state: PleosStatusUiState, onAction: (PleosStatus
 
         val (sttLabel, sttTone) = describeSpeech(state.speech)
         BasicText("음성 인식(SpeechToText ON_DEVICE) · $sttLabel", style = t.bodyLarge.copy(color = sttTone))
+        val ttsLabel = when (state.ttsAvailable) {
+            null -> "아직 사용 전"
+            true -> "사용 가능 (에뮬레이터 확인)"
+            false -> "사용 불가 · 화면 안내로 대체"
+        }
+        BasicText("음성 출력(TextToSpeech ON_DEVICE) · $ttsLabel", style = t.bodyLarge.copy(color = if (state.ttsAvailable == false) c.negative else c.textSecondary))
+        BasicText(
+            "헤드업 알림 · ${if (notificationsAllowed) "권한 허용" else "권한 없음 · 화면·음성 안내 사용"}",
+            style = t.bodyLarge.copy(color = if (notificationsAllowed) c.positive else c.negative),
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {
             val ready = state.speech.connection == SpeechConnection.Ready
             PleosButton("듣기 시작", enabled = ready && !state.speech.listening) { onAction(PleosStatusUiAction.Listen) }
