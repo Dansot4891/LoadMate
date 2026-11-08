@@ -57,13 +57,16 @@ fun TripScreen(
     sitework: com.loadmate.app.feature.trip.presentation.sitework.SiteWorkViewModel,
     mismatch: com.loadmate.app.feature.trip.presentation.mismatch.MismatchViewModel,
 ) {
-    val state by overview.state.collectAsStateWithLifecycle()
-    val action: (TripUiAction) -> Unit = when (state.step) {
-        TripStep.OVERVIEW, TripStep.DONE -> overview::onAction
-        TripStep.LOAD_CHECK -> loadcheck::onAction
-        TripStep.DRIVING -> driving::onAction
-        TripStep.SITE_WORK -> sitework::onAction
-        TripStep.MISMATCH -> mismatch::onAction
+    val screenState by overview.state.collectAsStateWithLifecycle()
+    val state = screenState.content
+    val action: (TripUiAction) -> Unit = { value ->
+        when (state.step) {
+            TripStep.OVERVIEW, TripStep.DONE -> overview.onAction(com.loadmate.app.feature.trip.presentation.overview.OverviewUiAction(value))
+            TripStep.LOAD_CHECK -> loadcheck.onAction(com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckUiAction(value))
+            TripStep.DRIVING -> driving.onAction(com.loadmate.app.feature.trip.presentation.driving.DrivingUiAction(value))
+            TripStep.SITE_WORK -> sitework.onAction(com.loadmate.app.feature.trip.presentation.sitework.SiteWorkUiAction(value))
+            TripStep.MISMATCH -> mismatch.onAction(com.loadmate.app.feature.trip.presentation.mismatch.MismatchUiAction(value))
+        }
     }
     TripContent(state, action)
 }

@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
                 val driverName by container.driverStore.driverName.collectAsState()
                 LaunchedEffect(voiceVm) {
                     voiceVm.effect.collect { e ->
-                        if (e == VoiceEffect.AskRoute) { tab = 0; drivingVm.onAction(TripUiAction.AskRoute) }
+                        if (e == VoiceEffect.AskRoute) { tab = 0; drivingVm.onAction(com.loadmate.app.feature.trip.presentation.driving.DrivingUiAction(TripUiAction.AskRoute)) }
                     }
                 }
                 val c = Pleos.colors
