@@ -25,13 +25,18 @@ class PleosSpeechGateway(context: Context) : SpeechGateway {
     private val _state = MutableStateFlow(SpeechState())
     override val state: StateFlow<SpeechState> = _state.asStateFlow()
 
+    /** stop 이후 늦게 도착한 콜백이 "듣는 중"을 되살리지 않게 한다 */
+    private var requested = false
+
     private val listener = object : ResultListener {
         // onReady 시점부터 마이크가 열린다 (실측: 상태 표시줄 마이크 아이콘) → 듣는 중으로 표시
         override fun onReady() {
-            trace("onReady"); _state.update { it.copy(listening = true) }
+            trace("onReady"); if (requested) _state.update { it.copy(listening = true) }
         }
         // 실측: 발화 중 부분 결과마다 반복 호출됨 → trace 생략
-        override fun onStartedRecognition() = _state.update { it.copy(listening = true) }
+        override fun onStartedRecognition() {
+            if (requested) _state.update { it.copy(listening = true) }
+        }
         override fun onUpdated(text: String, isFinal: Boolean) {
             trace("onUpdated(final=$isFinal)")
             _state.update { if (isFinal) it.copy(finalText = text, partial = null) else it.copy(partial = text) }
@@ -78,11 +83,15 @@ class PleosSpeechGateway(context: Context) : SpeechGateway {
             trace("listen 차단: 서비스 미연결"); return
         }
         _state.update { it.copy(partial = null, finalText = null, lastError = null) }
+        requested = true
         runCatching { s.request() }.onFailure { trace("request 예외: $it"); _state.update { st -> st.copy(lastError = it.toString()) } }
     }
 
     override fun stopListening() {
+        requested = false
         runCatching { stt?.stop() }
+        // 실측(2026-11-09): stop 후 마이크는 바로 닫히지만 onEndedRecognition 이 오지 않는다
+        _state.update { it.copy(listening = false, partial = null) }
     }
 
     override fun release() {
