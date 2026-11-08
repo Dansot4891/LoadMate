@@ -30,6 +30,7 @@ sealed interface RecordsUiAction {
     data object Search : RecordsUiAction
     data class Draft(val draft: MemoDraft) : RecordsUiAction
     data object Save : RecordsUiAction
+    data object DismissMessage : RecordsUiAction
     data class Edit(val memo: Memo) : RecordsUiAction
 }
 

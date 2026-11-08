@@ -43,6 +43,7 @@ class RecordsViewModel(
             RecordsUiAction.Search -> loadMemos()
             is RecordsUiAction.Draft -> _state.update { it.copy(draft = a.draft) }
             RecordsUiAction.Save -> save()
+            RecordsUiAction.DismissMessage -> _state.update { it.copy(message = null, messageIsError = false) }
             is RecordsUiAction.Edit -> _state.update { it.copy(draft = MemoDraft(a.memo.body, a.memo.shared, a.memo.thisTripOnly, a.memo.id)) }
         }
     }
@@ -51,7 +52,7 @@ class RecordsViewModel(
         _state.update { it.copy(driverId = driverId()) }
         viewModelScope.launch {
             val t = (trips.getTrip(tripId) as? ApiResult.Success)?.value ?: run {
-                _state.update { it.copy(message = "운행 정보를 불러오지 못했습니다") }
+                _state.update { it.copy(messageIsError = false, message = "운행 정보를 불러오지 못했습니다") }
                 return@launch
             }
             val scopes = buildList {
@@ -74,7 +75,7 @@ class RecordsViewModel(
             else memos.list(scope?.type, scope?.id, tripId.takeIf { scope?.type != "trip" }, null)
             when (r) {
                 is ApiResult.Success -> _state.update { it.copy(memos = r.value) }
-                is ApiResult.Failure -> _state.update { it.copy(message = describe(r.error)) }
+                is ApiResult.Failure -> _state.update { it.copy(message = describe(r.error), messageIsError = true) }
             }
         }
     }
@@ -94,10 +95,10 @@ class RecordsViewModel(
             when (r) {
                 is ApiResult.Success -> {
                     createKey = null
-                    _state.update { it.copy(busy = false, draft = MemoDraft(), message = "저장했습니다") }
+                    _state.update { it.copy(busy = false, draft = MemoDraft(), messageIsError = false, message = "저장했습니다") }
                     loadMemos()
                 }
-                is ApiResult.Failure -> _state.update { it.copy(busy = false, message = describe(r.error)) }
+                is ApiResult.Failure -> _state.update { it.copy(busy = false, message = describe(r.error), messageIsError = true) }
             }
         }
     }

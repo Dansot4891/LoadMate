@@ -38,5 +38,6 @@ data class RecordsUiState(
     val driverId: String? = null,
     val busy: Boolean = false,
     val message: String? = null,
+    val messageIsError: Boolean = false,
 )
 
