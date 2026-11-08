@@ -109,7 +109,8 @@ A0. 구조 이행 (2026-11-08 결정, 영상 분석 붙이기 전에) — 규칙
 A. 남은 코드 기능 (선택)
 - [x] 앱 내부 방문지 **2D 위치 개요** 1단계: 주행 화면에 A→B→C 좌표를 직선으로 연결하고 방문지 이름을 표시. 샘플 데이터이며 **도로 지도·실제 경로·현재 위치·회전 안내는 아님**을 화면에 명시. 도로 기반 안내는 지도 타일/스타일 공급자, 경로 계산 API, 차량 위치 권한, Pleos 차량 앱 배포 허용 범위를 확정한 뒤 진행.
 - [x] 앱 내부 지도 지원 방식 재확인: Pleos NaviHelper 3.0.5 공식 가이드와 SDK 소스에서 `requestNavigationScreen()`은 Navi Service에 화면 요청을 전달하는 `Unit` 메서드(`NAVI_CUSTOM_MAP`)이고 앱에 삽입할 지도 View/Surface나 경로 geometry를 반환하지 않는다. **Loadmate 자체 Activity 안에 2D 지도 표시 자체는 가능**: MapLibre Native Android의 embeddable `MapView`가 공식 문서에 있다. 다만 지도 타일·스타일 데이터 제공자/이용 조건, 도로 경로 계산 API, 위치 갱신, 턴별 안내를 별도로 마련해야 하며 Pleos 내비가 계산한 경로선을 그대로 가져오는 방식은 확인되지 않았다. Android for Cars 내비 템플릿은 `CarAppService` 내비 카테고리·권한·품질 요건을 갖춘 별도 내비 앱 구조이므로 현재 Compose Activity에 자동 적용되지 않는다. Pleos 공모전/배포의 주행 중 자체 Activity 지도 허용 여부는 별도 확인 필요.
-- [ ] 앱 내부 지도·안내 조사 및 구현: 사용자는 내비 앱 전환 없이 Loadmate 안에서 경로를 보길 원함. NaviHelper 3.0.5 `requestNavigationScreen`의 `NavigationScreenRequest`는 내비 앱 전면·즐겨찾기·검색 등 **내비 앱 화면 전환 요청**으로 확인됨. 지도 View/Compose 컴포넌트를 반환하지 않으며 `RouteStateInfo`에도 경로 선 좌표가 없음. 현재 의존성에 지도 렌더러 없음. 2D 지도 공급 방식·경로 API·라이선스·차량 앱 허용 범위·위치 접근을 먼저 확정하고, 3D는 해당 지도 엔진의 지원 여부를 확인. 기존 경로 전달은 계속 동작하지만 앱 내부 지도는 아직 미구현
+- [x] **앱 내부 실제 2D 지도 표시**: OSM 온라인 도로 타일을 Loadmate 운행 화면의 Compose Canvas에 직접 그림. 방문지 점과 직선 연결만 제공. Pleos 에뮬레이터에서 실제 지도 타일 표시 확인. OSM 타일 정책에 맞춰 앱 고유 User-Agent, 화면 출처 표기, 7일 디스크 캐시, 조건부 재요청을 적용. 타일 서비스는 최선 노력 제공이며 출시/대규모 사용 공급자로 확정한 것은 아님.
+- [ ] **앱 내부 실제 경로 안내**: Pleos NaviHelper 3.0.5는 앱 내부 지도 View/경로선 좌표를 반환하지 않음. 도로 경로 계산 API·현재 위치 갱신·회전 안내·재탐색, 지도 공급자/라이선스, 주행 중 자체 화면 허용 여부를 확정해야 함. 기존 Pleos 내비 앱으로의 경로 전달은 계속 동작. 3D는 지도 엔진을 확정한 뒤 검토.
 - [ ] 자동 도착 검증: NaviHelper의 `onWayPointArrived`·`onDestinationArrived` 콜백은 있으나 에뮬레이터 위치 이동이 재현되지 않아 미확인. 신호 수신 시 현장 작업 제안, 누락 시 기사 확인 유지. 좌표 기반 판정은 위치 SDK·오도착 방지 검증 후
 - [ ] 메모 사진 첨부 (F51)
 - [ ] 오프라인 디스크 보관·요청 대기열 (F66) — 지금은 이번 실행 중 메모리만
@@ -228,6 +229,7 @@ C. 제출 준비 (마감 11/15)
 
 | 날짜 | 항목 | 결과 | 근거 |
 |---|---|---|---|
+| 2026-11-08 | 앱 내부 온라인 도로 지도 1단계 | OSM 타일을 직접 그려 A/B/C 위치를 표시. WebView는 타일 로드에도 Pleos 에뮬레이터에서 빈 영역으로 합성되어 Compose Canvas로 변경. 빌드·단위 테스트·lint 통과, 에뮬레이터 user 10에서 실제 도로 지도와 카드 경계 표시 확인. 아직 도로 경로선·현재 위치·회전 안내 없음. | `RouteOverview.kt`, 에뮬레이터 스크린샷 `/private/tmp/loadmate-map-final.png`, [OSM 타일 정책](https://operations.osmfoundation.org/policies/tiles/) |
 | 2026-11-08 | 앱 내부 내비 지원 여부 재확인 | **앱 내부 지도 표시 가능(별도 지도 SDK)**, **Pleos 내비 화면 직접 삽입 불가(공개 NaviHelper 3.0.5 API 기준)**. Pleos route request는 별도 내비 앱으로 전달. 실제 도로 경로선·회전 안내는 자체 경로/위치 연동과 차량 앱 허용 범위 확인이 선행되어야 함. 코드·API 변경 없음. | [Pleos NaviHelper 소개](https://document.pleos.ai/en/docs/pleos-only/connect-sdk-pleos/NaviHelper/intro), 로컬 NaviHelper 3.0.5 sources.jar, [MapLibre MapView](https://maplibre.org/maplibre-native/android/api/-map-libre%20-native%20-android/org.maplibre.android.maps/-map-view/index.html), [Android 내비 앱](https://developer.android.com/training/cars/apps/navigation) |
 | 2026-11-08 | 미커밋 작업 정리 | 기존 변경을 보존하며 앱 구조·음성·2D 개요와 S10 상태 표시를 분리 커밋. 앱 `assembleDebug`·`testDebugUnitTest`·`lintDebug` 통과, 에뮬레이터 표시 확인. 실제 연속 발화 미실측 상태 유지. 문서·작업 지침도 별도 커밋으로 정리. | Git 커밋 이력, Gradle 출력, UI 덤프 |
 | 2026-11-08 | 새 세션 음성·앱 내부 2D 지도 1단계 | 기존 미커밋 변경 보존. 방문지 좌표 직선 개요 구현. `assembleDebug`·`testDebugUnitTest`·`lintDebug`, `git diff --check` 통과. 에뮬레이터 user 10에 설치하여 운행 화면 `음성 ON · 끄기`/`음성 OFF · 켜기` 토글과 `방문지 2D 위치 개요`, A→B→C 및 직선 경고 표시 확인. **두 차례 실제 발화의 자동 재청취는 호스트 마이크 입력을 확보하지 못해 미실측**; 코드의 `scheduleNextListen` 경로 확인에 그침. | `RouteOverview.kt`, `DrivingScreen.kt`, UI 덤프, Gradle 출력 |
