@@ -23,6 +23,10 @@ import com.loadmate.app.feature.settings.domain.ConnectionRepository
 import com.loadmate.app.feature.trip.data.CachingTripRepository
 import com.loadmate.app.feature.trip.data.TripRepositoryImpl
 import com.loadmate.app.feature.trip.data.TripSession
+import com.loadmate.app.feature.trip.presentation.TripCoordinator
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /** 수동 의존성 주입 컨테이너. 구현체 연결은 여기서만 한다. */
 class AppContainer(appContext: Context) {
@@ -47,5 +51,11 @@ class AppContainer(appContext: Context) {
     val speechGateway: SpeechGateway by lazy { PleosSpeechGateway(appContext) }
     val speechOutput: SpeechOutput by lazy { PleosSpeechOutput(appContext) }
     val notifier: DriverNotifier by lazy { DriverNotifier(appContext) }
+    val tripCoordinator: TripCoordinator by lazy {
+        TripCoordinator(tripRepository, memoRepository, tripSession.navi, rearDoorGateway, speechOutput,
+            { id, title, message -> notifier.notify(id, title, message) }, { tripRepository.cached(it) }, sampleTripId,
+            CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate))
+    }
+
 
 }

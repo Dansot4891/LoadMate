@@ -43,7 +43,11 @@ import com.loadmate.app.feature.settings.presentation.PleosStatusSection
 import com.loadmate.app.feature.settings.presentation.PleosStatusViewModel
 import com.loadmate.app.feature.trip.presentation.TripScreen
 import com.loadmate.app.feature.trip.presentation.TripUiAction
-import com.loadmate.app.feature.trip.presentation.TripViewModel
+import com.loadmate.app.feature.trip.presentation.overview.OverviewViewModel
+import com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckViewModel
+import com.loadmate.app.feature.trip.presentation.driving.DrivingViewModel
+import com.loadmate.app.feature.trip.presentation.sitework.SiteWorkViewModel
+import com.loadmate.app.feature.trip.presentation.mismatch.MismatchViewModel
 
 private val TABS = listOf("운행", "기록·메모", "장비·인계", "연결 상태")
 
@@ -59,14 +63,18 @@ class MainActivity : ComponentActivity() {
         setContent {
             PleosTheme {
                 var tab by rememberSaveable { mutableIntStateOf(0) }
-                val tripVm: TripViewModel = viewModel(factory = TripViewModel.factory(container, tripId))
+                val tripVm: OverviewViewModel = viewModel(factory = OverviewViewModel.factory(container))
+                val loadCheckVm: LoadCheckViewModel = viewModel(factory = LoadCheckViewModel.factory(container))
+                val drivingVm: DrivingViewModel = viewModel(factory = DrivingViewModel.factory(container))
+                val siteWorkVm: SiteWorkViewModel = viewModel(factory = SiteWorkViewModel.factory(container))
+                val mismatchVm: MismatchViewModel = viewModel(factory = MismatchViewModel.factory(container))
                 val voiceVm: VoiceViewModel = viewModel(factory = VoiceViewModel.factory(container, tripId))
                 val voice by voiceVm.state.collectAsStateWithLifecycle()
                 val driverId by container.driverStore.driverId.collectAsState()
                 val driverName by container.driverStore.driverName.collectAsState()
                 LaunchedEffect(voiceVm) {
                     voiceVm.effect.collect { e ->
-                        if (e == VoiceEffect.AskRoute) { tab = 0; tripVm.onAction(TripUiAction.AskRoute) }
+                        if (e == VoiceEffect.AskRoute) { tab = 0; drivingVm.onAction(TripUiAction.AskRoute) }
                     }
                 }
                 val c = Pleos.colors
@@ -88,7 +96,7 @@ class MainActivity : ComponentActivity() {
                         }
                         Box(Modifier.weight(1f)) {
                             when (tab) {
-                                0 -> TripScreen(tripVm)
+                                0 -> TripScreen(tripVm, loadCheckVm, drivingVm, siteWorkVm, mismatchVm)
                                 1 -> RecordsScreen(viewModel(factory = RecordsViewModel.factory(container, tripId)))
                                 2 -> FleetScreen(viewModel(factory = FleetViewModel.factory(container, tripId)))
                                 else -> {

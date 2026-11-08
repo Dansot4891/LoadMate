@@ -43,9 +43,22 @@ import com.loadmate.app.feature.trip.domain.StopStatus
 import com.loadmate.app.feature.trip.domain.Trip
 
 @Composable
-fun TripScreen(vm: TripViewModel) {
-    val state by vm.state.collectAsStateWithLifecycle()
-    TripContent(state, vm::onAction)
+fun TripScreen(
+    overview: com.loadmate.app.feature.trip.presentation.overview.OverviewViewModel,
+    loadcheck: com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckViewModel,
+    driving: com.loadmate.app.feature.trip.presentation.driving.DrivingViewModel,
+    sitework: com.loadmate.app.feature.trip.presentation.sitework.SiteWorkViewModel,
+    mismatch: com.loadmate.app.feature.trip.presentation.mismatch.MismatchViewModel,
+) {
+    val state by overview.state.collectAsStateWithLifecycle()
+    val action: (TripUiAction) -> Unit = when (state.step) {
+        TripStep.OVERVIEW, TripStep.DONE -> overview::onAction
+        TripStep.LOAD_CHECK -> loadcheck::onAction
+        TripStep.DRIVING -> driving::onAction
+        TripStep.SITE_WORK -> sitework::onAction
+        TripStep.MISMATCH -> mismatch::onAction
+    }
+    TripContent(state, action)
 }
 
 @Composable

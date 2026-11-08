@@ -38,7 +38,7 @@ import org.junit.Test
 import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class TripViewModelTest {
+class TripCoordinatorTest {
 
     private fun res(name: String) = javaClass.classLoader!!.getResourceAsStream("trip/$name")!!.bufferedReader().readText()
     private val tripInProgress: Trip by lazy { TripJsonParser.trip(res("trip_in_progress.json")) }
@@ -96,9 +96,9 @@ class TripViewModelTest {
     @After fun tearDown() { Dispatchers.resetMain() }
 
     private fun vm(repo: FakeRepo, navi: FakeNavi = FakeNavi(), cached: Pair<Trip, Instant>? = null) =
-        TripViewModel(
+        TripCoordinator(
             repo, memos = null, navi = navi, rearDoor = FakeDoor(), speech = null, notify = { _, _, _ -> }, cached = { cached },
-            tripId = "sample-trip-1", now = { Instant.parse("2026-11-08T07:00:00Z") }, newKey = { "key-${++keyN}" },
+            tripId = "sample-trip-1", scope = CoroutineScope(UnconfinedTestDispatcher()), now = { Instant.parse("2026-11-08T07:00:00Z") }, newKey = { "key-${++keyN}" },
         )
 
     private fun completed(): ApiResult<CompleteResult> {
@@ -186,7 +186,7 @@ class TripViewModelTest {
             override suspend fun getTrip(tripId: String): ApiResult<Trip> = ApiResult.Failure(ApiError.Network("ConnectException"))
         }
         val at = Instant.parse("2026-11-08T06:59:00Z")
-        val v = TripViewModel(repo, null, FakeNavi(), FakeDoor(), null, { _, _, _ -> }, { tripInProgress to at }, "sample-trip-1")
+        val v = TripCoordinator(repo, null, FakeNavi(), FakeDoor(), null, { _, _, _ -> }, { tripInProgress to at }, "sample-trip-1", CoroutineScope(UnconfinedTestDispatcher()))
         val job = CoroutineScope(UnconfinedTestDispatcher()).launch { v.state.collect {} }
         assertEquals(at, v.state.value.offlineSince)
         assertEquals("sample-trip-1", v.state.value.trip?.id)

@@ -3,12 +3,6 @@ package com.loadmate.app.feature.trip.presentation
 import com.loadmate.app.core.pleos.RouteRequestStatus
 import com.loadmate.app.core.pleos.routeRequestStatus
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.loadmate.app.AppContainer
 import com.loadmate.app.core.notify.DriverNotifier
 import com.loadmate.app.core.pleos.NaviConnection
 import com.loadmate.app.core.pleos.NaviGateway
@@ -122,7 +116,7 @@ sealed interface TripUiAction {
  * 내비 리스너는 운행 중 유지하고 운행 완료·화면 종료 시 해제 (원칙 8).
  * 주행 중에는 화면을 바꾸지 않고 짧은 음성·알림만 쓴다 (R09).
  */
-class TripViewModel(
+class TripCoordinator(
     private val repo: TripRepository,
     private val memos: MemoRepository?,
     private val navi: NaviGateway,
@@ -131,16 +125,17 @@ class TripViewModel(
     private val notify: (id: Int, title: String, text: String) -> Unit,
     private val cached: (String) -> Pair<Trip, Instant>?,
     private val tripId: String,
+    private val scope: kotlinx.coroutines.CoroutineScope,
     private val now: () -> Instant = Instant::now,
     private val newKey: () -> String = { UUID.randomUUID().toString() },
-) : ViewModel() {
+) {
 
     private val local = MutableStateFlow(TripUiState())
 
     val state: StateFlow<TripUiState> =
         combine(local, navi.state, rearDoor.state) { s, n, d ->
             s.copy(naviConnected = n.connection == NaviConnection.Connected, routeStatus = routeRequestStatus(n.events), rearDoor = d)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TripUiState())
+        }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), TripUiState())
 
     // 같은 요청의 재시도는 같은 키로 보낸다 (중복 반영 방지). 반영 확정 후에만 비운다.
     private val keys = mutableMapOf<String, String>()
@@ -149,7 +144,7 @@ class TripViewModel(
 
     init {
         refresh()
-        viewModelScope.launch { repo.currentTrip.collect { trip -> if (trip != null && trip.id == tripId && trip != local.value.trip) applyTrip(trip, keepStep = true) } }
+        scope.launch { repo.currentTrip.collect { trip -> if (trip != null && trip.id == tripId && trip != local.value.trip) applyTrip(trip, keepStep = true) } }
     }
 
     fun onAction(a: TripUiAction) {
@@ -204,7 +199,7 @@ class TripViewModel(
 
     private fun refresh() {
         local.update { it.copy(loading = true, loadError = null) }
-        viewModelScope.launch {
+        scope.launch {
             when (val r = repo.getTrip(tripId)) {
                 is ApiResult.Success -> applyTrip(r.value, keepStep = true)
                 is ApiResult.Failure -> {
@@ -238,7 +233,7 @@ class TripViewModel(
         if (s.busy) return
         val key = keyFor("observation")
         local.update { it.copy(busy = true) }
-        viewModelScope.launch {
+        scope.launch {
             val counts = if (unavailable) null else s.observationDraft
             val at = now().truncatedTo(ChronoUnit.SECONDS).toString()
             val zones = if (unavailable || s.observationSource != ObservationSource.SAMPLE) null else {
@@ -263,7 +258,7 @@ class TripViewModel(
         val key = keyFor("baseline")
         val obsId = s.lastComparison?.observation?.id
         local.update { it.copy(busy = true) }
-        viewModelScope.launch {
+        scope.launch {
             when (val r = repo.confirmBaseline(trip.id, key, s.observationDraft, obsId)) {
                 is ApiResult.Success -> {
                     done("baseline")
@@ -294,7 +289,7 @@ class TripViewModel(
             )
         }
         memos?.let { repo ->
-            viewModelScope.launch {
+            scope.launch {
                 (repo.forStop(trip.id, stop.id) as? ApiResult.Success)?.let { r -> local.update { it.copy(stopMemos = r.value) } }
             }
         }
@@ -308,7 +303,7 @@ class TripViewModel(
         val op = "complete:${stop.id}"
         val key = keyFor(op)
         local.update { it.copy(busy = true) }
-        viewModelScope.launch {
+        scope.launch {
             when (val r = repo.completeStop(trip.id, stop.id, key, s.deliveredDraft, driverConfirmed)) {
                 is ApiResult.Success -> {
                     val res = r.value
@@ -381,7 +376,7 @@ class TripViewModel(
         if (s.busy) return
         val key = keyFor(op)
         local.update { it.copy(busy = true) }
-        viewModelScope.launch {
+        scope.launch {
             when (val r = call(trip, key)) {
                 is ApiResult.Success -> {
                     done(op)
@@ -401,7 +396,7 @@ class TripViewModel(
     }
 
     private fun reloadQuietly() {
-        viewModelScope.launch {
+        scope.launch {
             (repo.getTrip(tripId) as? ApiResult.Success)?.let { applyTrip(it.value, keepStep = true) }
         }
     }
@@ -410,22 +405,7 @@ class TripViewModel(
         local.update { it.copy(busy = false, message = UiMessage(describe(e), true)) }
     }
 
-    override fun onCleared() {
-        rearDoor.stop()
-    }
 
-    companion object {
-        fun factory(container: AppContainer, tripId: String): ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                TripViewModel(
-                    repo = container.tripRepository, memos = container.memoRepository, navi = container.tripSession.navi,
-                    rearDoor = container.rearDoorGateway, speech = container.speechOutput,
-                    notify = { id, title, text -> container.notifier.notify(id, title, text) },
-                    cached = { container.tripRepository.cached(it) }, tripId = tripId,
-                )
-            }
-        }
-    }
 }
 
 internal fun describe(e: ApiError): String = when (e) {
