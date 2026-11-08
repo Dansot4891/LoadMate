@@ -88,7 +88,7 @@ A0. 구조 이행 (2026-11-08 결정, 영상 분석 붙이기 전에) — 규칙
   - [x] memo·fleet·handover·assistant 를 router·schemas·service·repository·models 로 분리 (memo 는 멱등·공개 범위 규칙을 service 로)
   - [x] memo 가 `trip.models.Stop` 직접 쿼리 → trip repository 공개 메서드 호출
   - [x] `trip/service.py`(517줄) → `trip/service/{trips,stops,loading,pickups,issues,common}.py`
-  - [ ] pytest 61개 유지 + PostgreSQL 대표 시나리오 재확인
+  - [x] pytest 61개 유지 + PostgreSQL 대표 시나리오 재확인
 - 앱
   - [ ] `ApiResult`·`ApiError` 를 `feature/trip/domain` → `core/network` 로 이동
   - [ ] kotlinx.serialization 도입(AGP 8.7.3·Kotlin 2.0.0 호환 버전), org.json 파서 9개 파일 → `dto/` + `mapper/`
@@ -228,3 +228,6 @@ C. 제출 준비 (마감 11/15)
 | 2026-11-08 | 에뮬레이터: 인계 확정(기사 1) → 기사 2 선택 → 인수 확정 → 운행 기사 변경 | 동작, 요약에 개인 기록 제외 | evidence/24 |
 | 2026-11-08 | 에뮬레이터: 남은 업무가 있을 때 운행 종료 → 사유 선택 → ended_incomplete | 동작 | evidence/25 |
 | 2026-11-08 | 시연 도구(샘플 이상 관측) 버튼을 운행 화면에서 펼쳐야 보이도록 변경 | 탭 스크립트가 버튼을 잘못 눌러 이상 기록이 생긴 일을 계기로 오조작 방지 | — |
+| 2026-11-08 | A0 서버 구조 이행: 시드 이동, UTC 함수 통합, 기능 계층 분리, 메모 방문지 조회 경계, trip 서비스 분리 | 각 이행 커밋 전 Docker pytest 61 passed | `086ed9e`, `7807cac`, `69c29d6`, `39c64db`; `docker run ... loadmate-backend ... pytest -q` |
+| 2026-11-08 | A0 PostgreSQL 대표 시나리오: A 예상 7/관측 8 → 확인 필요(미저장) → 관측 7 → 완료, 동일 키 재전송 | API 응답·DB 재조회 모두 일치, 잔량 7·A 완료 | `docker compose up -d --build`; `app.seed --reset`; backend 컨테이너에서 HTTP 요청 |
+| 2026-11-08 | A0 backend 재시작 후 PostgreSQL 복원 | 잔량 7, A 완료, 배송 수량 3 유지 | `docker compose restart backend` 후 `GET /trips/sample-trip-1` |
