@@ -145,6 +145,7 @@ C. 제출 준비 (마감 11/15)
 - **호스트 마이크**: `adb emu avd hostmicon/off`. 껐다 켠 뒤 입력이 안 들어오는 경우가 있었음(에뮬레이터 재시작 필요할 수 있음). 듣기 준비(`onReady`) 전에 말하면 인식되지 않음 → 앱에 12초 시간 제한. TTS 소리가 마이크로 다시 들어가 오인식될 수 있음
 - **Virtual Console**: 열린 세션이 없으면 상태 변경 503. 세션 활성화 시 드라이빙뷰 주행가능거리가 0km로 초기화되는 부작용
 - **탭 스크립트 오조작**: `scripts/emu-ui.sh`가 버튼이 촘촘한 화면에서 다른 버튼을 누른 적 있음(이상 의심 3건이 잘못 기록됨). 상태 변경 탭 뒤에는 `curl .../trips/sample-trip-1`로 서버 상태 확인. 한글은 `adb input text` 불가
+- **음성 겹침**: 시스템이 내비와 Loadmate 음성 순서를 조정해 주지 않는다(Loadmate TTS는 오디오 포커스 요청 기록 없음). 앱이 내비 음성 재생을 감지해 기다리고, 끼어들면 멈춘 뒤 다시 말한다(`NaviAwareSpeechQueue`). 재생 상태는 공개 getter가 없어 `AudioPlaybackConfiguration.toString()`의 `state:started`를 본다. 에뮬레이터 확인만, 실차 미확인
 - **헤드업 알림**: 알림 카테고리를 지정해야 내비 위에 뜸. Android 13+ 알림 권한 필요(앱 첫 실행 시 요청)
 - **TTS**: `speak(text, isFinal=true)` 로 호출해야 끝남(false면 onDone 없음)
 - **경유지**: 최대 2개(+목적지). 남은 방문지가 4곳 이상이면 앞의 3곳만 보내고 다음에 이어서
@@ -229,6 +230,7 @@ C. 제출 준비 (마감 11/15)
 
 | 날짜 | 항목 | 결과 | 근거 |
 |---|---|---|---|
+| 2026-11-09 | 내비 음성과 Loadmate 음성 겹침 방지 | 변경 전 재생 기록: 안내 시작 3회 모두 겹침(예: Loadmate 42.675~46.282초, 내비 42.833~45.178초). 내비는 USAGE_ASSISTANCE_NAVIGATION_GUIDANCE, Loadmate TTS는 USAGE_MEDIA로 구분됨. `안내 시작` 음성 삭제(실패 음성은 유지), 음성은 `NaviAwareSpeechQueue`로 한 문장씩 재생. 에뮬레이터 user 10, 내비 전면: 내비 시작 2ms 뒤 감지, 내비 종료(13.262초) 후 Loadmate 시작(13.620초). 말하는 중 내비가 끼어든 임시 재현: 정지 후 내비 종료(19.652초) 뒤 처음부터 재생(19.968초), 정지 요청이 실제 소리 정지까지 약 0.45초 걸려 내비 음성과 약 0.34초 겹침. 최종 빌드는 경로 전달 시 내비 음성만 재생. assembleDebug·testDebugUnitTest(40개)·lintDebug 통과. 실차·도착 시점 내비 문구 미확인 | `dumpsys audio`, logcat `LoadmateNaviVoice`·`LoadmateTts` |
 | 2026-11-09 | 장비·인계 화면 용어·순서 정리 | `지금 조작하는 기사`(시연용, 인증 아님)와 서버의 `운행 담당 기사`를 분리 설명. 차량 비치 공용 도구는 배송 물품과 별개임을 명시하고 상태 버튼을 두 줄로 배치. 인계 요청→받는 기사 인수→담당 변경 순서와 대상 기사 조건을 화면·ViewModel에 반영. 기사 없이 시작한 샘플 운행에서도 서버 계약대로 첫 인계 요청 허용. `assembleDebug`·`testDebugUnitTest`·`lintDebug` 통과, 에뮬레이터 user 10에서 문구·버튼 배치 확인. 인계 생성·인수 서버 상태 변경은 이번에 실행하지 않음. | `FleetScreen.kt`, `FleetViewModel.kt`, 에뮬레이터 스크린샷 `/private/tmp/fleet-final.png` |
 | 2026-11-08 | 앱 내부 온라인 도로 지도 1단계 | OSM 타일을 직접 그려 A/B/C 위치를 표시. WebView는 타일 로드에도 Pleos 에뮬레이터에서 빈 영역으로 합성되어 Compose Canvas로 변경. 빌드·단위 테스트·lint 통과, 에뮬레이터 user 10에서 실제 도로 지도와 카드 경계 표시 확인. 아직 도로 경로선·현재 위치·회전 안내 없음. | `RouteOverview.kt`, 에뮬레이터 스크린샷 `/private/tmp/loadmate-map-final.png`, [OSM 타일 정책](https://operations.osmfoundation.org/policies/tiles/) |
 | 2026-11-08 | 앱 내부 내비 지원 여부 재확인 | **앱 내부 지도 표시 가능(별도 지도 SDK)**, **Pleos 내비 화면 직접 삽입 불가(공개 NaviHelper 3.0.5 API 기준)**. Pleos route request는 별도 내비 앱으로 전달. 실제 도로 경로선·회전 안내는 자체 경로/위치 연동과 차량 앱 허용 범위 확인이 선행되어야 함. 코드·API 변경 없음. | [Pleos NaviHelper 소개](https://document.pleos.ai/en/docs/pleos-only/connect-sdk-pleos/NaviHelper/intro), 로컬 NaviHelper 3.0.5 sources.jar, [MapLibre MapView](https://maplibre.org/maplibre-native/android/api/-map-libre%20-native%20-android/org.maplibre.android.maps/-map-view/index.html), [Android 내비 앱](https://developer.android.com/training/cars/apps/navigation) |

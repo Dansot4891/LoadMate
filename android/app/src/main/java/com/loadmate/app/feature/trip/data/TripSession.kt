@@ -38,9 +38,9 @@ class TripSession(
         scope.launch {
             navi.state.collect { state ->
                 val status = routeRequestStatus(state.events)
+                // 안내 시작·길 안내 음성은 내비가 맡는다. Loadmate 는 내비가 알려 주지 않는 실패만 말한다.
                 if (status == lastAnnounced) return@collect
                 when (status) {
-                    is RouteRequestStatus.Started -> speech?.speak("${status.name}으로 안내를 시작했습니다.")
                     is RouteRequestStatus.Failed -> {
                         speech?.speak("내비 안내 요청이 실패했습니다. 앱에서 다시 보내 주세요.")
                         notify(DriverNotifier.ID_ROUTE, "내비 안내 실패", "${status.reason} · Loadmate 에서 다시 보내기")

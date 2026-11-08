@@ -114,6 +114,7 @@ test/                        # main 과 같은 패키지 경로
 - 경유지는 2개까지(`requestRouteWithWaypoints`). 탐색 실패 시 기존 안내도 사라진다
 - 헤드업 알림은 카테고리 지정 필수 (`CATEGORY_MESSAGE` / `CATEGORY_NAVIGATION`)
 - TTS는 `speak(text, isFinal = true)`. STT ON_DEVICE는 자격 증명 없이 동작하지만 오인식이 있다 → 음성 명령은 인식 문장을 보여 주고 기사 확인 후 실행
+- Loadmate 음성은 `NaviAwareSpeechQueue` 를 거친다(내비 음성 중 대기, 끼어들면 멈추고 재생). 길 안내·안내 시작 음성은 내비에 맡기고 Loadmate는 업무·실패·기사 질문 답변만 말한다
 - 호스트 마이크: `adb emu avd hostmicon`
 
 ## 테스트
