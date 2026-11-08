@@ -1,5 +1,12 @@
 package com.loadmate.app.feature.trip.presentation
 
+import com.loadmate.app.feature.trip.presentation.overview.OverviewPanel
+import com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckPanel
+import com.loadmate.app.feature.trip.presentation.driving.DrivingPanel
+import com.loadmate.app.feature.trip.presentation.driving.RouteDialog
+import com.loadmate.app.feature.trip.presentation.sitework.SiteWorkPanel
+import com.loadmate.app.feature.trip.presentation.mismatch.MismatchPanel
+
 import com.loadmate.app.core.pleos.RouteRequestStatus
 import com.loadmate.app.core.pleos.routeRequestStatus
 

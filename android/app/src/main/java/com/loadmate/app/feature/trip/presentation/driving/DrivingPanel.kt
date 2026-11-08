@@ -1,4 +1,6 @@
-package com.loadmate.app.feature.trip.presentation
+package com.loadmate.app.feature.trip.presentation.driving
+
+import com.loadmate.app.feature.trip.presentation.*
 
 import com.loadmate.app.core.pleos.RouteRequestStatus
 import com.loadmate.app.core.pleos.routeRequestStatus
