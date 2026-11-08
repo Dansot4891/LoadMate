@@ -16,7 +16,7 @@
 | Backend | FastAPI + PostgreSQL(Docker). Feature: health·trip·fleet·memo·handover·assistant. Alembic 2개. pytest 61개 |
 | Pleos SDK (앱 연결) | NaviHelper 3.0.5(목적지·경유지), Vehicle 2.3.2 Door REAR, SpeechToText 3.3.1 ON_DEVICE, TextToSpeech 3.3.1 ON_DEVICE. **모두 에뮬레이터 확인만**, 실차 미확인 |
 | 데이터 출처 | 운행·관측·이상 감지는 **샘플**(화면에 표시). 음성 해석·인계 요약은 **규칙 기반**(AI 아님, 화면에 표시) |
-| Git | `master` 브랜치 커밋 29개 (4절 기존 이력 + 11절 A0 앱 이행 기록). **원격 저장소 없음, push 안 함** |
+| Git | `master` 브랜치. 4절 기존 이력 + 11절 A0 앱 이행 기록. **원격 저장소 없음, push 안 함** |
 | 실행 상태 | 세션 종료 시 서버·에뮬레이터 실행 중일 수 있음. 샘플 운행은 초기화해 둠 |
 
 ## 2. 새 세션에서 다시 띄우기
