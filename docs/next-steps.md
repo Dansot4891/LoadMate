@@ -12,7 +12,7 @@
 |---|---|
 | 단계 | 기획서 14장(대표 시나리오)·15장(회수·메모·인계)까지 **앱+서버 구현**. A0 구조 이행과 대표 업무·내비 회귀 검증 완료. 제출 준비는 아직 시작 안 함 |
 | 사용자 방침 | "기능을 먼저 끝까지 구현" (2026-11-08). 다음 세션에서는 남은 기능과 11/15 제출 준비의 우선순위를 확인할 것 |
-| Android | 운행 선택 첫 화면 + 탭 4개(운행 · 기록·메모 · 장비·인계 · 연결 상태) + 음성 패널. 단위 테스트 31개, 빌드·lint 통과 |
+| Android | 운행 선택 첫 화면 + 왼쪽 세로 메뉴 4개(운행 · 기록·메모 · 장비·인계 · 연결 상태) + 음성 패널. 단위 테스트 31개, 빌드·lint 통과 |
 | Backend | FastAPI + PostgreSQL(Docker). Feature: health·trip·fleet·memo·handover·assistant. Alembic 2개. pytest 61개 |
 | Pleos SDK (앱 연결) | NaviHelper 3.0.5(목적지·경유지), Vehicle 2.3.2 Door REAR, SpeechToText 3.3.1 ON_DEVICE, TextToSpeech 3.3.1 ON_DEVICE. **모두 에뮬레이터 확인만**, 실차 미확인 |
 | 데이터 출처 | 운행·관측·이상 감지는 **샘플**(화면에 표시). 음성 해석·인계 요약은 **규칙 기반**(AI 아님, 화면에 표시) |
@@ -235,6 +235,7 @@ C. 제출 준비 (마감 11/15)
 | 2026-11-09 | 장비·인계 화면 용어·순서 정리 | `지금 조작하는 기사`(시연용, 인증 아님)와 서버의 `운행 담당 기사`를 분리 설명. 차량 비치 공용 도구는 배송 물품과 별개임을 명시하고 상태 버튼을 두 줄로 배치. 인계 요청→받는 기사 인수→담당 변경 순서와 대상 기사 조건을 화면·ViewModel에 반영. 기사 없이 시작한 샘플 운행에서도 서버 계약대로 첫 인계 요청 허용. `assembleDebug`·`testDebugUnitTest`·`lintDebug` 통과, 에뮬레이터 user 10에서 문구·버튼 배치 확인. 인계 생성·인수 서버 상태 변경은 이번에 실행하지 않음. | `FleetScreen.kt`, `FleetViewModel.kt`, 에뮬레이터 스크린샷 `/private/tmp/fleet-final.png` |
 | 2026-11-09 | 연결 상태 서버 줄 단순화: 정상이면 `연결됨`만 표시(주소·버전 제거), 화면 진입·복귀 때 자동 재확인, `다시 확인`은 연결 실패 때만 표시 | assembleDebug·testDebugUnitTest(31개)·lintDebug 통과. 에뮬레이터 user 10에서 정상 표시 확인. 실패 표시와 `다시 확인` 버튼은 서버를 끄지 않아 화면 미확인 | 스크린샷 확인 |
 | 2026-11-09 | 연결 상태(S10) 화면 정리: 왼쪽에 서버·차량 기능 상태 목록, 시험 버튼(목적지 전달·경로 취소·듣기)과 수신 기록·뒷문 원시값은 오른쪽 `점검 도구`에 접어 둠 | assembleDebug·testDebugUnitTest(31개)·lintDebug 통과. 에뮬레이터 user 10에서 상태 목록 표시와 점검 도구 펼침 확인. 점검 도구 안의 시험 버튼은 내비 전환을 피하려고 이번에 누르지 않음(동작 코드는 변경 없음). 다크 모드 미확인 | 스크린샷 확인 |
+| 2026-11-09 | 운행 화면 이동 구조 변경: 상단 탭·"운행 선택" 버튼을 왼쪽 세로 메뉴(맨 위 뒤로가기 `운행 목록`, 맨 아래 음성 ON/OFF)로 이동, 목록은 카드 전체를 누르면 열림. 세로 메뉴와 아이콘은 공식 Figma 규격이 없어 PROJECT | assembleDebug·testDebugUnitTest(31개)·lintDebug 통과. 에뮬레이터 user 10에서 카드 탭으로 운행 열기, 메뉴 4개 전환, 음성 ON→OFF, 뒤로가기로 목록 복귀 확인. 샘플 운행 데이터 변경 없음. 다크 모드 미확인 | 스크린샷 확인 |
 | 2026-11-08 | 앱 내부 온라인 도로 지도 1단계 | OSM 타일을 직접 그려 A/B/C 위치를 표시. WebView는 타일 로드에도 Pleos 에뮬레이터에서 빈 영역으로 합성되어 Compose Canvas로 변경. 빌드·단위 테스트·lint 통과, 에뮬레이터 user 10에서 실제 도로 지도와 카드 경계 표시 확인. 아직 도로 경로선·현재 위치·회전 안내 없음. | `RouteOverview.kt`, 에뮬레이터 스크린샷 `/private/tmp/loadmate-map-final.png`, [OSM 타일 정책](https://operations.osmfoundation.org/policies/tiles/) |
 | 2026-11-08 | 앱 내부 내비 지원 여부 재확인 | **앱 내부 지도 표시 가능(별도 지도 SDK)**, **Pleos 내비 화면 직접 삽입 불가(공개 NaviHelper 3.0.5 API 기준)**. Pleos route request는 별도 내비 앱으로 전달. 실제 도로 경로선·회전 안내는 자체 경로/위치 연동과 차량 앱 허용 범위 확인이 선행되어야 함. 코드·API 변경 없음. | [Pleos NaviHelper 소개](https://document.pleos.ai/en/docs/pleos-only/connect-sdk-pleos/NaviHelper/intro), 로컬 NaviHelper 3.0.5 sources.jar, [MapLibre MapView](https://maplibre.org/maplibre-native/android/api/-map-libre%20-native%20-android/org.maplibre.android.maps/-map-view/index.html), [Android 내비 앱](https://developer.android.com/training/cars/apps/navigation) |
 | 2026-11-08 | 미커밋 작업 정리 | 기존 변경을 보존하며 앱 구조·음성·2D 개요와 S10 상태 표시를 분리 커밋. 앱 `assembleDebug`·`testDebugUnitTest`·`lintDebug` 통과, 에뮬레이터 표시 확인. 실제 연속 발화 미실측 상태 유지. 문서·작업 지침도 별도 커밋으로 정리. | Git 커밋 이력, Gradle 출력, UI 덤프 |

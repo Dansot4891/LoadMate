@@ -1,23 +1,24 @@
 package com.loadmate.app
 
+import com.loadmate.app.shared.designsystem.components.PleosSwitch
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
+import androidx.annotation.DrawableRes
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -39,12 +40,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.loadmate.app.core.designsystem.Pleos
-import com.loadmate.app.core.designsystem.PleosButton
-import com.loadmate.app.core.designsystem.PleosButtonStyle
-import com.loadmate.app.core.designsystem.PleosSpacing
-import com.loadmate.app.core.designsystem.PleosShape
-import com.loadmate.app.core.designsystem.PleosTheme
+import com.loadmate.app.shared.designsystem.theme.Pleos
+import com.loadmate.app.shared.designsystem.project.PleosRailItem
+import com.loadmate.app.shared.designsystem.dimens.PleosSpacing
+import com.loadmate.app.shared.designsystem.dimens.PleosShape
+import com.loadmate.app.shared.designsystem.theme.PleosTheme
 import com.loadmate.app.feature.assistant.presentation.voice.VoiceEffect
 import com.loadmate.app.feature.assistant.presentation.voice.VoicePanel
 import com.loadmate.app.feature.assistant.presentation.voice.VoiceUiAction
@@ -68,7 +68,17 @@ import com.loadmate.app.feature.trip.presentation.driving.DrivingViewModel
 import com.loadmate.app.feature.trip.presentation.sitework.SiteWorkViewModel
 import com.loadmate.app.feature.trip.presentation.mismatch.MismatchViewModel
 
-private val TABS = listOf("운행", "기록·메모", "장비·인계", "연결 상태")
+private class TabItem(val label: String, @DrawableRes val icon: Int)
+
+private val TABS = listOf(
+    TabItem("운행", R.drawable.pleos_ic_vehicle),
+    TabItem("기록·메모", R.drawable.ic_nav_records),
+    TabItem("장비·인계", R.drawable.ic_nav_fleet),
+    TabItem("연결 상태", R.drawable.pleos_ic_info_line),
+)
+
+/** 왼쪽 세로 메뉴 너비 (PROJECT 값) */
+private val RAIL_WIDTH = 168.dp
 
 class MainActivity : ComponentActivity() {
     private val askNotify = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -126,36 +136,27 @@ private fun TripTabs(container: AppContainer, tripId: String, onSelectTrip: () -
     val c = Pleos.colors
     val t = Pleos.type
     Box(Modifier.fillMaxSize().background(c.backgroundPrimary)) {
-        Column(Modifier.fillMaxSize()) {
-            Row(
-                Modifier.padding(start = PleosSpacing.xl, end = PleosSpacing.xl, top = PleosSpacing.l),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m),
+        Row(Modifier.fillMaxSize()) {
+            Column(
+                Modifier.width(RAIL_WIDTH).fillMaxHeight().background(c.backgroundSecondary).padding(PleosSpacing.m),
+                verticalArrangement = Arrangement.spacedBy(PleosSpacing.s),
             ) {
-                BasicText("Loadmate", style = t.titleMedium.copy(color = c.textPrimary))
-                PleosButton("운행 선택", style = PleosButtonStyle.Basic, onClick = onSelectTrip)
-                TABS.forEachIndexed { i, name ->
-                    PleosButton(name, style = if (tab == i) PleosButtonStyle.Filled else PleosButtonStyle.Basic) { tab = i }
+                PleosRailItem("운행 목록", R.drawable.pleos_ic_arrow_left, selected = false, role = Role.Button, onClick = onSelectTrip)
+                Box(Modifier.fillMaxWidth().height(PleosShape.hairline).background(c.divider))
+                TABS.forEachIndexed { i, item ->
+                    PleosRailItem(item.label, item.icon, selected = tab == i) { tab = i }
                 }
                 Box(Modifier.weight(1f))
-                val voiceColor = if (voice.alwaysListening) c.regulationGreen else c.regulationRed
-                Row(
-                    Modifier.heightIn(min = PleosShape.minTouch)
-                        .background(c.surfaceLow, RoundedCornerShape(PleosShape.small))
-                        .border(1.dp, voiceColor, RoundedCornerShape(PleosShape.small))
-                        .clickable(role = Role.Button) { voiceVm.onAction(VoiceUiAction.ToggleAlwaysListening) }
-                        .padding(horizontal = PleosSpacing.l),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(PleosSpacing.s),
+                Column(
+                    Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(PleosSpacing.xs),
                 ) {
-                    Box(Modifier.size(12.dp).background(voiceColor, RoundedCornerShape(50)))
-                    BasicText(
-                        if (voice.alwaysListening) "음성 ON · 끄기" else "음성 OFF · 켜기",
-                        style = t.bodyMedium.copy(color = voiceColor),
-                    )
+                    BasicText(if (voice.alwaysListening) "음성 ON" else "음성 OFF", style = t.bodySmall.copy(color = c.textPrimary))
+                    PleosSwitch(voice.alwaysListening, { voiceVm.onAction(VoiceUiAction.ToggleAlwaysListening) })
                 }
             }
-            Box(Modifier.weight(1f)) {
+            Box(Modifier.weight(1f).fillMaxHeight()) {
                 when (tab) {
                     0 -> TripScreen(tripVm, loadCheckVm, drivingVm, siteWorkVm, mismatchVm)
                     1 -> RecordsScreen(viewModel(key = "records-$tripId", factory = RecordsViewModel.factory(container, tripId)))
