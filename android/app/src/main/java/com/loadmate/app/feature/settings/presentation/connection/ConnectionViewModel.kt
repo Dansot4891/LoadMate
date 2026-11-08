@@ -1,4 +1,4 @@
-package com.loadmate.app.feature.settings.presentation
+package com.loadmate.app.feature.settings.presentation.connection
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider

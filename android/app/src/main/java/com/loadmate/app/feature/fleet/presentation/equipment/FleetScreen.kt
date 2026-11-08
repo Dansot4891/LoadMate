@@ -1,4 +1,4 @@
-package com.loadmate.app.feature.fleet.presentation
+package com.loadmate.app.feature.fleet.presentation.equipment
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,7 +22,7 @@ import com.loadmate.app.core.designsystem.PleosButtonStyle
 import com.loadmate.app.core.designsystem.PleosCard
 import com.loadmate.app.core.designsystem.PleosSpacing
 import com.loadmate.app.core.designsystem.PleosTag
-import com.loadmate.app.feature.records.presentation.Field
+import com.loadmate.app.feature.records.presentation.records.Field
 
 private val STATUS = listOf("ok" to "정상", "missing" to "없음", "broken" to "고장", "lent" to "대여", "not_returned" to "미반납")
 

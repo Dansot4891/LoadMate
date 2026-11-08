@@ -1,4 +1,4 @@
-package com.loadmate.app.feature.assistant.presentation
+package com.loadmate.app.feature.assistant.presentation.voice
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider

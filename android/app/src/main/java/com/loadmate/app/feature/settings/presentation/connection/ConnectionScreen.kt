@@ -1,4 +1,4 @@
-package com.loadmate.app.feature.settings.presentation
+package com.loadmate.app.feature.settings.presentation.connection
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

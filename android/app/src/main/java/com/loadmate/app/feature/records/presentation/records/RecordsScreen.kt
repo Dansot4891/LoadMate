@@ -1,4 +1,4 @@
-package com.loadmate.app.feature.records.presentation
+package com.loadmate.app.feature.records.presentation.records
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -79,7 +79,7 @@ fun RecordsScreen(vm: RecordsViewModel) {
                 BasicText("개인 메모는 다른 기사에게 보이지 않고 인계에 자동 포함되지 않습니다.", style = t.labelMedium.copy(color = c.textTertiary))
                 Row(horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {
                     PleosButton("저장", enabled = !s.busy && s.draft.body.isNotBlank() && s.driverId != null) { on(RecordsUiAction.Save) }
-                    if (s.draft.editingId != null) PleosButton("취소", style = PleosButtonStyle.Basic) { on(RecordsUiAction.Draft(com.loadmate.app.feature.records.presentation.MemoDraft())) }
+                    if (s.draft.editingId != null) PleosButton("취소", style = PleosButtonStyle.Basic) { on(RecordsUiAction.Draft(com.loadmate.app.feature.records.presentation.records.MemoDraft())) }
                 }
                 if (s.driverId == null) BasicText("상단에서 기사를 먼저 선택하세요", style = t.labelMedium.copy(color = c.negative))
                 s.message?.let { BasicText(it, style = t.labelMedium.copy(color = c.textSecondary)) }

@@ -1,4 +1,4 @@
-package com.loadmate.app.feature.assistant.presentation
+package com.loadmate.app.feature.assistant.presentation.voice
 
 import com.loadmate.app.core.pleos.SpeechConnection
 import com.loadmate.app.core.pleos.SpeechGateway

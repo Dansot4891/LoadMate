@@ -1,4 +1,4 @@
-package com.loadmate.app.feature.fleet.presentation
+package com.loadmate.app.feature.fleet.presentation.equipment
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider

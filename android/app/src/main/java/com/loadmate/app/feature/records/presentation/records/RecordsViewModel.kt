@@ -1,4 +1,4 @@
-package com.loadmate.app.feature.records.presentation
+package com.loadmate.app.feature.records.presentation.records
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
