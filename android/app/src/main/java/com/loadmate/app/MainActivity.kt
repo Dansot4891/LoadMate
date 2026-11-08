@@ -163,7 +163,7 @@ private fun TripTabs(container: AppContainer, tripId: String, onSelectTrip: () -
                     else -> {
                         val vm: ConnectionViewModel = viewModel(factory = ConnectionViewModel.factory(container))
                         val pleosVm: PleosStatusViewModel = viewModel(factory = PleosStatusViewModel.factory(container))
-                        ConnectionScreen(vm, onBack = null) { PleosStatusSection(pleosVm) }
+                        ConnectionScreen(vm, status = { PleosStatusSection(pleosVm) })
                     }
                 }
             }

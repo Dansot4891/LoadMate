@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.loadmate.app.AppContainer
-import com.loadmate.app.core.pleos.NaviDestination
 import com.loadmate.app.core.pleos.NaviGateway
 import com.loadmate.app.core.pleos.NaviState
 import com.loadmate.app.core.pleos.RearDoorGateway
@@ -18,16 +17,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
-/** S10 Pleos 연동 상태 (F65). 실측용 샘플 목적지는 화면에 "샘플"로 표시한다. */
+/** S10 Pleos 연동 상태 (F65). */
 
 sealed interface PleosStatusUiAction {
     /** 화면 표시 시작: 내비 연결 + 뒷문 구독 */
     data object Start : PleosStatusUiAction
     /** 화면 이탈: 뒷문·음성 리스너 해제 (내비는 운행 범위라 유지) */
     data object Stop : PleosStatusUiAction
-    data object RequestSampleRoute : PleosStatusUiAction
-    data object CancelRoute : PleosStatusUiAction
-    data object Listen : PleosStatusUiAction
-    data object StopListening : PleosStatusUiAction
 }
 

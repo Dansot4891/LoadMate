@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.loadmate.app.AppContainer
-import com.loadmate.app.core.pleos.NaviDestination
 import com.loadmate.app.core.pleos.NaviGateway
 import com.loadmate.app.core.pleos.NaviState
 import com.loadmate.app.core.pleos.RearDoorGateway
@@ -19,7 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
-/** S10 Pleos 연동 상태 (F65). 실측용 샘플 목적지는 화면에 "샘플"로 표시한다. */
+/** S10 Pleos 연동 상태 (F65). */
 class PleosStatusViewModel(
     private val navi: NaviGateway,
     private val rearDoor: RearDoorGateway,
@@ -38,10 +37,6 @@ class PleosStatusViewModel(
             PleosStatusUiAction.Start -> { navi.connect(); rearDoor.start(); speech.connect() }
             // 내비는 운행 범위로 유지(원칙 8) → 여기서 해제하지 않는다. connect()는 이미 연결돼 있으면 무시
             PleosStatusUiAction.Stop -> rearDoor.stop() // 음성 연결은 음성 대화와 공유 → 해제하지 않음
-            PleosStatusUiAction.RequestSampleRoute -> navi.requestRoute(SAMPLE_DESTINATION)
-            PleosStatusUiAction.CancelRoute -> navi.cancelRoute()
-            PleosStatusUiAction.Listen -> speech.listen()
-            PleosStatusUiAction.StopListening -> speech.stopListening()
         }
     }
 
@@ -50,9 +45,6 @@ class PleosStatusViewModel(
     }
 
     companion object {
-        /** 샘플 목적지 (실측용, 실제 배송지 아님): 서울역 인근 좌표 */
-        val SAMPLE_DESTINATION = NaviDestination(name = "샘플 목적지 · 서울역", latitude = 37.5547, longitude = 126.9707)
-
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
             initializer { PleosStatusViewModel(container.naviGateway, container.rearDoorGateway, container.speechGateway, container.speechOutput) }
         }

@@ -16,7 +16,6 @@ import kotlinx.coroutines.launch
 
 
 data class ConnectionUiState(
-    val baseUrl: String,
     val status: ServerStatus? = null,
     val isChecking: Boolean = false,
 )

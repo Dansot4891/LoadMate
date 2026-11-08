@@ -16,15 +16,10 @@ import kotlinx.coroutines.launch
 
 class ConnectionViewModel(
     private val repository: ConnectionRepository,
-    baseUrl: String,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(ConnectionUiState(baseUrl = baseUrl))
+    private val _state = MutableStateFlow(ConnectionUiState())
     val state: StateFlow<ConnectionUiState> = _state.asStateFlow()
-
-    init {
-        onAction(ConnectionUiAction.Refresh)
-    }
 
     fun onAction(action: ConnectionUiAction) {
         when (action) {
@@ -43,7 +38,7 @@ class ConnectionViewModel(
 
     companion object {
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
-            initializer { ConnectionViewModel(container.connectionRepository, container.apiBaseUrl) }
+            initializer { ConnectionViewModel(container.connectionRepository) }
         }
     }
 }
