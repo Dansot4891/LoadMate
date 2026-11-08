@@ -22,21 +22,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.loadmate.app.core.designsystem.Pleos
+import com.loadmate.app.core.designsystem.PleosButton
+import com.loadmate.app.core.designsystem.PleosButtonStyle
 import com.loadmate.app.core.designsystem.PleosShape
 import com.loadmate.app.core.designsystem.PleosSpacing
 import com.loadmate.app.feature.settings.domain.DatabaseStatus
 import com.loadmate.app.feature.settings.domain.ServerStatus
 
 @Composable
-fun ConnectionScreen(vm: ConnectionViewModel, pleosSection: @Composable () -> Unit) {
+fun ConnectionScreen(vm: ConnectionViewModel, onBack: () -> Unit, pleosSection: @Composable () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
-    ConnectionContent(state, vm::onAction, pleosSection)
+    ConnectionContent(state, vm::onAction, onBack, pleosSection)
 }
 
 @Composable
 private fun ConnectionContent(
     state: ConnectionUiState,
     onAction: (ConnectionUiAction) -> Unit,
+    onBack: () -> Unit,
     pleosSection: @Composable () -> Unit,
 ) {
     val c = Pleos.colors
@@ -49,8 +52,9 @@ private fun ConnectionContent(
             .padding(PleosSpacing.xxl),
         verticalArrangement = Arrangement.spacedBy(PleosSpacing.xl),
     ) {
-        BasicText("Loadmate", style = t.headlineSmall.copy(color = c.textPrimary))
-        BasicText("물류 동반자 · 개발 뼈대", style = t.bodyMedium.copy(color = c.textSecondary))
+        PleosButton("← 운행 화면", style = PleosButtonStyle.Basic, onClick = onBack)
+        BasicText("연결 상태", style = t.headlineSmall.copy(color = c.textPrimary))
+        BasicText("서버 · Pleos SDK 연결 확인 (S10)", style = t.bodyMedium.copy(color = c.textSecondary))
 
         Column(
             modifier = Modifier
@@ -69,7 +73,7 @@ private fun ConnectionContent(
             BasicText(label, style = t.bodyLarge.copy(color = tone))
         }
 
-        PillButton("다시 확인", enabled = !state.isChecking) { onAction(ConnectionUiAction.Refresh) }
+        PleosButton("다시 확인", enabled = !state.isChecking) { onAction(ConnectionUiAction.Refresh) }
 
         pleosSection()
     }
@@ -88,24 +92,5 @@ private fun describe(state: ConnectionUiState): Pair<String, Color> {
             DatabaseStatus.UNAVAILABLE -> "서버 응답 · DB 연결 안 됨" to c.negative
             DatabaseStatus.UNKNOWN -> "서버 응답 · DB 상태 알 수 없음" to c.textSecondary
         }
-    }
-}
-
-
-@Composable
-internal fun PillButton(label: String, enabled: Boolean = true, onClick: () -> Unit) {
-    val c = Pleos.colors
-    Box(
-        modifier = Modifier
-            .heightIn(min = PleosShape.minTouch)
-            .background(
-                if (enabled) c.buttonFilledEnabled else c.buttonFilledDisabled,
-                RoundedCornerShape(PleosShape.pill),
-            )
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = PleosSpacing.xxl),
-        contentAlignment = Alignment.Center,
-    ) {
-        BasicText(label, style = Pleos.type.bodyMedium.copy(color = c.onFilled))
     }
 }

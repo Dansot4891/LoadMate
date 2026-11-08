@@ -15,6 +15,8 @@ pleosNaviHelper = "3.0.5"
 # SpeechToText: 콘솔 "준비 중". ON_DEVICE 모드는 앱 등록(Client ID/Secret) 없이 사용 가능(공식 문서). 에뮬레이터 실측: docs/next-steps.md
 pleosSpeechToText = "3.3.1"
 orgJson = "20240303"
+# lifecycle 2.8.7 이 쓰는 coroutines 와 맞춤
+coroutinesTest = "1.7.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -35,6 +37,7 @@ androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit
 androidx-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 pleos-vehicle = { module = "ai.pleos.playground:Vehicle", version.ref = "pleosVehicle" }
 org-json = { module = "org.json:json", version.ref = "orgJson" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutinesTest" }
 pleos-navihelper = { module = "ai.pleos.playground:NaviHelper", version.ref = "pleosNaviHelper" }
 pleos-speechtotext = { module = "ai.pleos.playground:SpeechToText", version.ref = "pleosSpeechToText" }
 

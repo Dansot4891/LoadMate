@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.loadmate.app.core.designsystem.Pleos
+import com.loadmate.app.core.designsystem.PleosButton
 import com.loadmate.app.core.designsystem.PleosShape
 import com.loadmate.app.core.designsystem.PleosSpacing
 import com.loadmate.app.core.pleos.NaviConnection
@@ -58,8 +59,8 @@ private fun PleosStatusContent(state: PleosStatusUiState, onAction: (PleosStatus
         BasicText("내비(NaviHelper) · $naviLabel", style = t.bodyLarge.copy(color = naviTone))
         Row(horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {
             val connected = state.navi.connection == NaviConnection.Connected
-            PillButton("목적지 전달 (샘플)", enabled = connected) { onAction(PleosStatusUiAction.RequestSampleRoute) }
-            PillButton("경로 취소", enabled = connected) { onAction(PleosStatusUiAction.CancelRoute) }
+            PleosButton("목적지 전달 (샘플)", enabled = connected) { onAction(PleosStatusUiAction.RequestSampleRoute) }
+            PleosButton("경로 취소", enabled = connected) { onAction(PleosStatusUiAction.CancelRoute) }
         }
         BasicText(
             "샘플 목적지: ${state.sampleDestination.name} (실제 배송지 아님)",
@@ -80,8 +81,8 @@ private fun PleosStatusContent(state: PleosStatusUiState, onAction: (PleosStatus
         BasicText("음성 인식(SpeechToText ON_DEVICE) · $sttLabel", style = t.bodyLarge.copy(color = sttTone))
         Row(horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {
             val ready = state.speech.connection == SpeechConnection.Ready
-            PillButton("듣기 시작", enabled = ready && !state.speech.listening) { onAction(PleosStatusUiAction.Listen) }
-            PillButton("듣기 중지", enabled = state.speech.listening) { onAction(PleosStatusUiAction.StopListening) }
+            PleosButton("듣기 시작", enabled = ready && !state.speech.listening) { onAction(PleosStatusUiAction.Listen) }
+            PleosButton("듣기 중지", enabled = state.speech.listening) { onAction(PleosStatusUiAction.StopListening) }
         }
         (state.speech.finalText ?: state.speech.partial)?.let {
             BasicText("인식: $it", style = t.bodyMedium.copy(color = c.textPrimary))

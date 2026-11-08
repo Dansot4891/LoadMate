@@ -22,7 +22,11 @@ loadmate/
 - 예상 잔량·완료 판정의 최종 기준은 서버. 앱은 서버 확정값과 임시 표시를 구분한다.
 - 기준 버전: AGP 8.7.3 (Android Studio 2024.2.1 호환), Kotlin 2.0.0, compileSdk 35, targetSdk 34, minSdk 28.
 
-현재 구현: `feature/settings` — 서버 `/health` 확인 + Pleos 연동 상태(내비 목적지 전달·뒷문·음성 인식 실측) 화면 S10. `core/pleos` — NaviHelper · Vehicle Door · SpeechToText.
+현재 구현:
+- `feature/trip` — 대표 시나리오 화면(S01·S05·S03·S04·S06), `TripViewModel` 하나가 단계 전환. 판정은 서버 응답만 사용. 요청 ID는 반영 확정 전까지 재사용.
+- `feature/settings` — S10 서버·Pleos 연결 상태 (운행 화면 상단 "연결 상태").
+- `core/pleos` — NaviHelper(목적지·경유지 2개) · Vehicle Door(REAR) · SpeechToText. 내비 리스너는 운행 범위.
+- `core/designsystem` — 토큰 + `PleosButton`·`PleosCard`·`PleosTag`·`PleosStepper` (PROJECT 컴포넌트).
 
 ## Backend (기획서 22장)
 

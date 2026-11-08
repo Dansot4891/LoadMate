@@ -29,7 +29,7 @@ data class PleosStatusUiState(
 sealed interface PleosStatusUiAction {
     /** 화면 표시 시작: 내비 연결 + 뒷문 구독 */
     data object Start : PleosStatusUiAction
-    /** 화면 이탈: 리스너 해제·release */
+    /** 화면 이탈: 뒷문·음성 리스너 해제 (내비는 운행 범위라 유지) */
     data object Stop : PleosStatusUiAction
     data object RequestSampleRoute : PleosStatusUiAction
     data object CancelRoute : PleosStatusUiAction
@@ -50,7 +50,8 @@ class PleosStatusViewModel(
     fun onAction(action: PleosStatusUiAction) {
         when (action) {
             PleosStatusUiAction.Start -> { navi.connect(); rearDoor.start(); speech.connect() }
-            PleosStatusUiAction.Stop -> { navi.release(); rearDoor.stop(); speech.release() }
+            // 내비는 운행 범위로 유지(원칙 8) → 여기서 해제하지 않는다. connect()는 이미 연결돼 있으면 무시
+            PleosStatusUiAction.Stop -> { rearDoor.stop(); speech.release() }
             PleosStatusUiAction.RequestSampleRoute -> navi.requestRoute(SAMPLE_DESTINATION)
             PleosStatusUiAction.CancelRoute -> navi.cancelRoute()
             PleosStatusUiAction.Listen -> speech.listen()
@@ -59,7 +60,6 @@ class PleosStatusViewModel(
     }
 
     override fun onCleared() {
-        navi.release()
         rearDoor.stop()
         speech.release()
     }

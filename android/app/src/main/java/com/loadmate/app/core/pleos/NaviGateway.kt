@@ -13,15 +13,21 @@ interface NaviGateway {
     fun connect()
 
     /**
-     * 목적지 전달(F16). 반환은 "요청 전송"까지만 의미한다.
+     * 목적지(·경유지) 전달(F16~F18). 반환은 "요청 전송"까지만 의미한다.
      * 실제 경로 시작 여부는 [NaviEvent.RouteStarted] / [NaviEvent.Error] 로 확인한다.
+     * 경유지는 [MAX_WAYPOINTS] 개까지 (NaviHelper WaypointIndex FIRST·SECOND, 에뮬레이터 실측 2026-11-08).
+     * 주의(실측): 기존 안내가 있으면 먼저 취소되고, 탐색 실패 시 기존 안내도 사라진다 → 호출 전 기사 확인.
      */
-    fun requestRoute(destination: NaviDestination)
+    fun requestRoute(destination: NaviDestination, waypoints: List<NaviDestination> = emptyList())
 
     fun cancelRoute()
 
-    /** 리스너 해제 후 서비스 연결 해제. */
+    /** 리스너 해제 후 서비스 연결 해제. 운행 종료 시 호출 (원칙 8: 내비 리스너는 운행 범위). */
     fun release()
+
+    companion object {
+        const val MAX_WAYPOINTS = 2
+    }
 }
 
 data class NaviDestination(

@@ -184,6 +184,8 @@ object PleosShape {
     val small = 8.dp; val medium = 16.dp; val large = 24.dp; val pill = 999.dp
     /** PROJECT: 차량 터치 타깃 최소 높이 (공식 값 미확인) */
     val minTouch = 64.dp
+    /** PROJECT: 테두리 두께 */
+    val hairline = 2.dp
 }
 
 val LocalPleosColors = staticCompositionLocalOf { PleosColors(false) }

@@ -3,7 +3,10 @@ package com.loadmate.app.core.pleos
 import ai.pleos.playground.navi.constants.NaviErrorCode
 import ai.pleos.playground.navi.constants.NavigationStatus
 import ai.pleos.playground.navi.data.DestinationArrivedInfo
+import ai.pleos.playground.navi.constants.WaypointIndex
+import ai.pleos.playground.navi.data.RequestWaypointInfo
 import ai.pleos.playground.navi.data.RouteInfo
+import ai.pleos.playground.navi.data.RouteWithWaypointsRequest
 import ai.pleos.playground.navi.data.RouteStartInfo
 import ai.pleos.playground.navi.helper.NaviHelper
 import ai.pleos.playground.navi.helper.listener.NaviHelperEventListener
@@ -70,20 +73,36 @@ class PleosNaviGateway(
         }
     }
 
-    override fun requestRoute(destination: NaviDestination) {
+    override fun requestRoute(destination: NaviDestination, waypoints: List<NaviDestination>) {
         val h = connectedHelper() ?: return
+        if (waypoints.size > NaviGateway.MAX_WAYPOINTS) {
+            emit(NaviEvent.RequestFailed("경유지는 ${NaviGateway.MAX_WAYPOINTS}개까지 전달할 수 있습니다", clock()))
+            return
+        }
         try {
-            h.requestRoute(
-                RouteInfo(
-                    latitude = destination.latitude,
-                    longitude = destination.longitude,
-                    poiName = destination.name,
-                    poiId = "",
-                    address = destination.address,
-                    poiSubId = "",
-                ),
+            val dest = RouteInfo(
+                latitude = destination.latitude,
+                longitude = destination.longitude,
+                poiName = destination.name,
+                poiId = "",
+                address = destination.address,
+                poiSubId = "",
             )
-            emit(NaviEvent.RouteRequested(destination.name, clock()))
+            if (waypoints.isEmpty()) {
+                h.requestRoute(dest)
+            } else {
+                val idx = listOf(WaypointIndex.FIRST, WaypointIndex.SECOND)
+                h.requestRouteWithWaypoints(
+                    RouteWithWaypointsRequest(
+                        destination = dest,
+                        waypoints = waypoints.mapIndexed { i, w ->
+                            RequestWaypointInfo(w.latitude, w.longitude, w.name, idx[i], "", w.address, "", "")
+                        },
+                    ),
+                )
+            }
+            val names = (waypoints + destination).joinToString(" → ") { it.name }
+            emit(NaviEvent.RouteRequested(names, clock()))
         } catch (t: Throwable) {
             // SecurityException(권한 누락) 등. 조용히 넘기지 않고 이벤트로 남긴다.
             emit(NaviEvent.RequestFailed(t.toString(), clock()))
