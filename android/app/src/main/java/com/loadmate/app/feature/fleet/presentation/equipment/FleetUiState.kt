@@ -36,5 +36,6 @@ data class FleetUiState(
     val note: String = "",
     val busy: Boolean = false,
     val message: String? = null,
+    val messageIsError: Boolean = false,
 )
 

@@ -32,6 +32,7 @@ sealed interface FleetUiAction {
     data class ToDriver(val id: String) : FleetUiAction
     data class Note(val text: String) : FleetUiAction
     data object CreateHandover : FleetUiAction
+    data object DismissMessage : FleetUiAction
     data object AcceptHandover : FleetUiAction
 }
 
