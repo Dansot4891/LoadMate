@@ -1,6 +1,6 @@
 package com.loadmate.app.feature.trip.presentation.sitework
 
-import com.loadmate.app.core.designsystem.localTime
+import com.loadmate.app.shared.format.localTime
 import com.loadmate.app.feature.trip.presentation.shared.*
 import com.loadmate.app.feature.trip.presentation.*
 
@@ -30,14 +30,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.loadmate.app.core.designsystem.Pleos
-import com.loadmate.app.core.designsystem.PleosButton
-import com.loadmate.app.core.designsystem.PleosButtonStyle
-import com.loadmate.app.core.designsystem.PleosCard
-import com.loadmate.app.core.designsystem.PleosShape
-import com.loadmate.app.core.designsystem.PleosSpacing
-import com.loadmate.app.core.designsystem.PleosStepper
-import com.loadmate.app.core.designsystem.PleosTag
+import com.loadmate.app.shared.designsystem.theme.Pleos
+import com.loadmate.app.shared.designsystem.components.PleosButton
+import com.loadmate.app.shared.designsystem.components.PleosButtonStyle
+import com.loadmate.app.shared.designsystem.project.PleosCard
+import com.loadmate.app.shared.designsystem.dimens.PleosShape
+import com.loadmate.app.shared.designsystem.dimens.PleosSpacing
+import com.loadmate.app.shared.designsystem.components.PleosStepper
+import com.loadmate.app.shared.designsystem.project.PleosTag
 import com.loadmate.app.core.pleos.RearDoorConnection
 import com.loadmate.app.feature.trip.domain.Comparison
 import com.loadmate.app.feature.trip.domain.ComparisonState

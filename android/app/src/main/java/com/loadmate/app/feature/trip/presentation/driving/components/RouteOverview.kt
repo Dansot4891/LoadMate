@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import com.loadmate.app.core.designsystem.Pleos
+import com.loadmate.app.shared.designsystem.theme.Pleos
 import com.loadmate.app.feature.trip.domain.Stop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
