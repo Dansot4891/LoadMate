@@ -12,7 +12,7 @@ from app.features.fleet.models import Driver, Equipment
 from app.features.handover.models import Handover
 from app.features.memo.models import Memo
 from app.features.trip.models import TripEvent
-from app.features.trip.service import TripService, request_hash
+from app.features.trip.service import ZONE_NAMES, TripService, request_hash
 
 _ISSUE = {"shift": "적재물 이동 의심", "fall": "넘어짐 의심", "leak": "누액 의심", "other": "기타 이상"}
 _EQUIP = {"missing": "없음", "broken": "고장", "lent": "대여 중", "not_returned": "미반납"}
@@ -56,7 +56,7 @@ class HandoverService:
         if pickups:
             lines.append("반납 예정 회수품: " + ", ".join(f"{p['item_name']} {p['qty']} → {p['return_place']}" for p in pickups))
         if issues:
-            lines.append("미해결 문제: " + ", ".join(f"{_ISSUE.get(i['kind'], i['kind'])}" + (f"({i['zone']})" if i["zone"] else "") for i in issues))
+            lines.append("미해결 문제: " + ", ".join(f"{_ISSUE.get(i['kind'], i['kind'])}" + (f"({ZONE_NAMES.get(i['zone'], i['zone'])})" if i["zone"] else "") for i in issues))
         if equipment:
             lines.append("장비 확인: " + ", ".join(f"{e['name']} {_EQUIP.get(e['status'], e['status'])}" for e in equipment))
         if memos:

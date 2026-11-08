@@ -12,6 +12,8 @@ import com.loadmate.app.feature.trip.domain.ApiResult
 import com.loadmate.app.feature.trip.domain.Comparison
 import com.loadmate.app.feature.trip.domain.CompleteResult
 import com.loadmate.app.feature.trip.domain.Counts
+import com.loadmate.app.feature.trip.domain.HistoryItem
+import com.loadmate.app.feature.trip.domain.NewCargo
 import com.loadmate.app.feature.trip.domain.ObservationSource
 import com.loadmate.app.feature.trip.domain.StopStatus
 import com.loadmate.app.feature.trip.domain.Trip
@@ -23,6 +25,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -46,8 +49,23 @@ class TripViewModelTest {
         var completeResults = ArrayDeque<ApiResult<CompleteResult>>()
         override suspend fun listTrips(): ApiResult<List<TripSummary>> = ApiResult.Success(emptyList())
         override suspend fun getTrip(tripId: String): ApiResult<Trip> = ApiResult.Success(trip)
-        override suspend fun recordObservation(tripId: String, idempotencyKey: String, source: ObservationSource, counts: Counts?, observedAtIso: String): ApiResult<Comparison> =
+        override suspend fun recordObservation(tripId: String, idempotencyKey: String, source: ObservationSource, counts: Counts?, observedAtIso: String, zones: Map<String, Counts>?): ApiResult<Comparison> =
             ApiResult.Success(trip.comparison)
+        val pickupKeys = mutableListOf<String>()
+        override suspend fun addStop(tripId: String, key: String, name: String, address: String, lat: Double, lng: Double, cargo: List<NewCargo>) = ApiResult.Success(trip)
+        override suspend fun reorderStops(tripId: String, key: String, stopIds: List<String>) = ApiResult.Success(trip)
+        override suspend fun cancelStop(tripId: String, stopId: String, key: String, reason: String) = ApiResult.Success(trip)
+        override suspend fun changeCargoQty(tripId: String, stopId: String, key: String, cargoLineId: Int, plannedQty: Int) = ApiResult.Success(trip)
+        override suspend fun endTrip(tripId: String, key: String, reason: String?) = ApiResult.Success(trip)
+        var pickupResult: ApiResult<Trip>? = null
+        override suspend fun addPickup(tripId: String, key: String, stopId: String?, itemName: String, kind: String, qty: Int, returnPlace: String, source: String): ApiResult<Trip> {
+            pickupKeys += key
+            return pickupResult ?: ApiResult.Success(trip)
+        }
+        override suspend fun returnPickup(tripId: String, pickupId: Int, key: String) = ApiResult.Success(trip)
+        override suspend fun recordIssue(tripId: String, key: String, kind: String, zone: String?, note: String, source: ObservationSource, observedAtIso: String) = ApiResult.Success(trip)
+        override suspend fun resolveIssue(tripId: String, issueId: Int, key: String, resolution: String, note: String?) = ApiResult.Success(trip)
+        override suspend fun history(tripId: String): ApiResult<List<HistoryItem>> = ApiResult.Success(emptyList())
         override suspend fun confirmBaseline(tripId: String, idempotencyKey: String, counts: Counts, observationId: Int?): ApiResult<Trip> = ApiResult.Success(trip)
         override suspend fun completeStop(tripId: String, stopId: String, idempotencyKey: String, delivered: Counts, driverConfirmed: Boolean): ApiResult<CompleteResult> {
             completeCalls += Triple(idempotencyKey, delivered, driverConfirmed)
@@ -76,8 +94,11 @@ class TripViewModelTest {
     @Before fun setUp() { Dispatchers.setMain(UnconfinedTestDispatcher()) }
     @After fun tearDown() { Dispatchers.resetMain() }
 
-    private fun vm(repo: FakeRepo, navi: FakeNavi = FakeNavi()) =
-        TripViewModel(repo, navi, FakeDoor(), "sample-trip-1", now = { Instant.parse("2026-11-08T07:00:00Z") }, newKey = { "key-${++keyN}" })
+    private fun vm(repo: FakeRepo, navi: FakeNavi = FakeNavi(), cached: Pair<Trip, Instant>? = null) =
+        TripViewModel(
+            repo, memos = null, navi = navi, rearDoor = FakeDoor(), speech = null, notify = { _, _, _ -> }, cached = { cached },
+            externalChanges = emptyFlow(), tripId = "sample-trip-1", now = { Instant.parse("2026-11-08T07:00:00Z") }, newKey = { "key-${++keyN}" },
+        )
 
     private fun completed(): ApiResult<CompleteResult> {
         val stop = needsConfirmation.stop.copy(status = StopStatus.COMPLETED, resolution = "matched")
@@ -142,5 +163,32 @@ class TripViewModelTest {
         val navi = FakeNavi()
         vm(FakeRepo(tripInProgress.copy(status = com.loadmate.app.feature.trip.domain.TripStatus.COMPLETED)), navi)
         assertTrue(navi.releases >= 1)
+    }
+
+    @Test
+    fun `회수 기록 실패 후 같은 내용 재시도는 같은 요청 ID`() {
+        val repo = FakeRepo(tripInProgress)
+        repo.pickupResult = ApiResult.Failure(ApiError.Network("timeout"))
+        val v = vm(repo)
+        v.onAction(TripUiAction.OpenPickup(PickupDraft("빈 용기", "container", 2, "창고")))
+        v.onAction(TripUiAction.SubmitPickup)
+        repo.pickupResult = null
+        v.onAction(TripUiAction.OpenPickup(PickupDraft("빈 용기", "container", 2, "창고")))
+        v.onAction(TripUiAction.SubmitPickup)
+        assertEquals(2, repo.pickupKeys.size)
+        assertEquals(repo.pickupKeys[0], repo.pickupKeys[1])
+    }
+
+    @Test
+    fun `서버 연결 실패 시 이번 실행에서 받은 운행을 오프라인 표시와 함께 유지`() {
+        val repo = object : TripRepository by FakeRepo(tripInProgress) {
+            override suspend fun getTrip(tripId: String): ApiResult<Trip> = ApiResult.Failure(ApiError.Network("ConnectException"))
+        }
+        val at = Instant.parse("2026-11-08T06:59:00Z")
+        val v = TripViewModel(repo, null, FakeNavi(), FakeDoor(), null, { _, _, _ -> }, { tripInProgress to at }, emptyFlow(), "sample-trip-1")
+        val job = CoroutineScope(UnconfinedTestDispatcher()).launch { v.state.collect {} }
+        assertEquals(at, v.state.value.offlineSince)
+        assertEquals("sample-trip-1", v.state.value.trip?.id)
+        job.cancel()
     }
 }

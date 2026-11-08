@@ -112,6 +112,8 @@ def test_issue_record_and_resolve(client):
     assert t["issues"][0]["status"] == "open" and t["issues"][0]["source"] == "sample"
     t = post(client, f"/issues/{iid}/resolve", {"resolution": "rearranged", "note": "다시 고정"}).json()["trip"]
     assert t["issues"][0]["status"] == "resolved" and t["issues"][0]["resolved_by"] == "driver-1"
+    summaries = [i["summary"] for i in client.get(f"{T}/history").json()["items"]]
+    assert "넘어짐 의심" in summaries[-2] and "재배치함" in summaries[-1]
 
 
 def test_history_has_source_actor_and_summary(client):

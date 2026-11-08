@@ -40,29 +40,32 @@ import com.loadmate.app.feature.trip.domain.StopStatus
 import com.loadmate.app.feature.trip.domain.Trip
 
 @Composable
-fun TripScreen(vm: TripViewModel, onOpenSettings: () -> Unit) {
+fun TripScreen(vm: TripViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
-    TripContent(state, vm::onAction, onOpenSettings)
+    TripContent(state, vm::onAction)
 }
 
 @Composable
-private fun TripContent(s: TripUiState, on: (TripUiAction) -> Unit, onOpenSettings: () -> Unit) {
+private fun TripContent(s: TripUiState, on: (TripUiAction) -> Unit) {
     val c = Pleos.colors
     val t = Pleos.type
     Box(Modifier.fillMaxSize().background(c.backgroundPrimary)) {
         Column(Modifier.fillMaxSize().padding(PleosSpacing.xl), verticalArrangement = Arrangement.spacedBy(PleosSpacing.l)) {
             // 상단: 앱 이름 · 운행 · 출처
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(PleosSpacing.l)) {
-                BasicText("Loadmate", style = t.titleMedium.copy(color = c.textPrimary))
                 s.trip?.let {
                     BasicText(it.name, style = t.bodyLarge.copy(color = c.textSecondary))
                     if (it.dataSource == "sample") PleosTag("샘플 데이터")
                 }
                 Box(Modifier.weight(1f))
                 PleosButton("새로고침", style = PleosButtonStyle.Basic, enabled = !s.loading) { on(TripUiAction.Refresh) }
-                PleosButton("연결 상태", style = PleosButtonStyle.Basic, onClick = onOpenSettings)
             }
             s.message?.let { MessageBar(it) { on(TripUiAction.DismissMessage) } }
+            s.offlineSince?.let {
+                MessageBar(UiMessage("오프라인 · ${localTime(it.toString())} 에 받은 정보를 표시 중입니다. 변경 요청은 연결 후 다시 보내세요", true)) {
+                    on(TripUiAction.Refresh)
+                }
+            }
 
             val trip = s.trip
             when {
@@ -84,13 +87,15 @@ private fun TripContent(s: TripUiState, on: (TripUiAction) -> Unit, onOpenSettin
                             TripStep.DRIVING -> DrivingPanel(s, trip, on)
                             TripStep.SITE_WORK -> SiteWorkPanel(s, trip, on)
                             TripStep.MISMATCH -> MismatchPanel(s, trip, on)
-                            TripStep.DONE -> DonePanel(trip)
+                            TripStep.DONE -> { DonePanel(trip); PickupsCard(trip, on) }
                         }
                     }
                 }
             }
         }
         s.routeDialog?.let { RouteDialog(it, on) }
+        s.pickupDraft?.let { PickupDialog(it, s.trip?.currentStop, s.busy, on) }
+        if (s.endDialog) s.trip?.let { EndTripDialog(it, on) }
     }
 }
 
@@ -142,6 +147,7 @@ private fun StopRow(st: Stop, trip: Trip, isCurrent: Boolean) {
                 StopStatus.PENDING -> (if (isCurrent) "현재" else "예정") to c.textSecondary
                 StopStatus.COMPLETED -> "완료" to c.positive
                 StopStatus.PARTIAL -> "부분 납품" to c.regulationOrange
+                StopStatus.CANCELLED -> "취소" to c.textTertiary
                 StopStatus.UNKNOWN -> "?" to c.textSecondary
             }
             BasicText(label, style = t.bodyMedium.copy(color = tone))
@@ -153,6 +159,7 @@ private fun StopRow(st: Stop, trip: Trip, isCurrent: Boolean) {
             else -> ""
         }
         BasicText("하차 $cargo$how", style = t.labelMedium.copy(color = c.textSecondary))
+        st.cancelReason?.let { BasicText("취소 사유: $it", style = t.labelMedium.copy(color = c.textTertiary)) }
     }
 }
 
@@ -231,6 +238,7 @@ private fun OverviewPanel(trip: Trip, on: (TripUiAction) -> Unit) {
         BasicText("출발 전에 적재 공간을 확인하고 최초 기준을 확정합니다.", style = t.bodyMedium.copy(color = c.textSecondary))
         PleosButton("적재 확인 시작") { on(TripUiAction.OpenLoadCheck) }
     }
+    StopManageCard(trip, on, allowQty = true)
 }
 
 // ---------------------------------------------------------------- S05
@@ -245,7 +253,10 @@ private fun LoadCheckPanel(s: TripUiState, trip: Trip, on: (TripUiAction) -> Uni
         BasicText("관측을 기록하고 수량이 맞으면 기준으로 확정합니다. 다르면 아래 수량을 고쳐 확정할 수 있습니다.", style = t.bodyMedium.copy(color = c.textSecondary))
     }
     ObservationInput(s, trip, on)
-    (s.lastComparison ?: trip.comparison).let { ComparisonView(it, trip, "검수 목록 대비") }
+    (s.lastComparison ?: trip.comparison).let {
+        ComparisonView(it, trip, "검수 목록 대비")
+        ZoneView(trip, it)
+    }
     Row(horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {
         PleosButton("이 수량으로 기준 확정 (${countsText(s.observationDraft, trip)})", enabled = !s.busy) { on(TripUiAction.ConfirmBaseline) }
         PleosButton("뒤로", style = PleosButtonStyle.Basic) { on(TripUiAction.BackToOverview) }
@@ -258,7 +269,16 @@ private fun LoadCheckPanel(s: TripUiState, trip: Trip, on: (TripUiAction) -> Uni
 private fun DrivingPanel(s: TripUiState, trip: Trip, on: (TripUiAction) -> Unit) {
     val c = Pleos.colors
     val t = Pleos.type
-    val stop = trip.currentStop ?: return
+    val stop = trip.currentStop ?: run {
+        PleosCard {
+            BasicText("방문지 처리 완료", style = t.titleMedium.copy(color = c.textPrimary))
+            BasicText("반납할 회수품이 남아 있습니다. 반납 후 운행을 종료하세요.", style = t.bodyMedium.copy(color = c.textSecondary))
+        }
+        PickupsCard(trip, on)
+        IssuesCard(trip, on, showSampleButtons = false)
+        PleosButton("운행 종료", style = PleosButtonStyle.Basic) { on(TripUiAction.AskEndTrip) }
+        return
+    }
     PleosCard {
         BasicText("다음 방문지", style = t.labelMedium.copy(color = c.textTertiary))
         BasicText("${stop.label} · ${stop.name}", style = t.titleMedium.copy(color = c.textPrimary))
@@ -295,6 +315,10 @@ private fun DrivingPanel(s: TripUiState, trip: Trip, on: (TripUiAction) -> Unit)
         BasicText("도착 신호를 차량에서 받을 수 없어 기사 확인으로 현장 작업을 시작합니다.", style = t.labelMedium.copy(color = c.textTertiary))
         PleosButton("${stop.label} 도착 · 현장 작업 시작") { on(TripUiAction.Arrived) }
     }
+    PickupsCard(trip, on)
+    IssuesCard(trip, on, showSampleButtons = true)
+    StopManageCard(trip, on, allowQty = false)
+    PleosButton("운행 종료", style = PleosButtonStyle.Basic) { on(TripUiAction.AskEndTrip) }
 }
 
 @Composable
@@ -327,12 +351,20 @@ private fun SiteWorkPanel(s: TripUiState, trip: Trip, on: (TripUiAction) -> Unit
         on(TripUiAction.SiteVisible)
         onStopOrDispose { on(TripUiAction.SiteHidden) }
     }
+    if (s.stopMemos.isNotEmpty()) PleosCard {
+        BasicText("이 장소 메모 (${s.stopMemos.size})", style = t.titleSmall.copy(color = c.textPrimary))
+        s.stopMemos.take(3).forEach { m ->
+            BasicText("${if (m.shared) "공유" else "개인"} · ${m.body}", style = t.bodyMedium.copy(color = c.textPrimary))
+        }
+    }
     PleosCard {
         BasicText("현장 작업 · ${stop.label} ${stop.name}", style = t.titleMedium.copy(color = c.textPrimary))
         BasicText("하차 예정 ${countsText(stop.plannedCounts, trip)}", style = t.bodyLarge.copy(color = c.textPrimary))
         trip.kindNames.filterKeys { it in stop.plannedCounts }.forEach { (kind, name) ->
             PleosStepper("$name 하차", s.deliveredDraft[kind] ?: 0, { on(TripUiAction.DeliveredCount(kind, it)) }, max = stop.plannedCounts[kind] ?: 0)
         }
+        BasicText("적재 위치: ${stop.cargo.joinToString(" · ") { "${it.itemName} ${zoneName(it.zone)}" }}", style = t.labelMedium.copy(color = c.textSecondary))
+        PleosButton("회수·추가 상차 기록", style = PleosButtonStyle.Basic) { on(TripUiAction.OpenPickup()) }
     }
     PleosCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {
@@ -367,6 +399,9 @@ private fun SiteWorkPanel(s: TripUiState, trip: Trip, on: (TripUiAction) -> Unit
         )
         BasicText("완료 요청 시 서버가 하차 반영 후 예상 잔량과 비교합니다.", style = t.labelMedium.copy(color = c.textTertiary))
     }
+    ZoneView(trip, s.lastComparison)
+    PickupsCard(trip, on)
+    IssuesCard(trip, on, showSampleButtons = false)
     Row(horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {
         PleosButton("하차 완료 요청 (${countsText(s.deliveredDraft, trip)})", enabled = !s.busy) { on(TripUiAction.RequestComplete) }
         PleosButton("운행 화면으로", style = PleosButtonStyle.Basic) { on(TripUiAction.BackToDriving) }
@@ -391,8 +426,15 @@ private fun MismatchPanel(s: TripUiState, trip: Trip, on: (TripUiAction) -> Unit
         }
     }
     ComparisonView(cmp, trip, "하차 반영 후 예상 잔량 대비")
+    ZoneView(trip, cmp, highlightStop = stop)
     Column(verticalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {
         PleosButton("남은 물품을 찾아 내림 · 다시 관측", enabled = !s.busy) { on(TripUiAction.RecheckAfterUnload) }
+        val extra = cmp.differences.firstOrNull { it.observed > it.expected }
+        if (extra != null) {
+            PleosButton("더 보이는 것은 회수품이에요 · 회수 기록", style = PleosButtonStyle.Basic, enabled = !s.busy) {
+                on(TripUiAction.OpenPickup(PickupDraft(itemName = "반품 박스", kind = extra.kind, qty = extra.observed - extra.expected)))
+            }
+        }
         PleosButton(
             if (cmp.state == ComparisonState.MISMATCH) "이미 다 내렸음 · 기사 확인으로 완료" else "직접 확인함 · 기사 확인으로 완료",
             style = PleosButtonStyle.Basic, enabled = !s.busy,
@@ -409,8 +451,13 @@ private fun DonePanel(trip: Trip) {
     val c = Pleos.colors
     val t = Pleos.type
     PleosCard {
-        BasicText("운행 완료", style = t.titleMedium.copy(color = c.positive))
-        BasicText("모든 방문지 처리 · 예상 잔량 ${countsText(trip.expectedRemaining, trip)}", style = t.bodyLarge.copy(color = c.textPrimary))
+        if (trip.status == com.loadmate.app.feature.trip.domain.TripStatus.ENDED_INCOMPLETE) {
+            BasicText("운행 종료 (미완료)", style = t.titleMedium.copy(color = c.regulationOrange))
+            BasicText("사유: ${trip.endReason ?: "-"} · 남은 방문지 ${trip.pendingStops.joinToString(",") { it.label }.ifBlank { "없음" }}", style = t.bodyLarge.copy(color = c.textPrimary))
+        } else {
+            BasicText("운행 완료", style = t.titleMedium.copy(color = c.positive))
+        }
+        BasicText("예상 잔량 ${countsText(trip.expectedRemaining, trip)}", style = t.bodyLarge.copy(color = c.textPrimary))
         BasicText("내비 연결을 해제했습니다.", style = t.labelMedium.copy(color = c.textTertiary))
     }
 }

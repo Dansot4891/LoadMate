@@ -51,7 +51,7 @@ class PleosStatusViewModel(
         when (action) {
             PleosStatusUiAction.Start -> { navi.connect(); rearDoor.start(); speech.connect() }
             // 내비는 운행 범위로 유지(원칙 8) → 여기서 해제하지 않는다. connect()는 이미 연결돼 있으면 무시
-            PleosStatusUiAction.Stop -> { rearDoor.stop(); speech.release() }
+            PleosStatusUiAction.Stop -> rearDoor.stop() // 음성 연결은 음성 대화와 공유 → 해제하지 않음
             PleosStatusUiAction.RequestSampleRoute -> navi.requestRoute(SAMPLE_DESTINATION)
             PleosStatusUiAction.CancelRoute -> navi.cancelRoute()
             PleosStatusUiAction.Listen -> speech.listen()
@@ -61,7 +61,6 @@ class PleosStatusViewModel(
 
     override fun onCleared() {
         rearDoor.stop()
-        speech.release()
     }
 
     companion object {

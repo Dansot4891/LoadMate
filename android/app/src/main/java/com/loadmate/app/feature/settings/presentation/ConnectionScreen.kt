@@ -30,7 +30,7 @@ import com.loadmate.app.feature.settings.domain.DatabaseStatus
 import com.loadmate.app.feature.settings.domain.ServerStatus
 
 @Composable
-fun ConnectionScreen(vm: ConnectionViewModel, onBack: () -> Unit, pleosSection: @Composable () -> Unit) {
+fun ConnectionScreen(vm: ConnectionViewModel, onBack: (() -> Unit)?, pleosSection: @Composable () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     ConnectionContent(state, vm::onAction, onBack, pleosSection)
 }
@@ -39,7 +39,7 @@ fun ConnectionScreen(vm: ConnectionViewModel, onBack: () -> Unit, pleosSection: 
 private fun ConnectionContent(
     state: ConnectionUiState,
     onAction: (ConnectionUiAction) -> Unit,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     pleosSection: @Composable () -> Unit,
 ) {
     val c = Pleos.colors
@@ -52,7 +52,7 @@ private fun ConnectionContent(
             .padding(PleosSpacing.xxl),
         verticalArrangement = Arrangement.spacedBy(PleosSpacing.xl),
     ) {
-        PleosButton("← 운행 화면", style = PleosButtonStyle.Basic, onClick = onBack)
+        onBack?.let { PleosButton("← 운행 화면", style = PleosButtonStyle.Basic, onClick = it) }
         BasicText("연결 상태", style = t.headlineSmall.copy(color = c.textPrimary))
         BasicText("서버 · Pleos SDK 연결 확인 (S10)", style = t.bodyMedium.copy(color = c.textSecondary))
 

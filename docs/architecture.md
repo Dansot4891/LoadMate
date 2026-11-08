@@ -23,7 +23,9 @@ loadmate/
 - 기준 버전: AGP 8.7.3 (Android Studio 2024.2.1 호환), Kotlin 2.0.0, compileSdk 35, targetSdk 34, minSdk 28.
 
 현재 구현:
-- `feature/trip` — 대표 시나리오 화면(S01·S05·S03·S04·S06), `TripViewModel` 하나가 단계 전환. 판정은 서버 응답만 사용. 요청 ID는 반영 확정 전까지 재사용.
+- `feature/trip` — 운행 탭: S01·S05·S03·S04·S06 + 방문지 관리·회수·이상·적재 배치도·운행 종료. 판정은 서버 응답만 사용. 요청 ID는 반영 확정 전까지 재사용.
+- `feature/records` — 기록·메모 탭(S07 이력, S08 메모). `feature/fleet` — 장비·인계 탭(S09, 기사 선택). `feature/assistant` — 음성 패널.
+- `core/network/ApiClient`(X-Driver-Id 헤더·오류 형식), `core/session/DriverStore`, `core/notify/DriverNotifier`(헤드업), `core/pleos/SpeechOutput`(TTS).
 - `feature/settings` — S10 서버·Pleos 연결 상태 (운행 화면 상단 "연결 상태").
 - `core/pleos` — NaviHelper(목적지·경유지 2개) · Vehicle Door(REAR) · SpeechToText. 내비 리스너는 운행 범위.
 - `core/designsystem` — 토큰 + `PleosButton`·`PleosCard`·`PleosTag`·`PleosStepper` (PROJECT 컴포넌트).
@@ -34,7 +36,7 @@ loadmate/
 - Router: HTTP·검증만. Service: 업무 규칙·트랜잭션. Repository: SQLAlchemy. 스키마 변경은 Alembic.
 - 외부 배송 시스템·대화 AI·영상 결과는 `app/integrations/`(예정) 어댑터로 분리.
 
-현재 구현: `features/health`, `features/trip` (운행·방문지·물품·관측·확정 이벤트, 예상 잔량·비교 규칙 `rules.py`, 샘플 시드 `seed.py`). 업무 오류는 `core/errors.py` 의 `AppError` → `{"detail": {"code", "message"}}`.
+현재 구현: `features/health`, `features/trip`, `features/fleet`, `features/memo`, `features/handover`, `features/assistant` + `integrations/assistant/rule_based.py`. 처음 구현: (운행·방문지·물품·관측·확정 이벤트, 예상 잔량·비교 규칙 `rules.py`, 샘플 시드 `seed.py`). 업무 오류는 `core/errors.py` 의 `AppError` → `{"detail": {"code", "message"}}`.
 
 샘플 운행 초기화(시연 반복): `docker compose exec backend python -m app.features.trip.seed --reset`
 테스트(로컬 venv 없이): `docker run --rm -v "$PWD/backend:/srv" -w /srv loadmate-backend sh -c "pip install -q -r requirements-dev.txt && pytest -q"`

@@ -55,4 +55,18 @@ class TripRulesTest {
         assertEquals(RouteRequestStatus.None, routeRequestStatus(emptyList()))
         assertEquals(RouteRequestStatus.Failed("내비 서비스 미연결"), routeRequestStatus(listOf(NaviEvent.RequestFailed("내비 서비스 미연결", 1))))
     }
+
+    @Test
+    fun `샘플 구역 배치 - A 에서 1개 덜 내리면 차이가 A 구역(뒷문 쪽)에 남는다`() {
+        val stops = listOf(
+            Stop("a", 1, "A", "A", "", 0.0, 0.0, StopStatus.PENDING, null, listOf(com.loadmate.app.feature.trip.domain.CargoLine(1, "박스", "box", 3, 0, "rear"))),
+            Stop("b", 2, "B", "B", "", 0.0, 0.0, StopStatus.PENDING, null, listOf(com.loadmate.app.feature.trip.domain.CargoLine(2, "박스", "box", 3, 0, "middle"))),
+            Stop("c", 3, "C", "C", "", 0.0, 0.0, StopStatus.PENDING, null, listOf(com.loadmate.app.feature.trip.domain.CargoLine(3, "박스", "box", 4, 0, "front"))),
+        )
+        val cmp = com.loadmate.app.feature.trip.domain.Comparison(com.loadmate.app.feature.trip.domain.ComparisonState.MATCH, null, null, emptyList(), null, true, 300)
+        val trip = com.loadmate.app.feature.trip.domain.Trip("t", "t", "sample", com.loadmate.app.feature.trip.domain.TripStatus.IN_PROGRESS, null, stops, mapOf("box" to 10), cmp)
+        assertEquals(mapOf("rear" to mapOf("box" to 3), "middle" to mapOf("box" to 3), "front" to mapOf("box" to 4)), plannedZones(trip))
+        val z = sampleZones(trip, mapOf("box" to 8), "a", mapOf("box" to 3))
+        assertEquals(mapOf("rear" to mapOf("box" to 1), "middle" to mapOf("box" to 3), "front" to mapOf("box" to 4)), z)
+    }
 }

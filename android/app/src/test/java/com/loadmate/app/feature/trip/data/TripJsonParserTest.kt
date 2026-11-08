@@ -1,5 +1,6 @@
 package com.loadmate.app.feature.trip.data
 
+import com.loadmate.app.core.network.ApiClient
 import com.loadmate.app.feature.trip.domain.ComparisonState
 import com.loadmate.app.feature.trip.domain.ObservationSource
 import com.loadmate.app.feature.trip.domain.StopStatus
@@ -44,8 +45,8 @@ class TripJsonParserTest {
     @Test
     fun `오류 응답 코드 추출`() {
         assertEquals("stop_already_completed" to "이미 완료된 방문지입니다",
-            TripJsonParser.error("""{"detail":{"code":"stop_already_completed","message":"이미 완료된 방문지입니다"}}"""))
-        assertEquals(null to null, TripJsonParser.error("""{"detail":[{"msg":"bad"}]}"""))
-        assertEquals(null to null, TripJsonParser.error("<html>"))
+            ApiClient.errorOf("""{"detail":{"code":"stop_already_completed","message":"이미 완료된 방문지입니다"}}"""))
+        assertEquals(null to "입력값을 확인하세요", ApiClient.errorOf("""{"detail":[{"msg":"bad"}]}"""))
+        assertEquals(null to null, ApiClient.errorOf("<html>"))
     }
 }

@@ -17,7 +17,16 @@ data class Trip(
     /** 기준 확정 전에는 null */
     val expectedRemaining: Counts?,
     val comparison: Comparison,
+    val driverId: String? = null,
+    val vehicleId: String? = null,
+    val endReason: String? = null,
+    val pickups: List<Pickup> = emptyList(),
+    val issues: List<Issue> = emptyList(),
 ) {
+    val loadedPickups: List<Pickup> get() = pickups.filter { it.loaded }
+    val openIssues: List<Issue> get() = issues.filter { it.open }
+    val isEnded: Boolean get() = status == TripStatus.COMPLETED || status == TripStatus.ENDED_INCOMPLETE
+
     val currentStop: Stop? get() = stops.firstOrNull { it.status == StopStatus.PENDING }
     val pendingStops: List<Stop> get() = stops.filter { it.status == StopStatus.PENDING }
 
@@ -27,10 +36,11 @@ data class Trip(
 
     /** kind → 화면 이름 (예: box → 박스) */
     val kindNames: Map<String, String>
-        get() = stops.flatMap { it.cargo }.associate { it.kind to it.itemName }
+        // 같은 종류면 배송품 이름을 우선한다 (회수품 "반품 박스" 가 배송품 "박스" 를 덮지 않게)
+        get() = pickups.associate { it.kind to it.itemName } + stops.flatMap { it.cargo }.associate { it.kind to it.itemName }
 }
 
-enum class TripStatus { PLANNED, IN_PROGRESS, COMPLETED, UNKNOWN }
+enum class TripStatus { PLANNED, IN_PROGRESS, COMPLETED, ENDED_INCOMPLETE, UNKNOWN }
 
 data class Baseline(val counts: Counts, val confirmedAt: String, val observationId: Int?)
 
@@ -46,13 +56,27 @@ data class Stop(
     /** matched = 관측과 일치해 완료, driver_confirmed = 기사 확인으로 완료 */
     val resolution: String?,
     val cargo: List<CargoLine>,
+    val placeKey: String = "",
+    val cancelReason: String? = null,
 ) {
     val plannedCounts: Counts get() = cargo.groupingBy { it.kind }.fold(0) { acc, l -> acc + l.plannedQty }
 }
 
-enum class StopStatus { PENDING, COMPLETED, PARTIAL, UNKNOWN }
+enum class StopStatus { PENDING, COMPLETED, PARTIAL, CANCELLED, UNKNOWN }
 
-data class CargoLine(val id: Int, val itemName: String, val kind: String, val plannedQty: Int, val deliveredQty: Int)
+/** zone: 적재 구역 rear(뒷문 쪽)·middle·front. 불확실하면 null (F13) */
+data class CargoLine(val id: Int, val itemName: String, val kind: String, val plannedQty: Int, val deliveredQty: Int, val zone: String? = null)
+
+/** 회수품·추가 상차 (F44~F46) */
+data class Pickup(val id: Int, val stopId: String?, val itemName: String, val kind: String, val qty: Int, val returnPlace: String, val loaded: Boolean)
+
+/** 적재 이상 의심 (F30·F31·F34). 의심일 뿐 파손·책임을 확정하지 않는다 */
+data class Issue(val id: Int, val kind: String, val zone: String?, val note: String, val source: ObservationSource, val observedAt: String, val open: Boolean, val resolution: String?)
+
+/** 수정 이력 (F64) */
+data class HistoryItem(val type: String, val source: String, val actorId: String?, val createdAt: String, val summary: String)
+
+data class NewCargo(val itemName: String, val kind: String, val qty: Int)
 
 data class Comparison(
     val state: ComparisonState,
@@ -75,6 +99,8 @@ data class ObservationInfo(
     val available: Boolean,
     val counts: Counts?,
     val observedAt: String,
+    /** 구역별 수량 (F12). 예: rear → {box: 3} */
+    val zones: Map<String, Counts>? = null,
 )
 
 /** 관측 출처. 화면에 그대로 표시한다 (원칙 5). 카메라 API가 없어 지금은 SAMPLE·MANUAL 만 앱에서 보낸다. */
@@ -117,6 +143,7 @@ interface TripRepository {
         /** null 이면 확인 불가(카메라 가림 등) */
         counts: Counts?,
         observedAtIso: String,
+        zones: Map<String, Counts>? = null,
     ): ApiResult<Comparison>
     suspend fun confirmBaseline(tripId: String, idempotencyKey: String, counts: Counts, observationId: Int?): ApiResult<Trip>
     suspend fun completeStop(
@@ -126,4 +153,16 @@ interface TripRepository {
         delivered: Counts,
         driverConfirmed: Boolean,
     ): ApiResult<CompleteResult>
+
+    // 운행 관리·회수·이상 (응답은 갱신된 운행). source: "screen" | "voice"
+    suspend fun addStop(tripId: String, key: String, name: String, address: String, lat: Double, lng: Double, cargo: List<NewCargo>): ApiResult<Trip>
+    suspend fun reorderStops(tripId: String, key: String, stopIds: List<String>): ApiResult<Trip>
+    suspend fun cancelStop(tripId: String, stopId: String, key: String, reason: String): ApiResult<Trip>
+    suspend fun changeCargoQty(tripId: String, stopId: String, key: String, cargoLineId: Int, plannedQty: Int): ApiResult<Trip>
+    suspend fun endTrip(tripId: String, key: String, reason: String?): ApiResult<Trip>
+    suspend fun addPickup(tripId: String, key: String, stopId: String?, itemName: String, kind: String, qty: Int, returnPlace: String, source: String): ApiResult<Trip>
+    suspend fun returnPickup(tripId: String, pickupId: Int, key: String): ApiResult<Trip>
+    suspend fun recordIssue(tripId: String, key: String, kind: String, zone: String?, note: String, source: ObservationSource, observedAtIso: String): ApiResult<Trip>
+    suspend fun resolveIssue(tripId: String, issueId: Int, key: String, resolution: String, note: String?): ApiResult<Trip>
+    suspend fun history(tripId: String): ApiResult<List<HistoryItem>>
 }

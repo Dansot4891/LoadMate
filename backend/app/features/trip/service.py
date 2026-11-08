@@ -489,6 +489,11 @@ def stop_planned(stop: Stop) -> dict[str, int]:
     return out
 
 
+ZONE_NAMES = {"rear": "뒷문 쪽", "middle": "가운데", "front": "앞쪽"}
+_ISSUE_KIND = {"shift": "이동 의심", "fall": "넘어짐 의심", "leak": "누액 의심", "other": "기타 이상"}
+_RESOLUTION = {"matched": "관측 일치", "driver_confirmed": "기사 확인", "no_issue": "이상 없음", "rearranged": "재배치함",
+               "needs_action": "처리 필요"}
+
 _EVENT_LABEL = {
     "baseline_confirmed": "최초 적재 기준 확정", "stop_completed": "하차 완료", "stop_added": "방문지 추가",
     "stops_reordered": "방문 순서 변경", "stop_cancelled": "방문지 취소", "cargo_qty_changed": "물품 수량 변경",
@@ -503,8 +508,10 @@ def summarize_event(e: TripEvent, stop_labels: dict[str, str]) -> str:
         parts.append(stop_labels[e.stop_id])
     if e.delta:
         parts.append(" ".join(f"{k} {'+' if v > 0 else ''}{v}" for k, v in e.delta.items()))
+    if e.detail.get("kind"):
+        parts.append(_ISSUE_KIND.get(e.detail["kind"], e.detail["kind"]))
     if e.detail.get("resolution"):
-        parts.append({"matched": "관측 일치", "driver_confirmed": "기사 확인"}.get(e.detail["resolution"], e.detail["resolution"]))
+        parts.append(_RESOLUTION.get(e.detail["resolution"], e.detail["resolution"]))
     if e.detail.get("reason"):
         parts.append(f"사유: {e.detail['reason']}")
     return " · ".join(parts)

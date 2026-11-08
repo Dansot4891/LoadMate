@@ -14,6 +14,10 @@
     <uses-permission android:name="pleos.car.permission.CAR_DOORS" />
     <!-- SpeechToText ON_DEVICE initialize · request (core/pleos/PleosSpeechGateway) -->
     <uses-permission android:name="pleos.car.permission.STT_SERVICE" />
+    <!-- TextToSpeech ON_DEVICE speak (core/pleos/PleosSpeechOutput) -->
+    <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
+    <!-- 내비 위 헤드업 알림 (core/notify/DriverNotifier). Android 13+ 런타임 권한 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".LoadmateApplication"
@@ -30,6 +34,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.Loadmate">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

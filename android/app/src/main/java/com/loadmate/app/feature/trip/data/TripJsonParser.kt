@@ -7,6 +7,9 @@ import com.loadmate.app.feature.trip.domain.ComparisonState
 import com.loadmate.app.feature.trip.domain.CompleteResult
 import com.loadmate.app.feature.trip.domain.Counts
 import com.loadmate.app.feature.trip.domain.Difference
+import com.loadmate.app.feature.trip.domain.HistoryItem
+import com.loadmate.app.feature.trip.domain.Issue
+import com.loadmate.app.feature.trip.domain.Pickup
 import com.loadmate.app.feature.trip.domain.ObservationInfo
 import com.loadmate.app.feature.trip.domain.ObservationSource
 import com.loadmate.app.feature.trip.domain.Stop
@@ -38,7 +41,26 @@ internal object TripJsonParser {
         stops = o.getJSONArray("stops").objects().map(::stop),
         expectedRemaining = o.optJSONObject("expected_remaining")?.let(::counts),
         comparison = comparison(o.getJSONObject("comparison")),
+        driverId = o.optStringOrNull("driver_id"),
+        vehicleId = o.optStringOrNull("vehicle_id"),
+        endReason = o.optStringOrNull("end_reason"),
+        pickups = o.optJSONArray("pickups")?.objects().orEmpty().map {
+            Pickup(it.getInt("id"), it.optStringOrNull("stop_id"), it.getString("item_name"), it.getString("kind"), it.getInt("qty"),
+                it.getString("return_place"), it.getString("status") == "loaded")
+        },
+        issues = o.optJSONArray("issues")?.objects().orEmpty().map {
+            Issue(it.getInt("id"), it.getString("kind"), it.optStringOrNull("zone"), it.optString("note"), source(it.getString("source")),
+                it.getString("observed_at"), it.getString("status") == "open", it.optStringOrNull("resolution"))
+        },
     )
+
+    fun changedTrip(body: String): Trip = trip(JSONObject(body).getJSONObject("trip"))
+
+    fun history(body: String): List<HistoryItem> = JSONObject(body).getJSONArray("items").objects().map {
+        HistoryItem(it.getString("type"), it.getString("source"), it.optStringOrNull("actor_id"), it.getString("created_at"), it.getString("summary"))
+    }
+
+    private fun source(s: String) = ObservationSource.entries.firstOrNull { it.wire == s } ?: ObservationSource.UNKNOWN
 
     fun observationComparison(body: String): Comparison = comparison(JSONObject(body).getJSONObject("comparison"))
 
@@ -55,11 +77,6 @@ internal object TripJsonParser {
         )
     }
 
-    /** {"detail":{"code","message"}} → (code, message). FastAPI 422 는 detail 이 배열이라 code 없음 */
-    fun error(body: String): Pair<String?, String?> = runCatching {
-        val d = JSONObject(body).opt("detail")
-        if (d is JSONObject) d.optString("code").ifBlank { null } to d.optString("message").ifBlank { null } else null to null
-    }.getOrDefault(null to null)
 
     private fun stop(o: JSONObject) = Stop(
         id = o.getString("id"),
@@ -73,12 +90,15 @@ internal object TripJsonParser {
             "pending" -> StopStatus.PENDING
             "completed" -> StopStatus.COMPLETED
             "partial" -> StopStatus.PARTIAL
+            "cancelled" -> StopStatus.CANCELLED
             else -> StopStatus.UNKNOWN
         },
         resolution = o.optStringOrNull("resolution"),
         cargo = o.getJSONArray("cargo").objects().map {
-            CargoLine(it.getInt("id"), it.getString("item_name"), it.getString("kind"), it.getInt("planned_qty"), it.getInt("delivered_qty"))
+            CargoLine(it.getInt("id"), it.getString("item_name"), it.getString("kind"), it.getInt("planned_qty"), it.getInt("delivered_qty"), it.optStringOrNull("zone"))
         },
+        placeKey = o.optString("place_key"),
+        cancelReason = o.optStringOrNull("cancel_reason"),
     )
 
     private fun comparison(o: JSONObject) = Comparison(
@@ -96,10 +116,11 @@ internal object TripJsonParser {
         observation = o.optJSONObject("observation")?.let {
             ObservationInfo(
                 id = it.getInt("id"),
-                source = ObservationSource.entries.firstOrNull { s -> s.wire == it.getString("source") } ?: ObservationSource.UNKNOWN,
+                source = source(it.getString("source")),
                 available = it.getString("status") == "ok",
                 counts = it.optJSONObject("counts")?.let(::counts),
                 observedAt = it.getString("observed_at"),
+                zones = it.optJSONObject("zones")?.let { z -> z.keys().asSequence().associateWith { k -> counts(z.getJSONObject(k)) } },
             )
         },
         countOnly = o.optBoolean("count_only", true),
@@ -110,6 +131,7 @@ internal object TripJsonParser {
         "planned" -> TripStatus.PLANNED
         "in_progress" -> TripStatus.IN_PROGRESS
         "completed" -> TripStatus.COMPLETED
+        "ended_incomplete" -> TripStatus.ENDED_INCOMPLETE
         else -> TripStatus.UNKNOWN
     }
 
