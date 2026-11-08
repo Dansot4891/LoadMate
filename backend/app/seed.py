@@ -3,8 +3,8 @@
 실제 배송 데이터가 아니다. data_source="sample" 로 저장되고 앱은 "샘플"로 표시한다 (원칙 5).
 좌표는 에뮬레이터 내비에서 경로 생성이 확인된 공공장소(역) 근처이며 실제 납품처가 아니다.
 
-    python -m app.features.trip.seed           # 없으면 생성
-    python -m app.features.trip.seed --reset   # 샘플 운행을 지우고 다시 생성 (시연 반복용)
+    python -m app.seed           # 없으면 생성
+    python -m app.seed --reset   # 샘플 운행을 지우고 다시 생성 (시연 반복용)
 """
 
 from __future__ import annotations

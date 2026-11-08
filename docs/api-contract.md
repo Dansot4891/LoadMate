@@ -120,7 +120,7 @@
 |---|---|
 | 서버 | `backend/app/features/trip/` (router · service · repository · schemas · models) |
 | 계산 규칙 | `backend/app/features/trip/rules.py` (DB 없는 순수 함수, 단위 테스트) |
-| 샘플 데이터 | `backend/app/features/trip/seed.py` (A3·B3·C4 박스 10개) |
+| 샘플 데이터 | `backend/app/seed.py` (A3·B3·C4 박스 10개) |
 
 ## 운행 관리·회수·이상·이력 — 확정 (2026-11-08)
 

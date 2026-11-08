@@ -9,7 +9,7 @@ import app.features.handover.models  # noqa: F401
 import app.features.memo.models  # noqa: F401
 import app.features.trip.models  # noqa: F401
 from app.core.db import Base, get_session
-from app.features.trip.seed import ensure_sample
+from app.seed import ensure_sample
 from app.main import create_app
 
 

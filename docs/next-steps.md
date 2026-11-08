@@ -26,7 +26,7 @@ cd ~/StudioProjects/loadmate
 colima start                                   # 재부팅 후 필요 (Docker 엔진)
 docker compose up -d --build                   # backend + db. 시작 시 alembic upgrade + 샘플 시드(없을 때만)
 curl -s localhost:8000/health                  # {"status":"ok","version":"0.1.0","database":"ok"}
-docker compose exec backend python -m app.features.trip.seed --reset   # 샘플 운행 초기화(시연 반복)
+docker compose exec backend python -m app.seed --reset   # 샘플 운행 초기화(시연 반복)
 
 ~/Library/Android/sdk/emulator/emulator -avd Pleos_Connect_v2.1 -no-snapshot-save -no-boot-anim -feature -Vulkan,-GLDirectMem &
 cd android && export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
@@ -83,7 +83,7 @@ cd .. && docker run --rm -v "$PWD/backend:/srv" -w /srv loadmate-backend sh -c "
 
 A0. 구조 이행 (2026-11-08 결정, 영상 분석 붙이기 전에) — 규칙은 `android/CLAUDE.md`·`backend/CLAUDE.md`
 - 서버
-  - [ ] `trip/seed.py` → `app/seed.py` (Dockerfile CMD·conftest·api-contract·architecture 명령 경로 함께)
+  - [x] `trip/seed.py` → `app/seed.py` (Dockerfile CMD·conftest·api-contract·architecture 명령 경로 함께)
   - [ ] `core/time.py` 로 시각 함수 통일 (memo·fleet·trip 의 `_utc`/`as_utc` 중복 제거)
   - [ ] memo·fleet·handover·assistant 를 router·schemas·service·repository·models 로 분리 (memo 는 멱등·공개 범위 규칙을 service 로)
   - [ ] memo 가 `trip.models.Stop` 직접 쿼리 → trip repository 공개 메서드 호출

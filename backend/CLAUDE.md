@@ -12,7 +12,7 @@
 # 저장소 루트에서
 docker compose up -d --build                     # backend + db. 시작 시 alembic upgrade + 샘플 시드(없을 때만)
 curl -s localhost:8000/health                    # /docs 에 OpenAPI
-docker compose exec backend python -m app.seed --reset    # 샘플 초기화(시연 반복). 이행 전에는 app.features.trip.seed
+docker compose exec backend python -m app.seed --reset    # 샘플 초기화(시연 반복)
 
 # 테스트 (시스템 Python 3.9 → Docker 이미지에 마운트해서 돌린다)
 docker run --rm -v "$PWD/backend:/srv" -w /srv loadmate-backend sh -c "pip install -q -r requirements-dev.txt && pytest -q"
