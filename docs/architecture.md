@@ -30,7 +30,10 @@ loadmate/
 - Router: HTTP·검증만. Service: 업무 규칙·트랜잭션. Repository: SQLAlchemy. 스키마 변경은 Alembic.
 - 외부 배송 시스템·대화 AI·영상 결과는 `app/integrations/`(예정) 어댑터로 분리.
 
-현재 구현: `features/health`.
+현재 구현: `features/health`, `features/trip` (운행·방문지·물품·관측·확정 이벤트, 예상 잔량·비교 규칙 `rules.py`, 샘플 시드 `seed.py`). 업무 오류는 `core/errors.py` 의 `AppError` → `{"detail": {"code", "message"}}`.
+
+샘플 운행 초기화(시연 반복): `docker compose exec backend python -m app.features.trip.seed --reset`
+테스트(로컬 venv 없이): `docker run --rm -v "$PWD/backend:/srv" -w /srv loadmate-backend sh -c "pip install -q -r requirements-dev.txt && pytest -q"`
 
 ## 실행
 

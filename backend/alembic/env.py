@@ -6,7 +6,8 @@ from sqlalchemy import engine_from_config, pool
 from app.core.config import get_settings
 from app.core.db import Base
 
-# Feature ORM 모델을 import 해야 autogenerate가 테이블을 인식한다. 예: import app.features.trip.models  # noqa
+# Feature ORM 모델을 import 해야 autogenerate가 테이블을 인식한다.
+import app.features.trip.models  # noqa: E402,F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", get_settings().database_url)
