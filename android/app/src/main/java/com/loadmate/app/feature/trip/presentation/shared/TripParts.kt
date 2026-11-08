@@ -1,17 +1,20 @@
 package com.loadmate.app.feature.trip.presentation.shared
 
-import com.loadmate.app.core.designsystem.localTime
+import com.loadmate.app.R
+import com.loadmate.app.shared.designsystem.components.PleosIconButton
+import com.loadmate.app.shared.designsystem.components.PleosSegmentedControl
+import com.loadmate.app.shared.designsystem.components.PleosSystemPopup
+import com.loadmate.app.shared.designsystem.components.PleosSystemPopupSize
+import com.loadmate.app.shared.designsystem.components.PleosPopupAction
+import com.loadmate.app.shared.designsystem.components.PleosPopupButtons
+import com.loadmate.app.shared.format.localTime
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
@@ -21,15 +24,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.loadmate.app.core.designsystem.Pleos
-import com.loadmate.app.core.designsystem.PleosButton
-import com.loadmate.app.core.designsystem.PleosButtonStyle
-import com.loadmate.app.core.designsystem.PleosCard
-import com.loadmate.app.core.designsystem.PleosShape
-import com.loadmate.app.core.designsystem.PleosSpacing
-import com.loadmate.app.core.designsystem.PleosStepper
-import com.loadmate.app.core.designsystem.PleosTag
+import com.loadmate.app.shared.designsystem.theme.Pleos
+import com.loadmate.app.shared.designsystem.components.PleosButton
+import com.loadmate.app.shared.designsystem.components.PleosButtonSize
+import com.loadmate.app.shared.designsystem.components.PleosButtonStyle
+import com.loadmate.app.shared.designsystem.project.PleosCard
+import com.loadmate.app.shared.designsystem.dimens.PleosShape
+import com.loadmate.app.shared.designsystem.dimens.PleosSpacing
+import com.loadmate.app.shared.designsystem.components.PleosStepper
+import com.loadmate.app.shared.designsystem.project.PleosTag
 import com.loadmate.app.feature.trip.domain.Comparison
 import com.loadmate.app.feature.trip.domain.Stop
 import com.loadmate.app.feature.trip.domain.StopStatus
@@ -86,9 +89,9 @@ internal fun StopManageCard(trip: Trip, on: (TripUiAction) -> Unit, allowQty: Bo
         pending.forEachIndexed { i, st ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(PleosSpacing.s)) {
                 BasicText("${st.label} ${st.name}", Modifier.weight(1f), style = t.bodyMedium.copy(color = c.textPrimary))
-                PleosButton("▲", style = PleosButtonStyle.Basic, enabled = i > 0) { on(TripUiAction.MoveStop(st.id, up = true)) }
-                PleosButton("▼", style = PleosButtonStyle.Basic, enabled = i < pending.lastIndex) { on(TripUiAction.MoveStop(st.id, up = false)) }
-                PleosButton("취소", style = PleosButtonStyle.Basic) { cancelTarget = st }
+                PleosIconButton(R.drawable.pleos_ic_arrow_up, "${st.label} 위로", enabled = i > 0) { on(TripUiAction.MoveStop(st.id, up = true)) }
+                PleosIconButton(R.drawable.pleos_ic_arrow_down, "${st.label} 아래로", enabled = i < pending.lastIndex) { on(TripUiAction.MoveStop(st.id, up = false)) }
+                PleosButton("취소", style = PleosButtonStyle.Basic, size = PleosButtonSize.Small) { cancelTarget = st }
             }
             if (allowQty) st.cargo.forEach { l ->
                 PleosStepper("  ${l.itemName}", l.plannedQty, { on(TripUiAction.ChangeQty(st.id, l.id, it)) }, max = 99)
@@ -97,7 +100,7 @@ internal fun StopManageCard(trip: Trip, on: (TripUiAction) -> Unit, allowQty: Bo
         Row(horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {
             SAMPLE_PLACES.forEachIndexed { i, p ->
                 if (trip.stops.none { it.name == p.name }) {
-                    PleosButton("+ ${p.name.substringBefore(" (")}", style = PleosButtonStyle.Basic) { on(TripUiAction.AddSampleStop(i)) }
+                    PleosButton(p.name.substringBefore(" ("), style = PleosButtonStyle.Basic, size = PleosButtonSize.Small, leadingIcon = R.drawable.pleos_ic_plus) { on(TripUiAction.AddSampleStop(i)) }
                 }
             }
         }
@@ -108,13 +111,15 @@ internal fun StopManageCard(trip: Trip, on: (TripUiAction) -> Unit, allowQty: Bo
         )
     }
     cancelTarget?.let { st ->
-        Dialog(onDismiss = { cancelTarget = null }) {
-            BasicText("${st.label} 방문을 취소할까요?", style = t.titleSmall.copy(color = c.textPrimary))
-            BasicText("배송품 ${countsText(st.plannedCounts, trip)}은 차에 남습니다.", style = t.bodyMedium.copy(color = c.textSecondary))
-            listOf("수령인 부재", "주소 오류", "고객 요청").forEach { reason ->
-                PleosButton(reason, style = PleosButtonStyle.Basic) { on(TripUiAction.CancelStop(st.id, reason)); cancelTarget = null }
-            }
-            PleosButton("닫기") { cancelTarget = null }
+        PleosSystemPopup(
+            title = "${st.label} 방문을 취소할까요?",
+            onDismiss = { cancelTarget = null },
+            buttons = PleosPopupButtons.Vertical,
+            actions = listOf("수령인 부재", "주소 오류", "고객 요청").map { reason ->
+                PleosPopupAction(reason, PleosButtonStyle.Basic) { on(TripUiAction.CancelStop(st.id, reason)); cancelTarget = null }
+            },
+        ) {
+            BasicText("배송품 ${countsText(st.plannedCounts, trip)}은 차에 남습니다.", style = t.bodyLarge.copy(color = c.textSecondary))
         }
     }
 }
@@ -124,30 +129,28 @@ internal fun StopManageCard(trip: Trip, on: (TripUiAction) -> Unit, allowQty: Bo
 internal fun PickupDialog(d: PickupDraft, stop: Stop?, busy: Boolean, on: (TripUiAction) -> Unit) {
     val c = Pleos.colors
     val t = Pleos.type
-    Dialog(onDismiss = { on(TripUiAction.DismissPickup) }) {
-        BasicText("회수·추가 상차 기록", style = t.titleMedium.copy(color = c.textPrimary))
+    val items = listOf("빈 용기" to "container", "반품 박스" to "box", "팔레트" to "pallet")
+    PleosSystemPopup(
+        title = "회수·추가 상차 기록",
+        onDismiss = { on(TripUiAction.DismissPickup) },
+        size = PleosSystemPopupSize.Large,
+        actions = listOf(
+            PleosPopupAction("기록 (${d.itemName} ${d.qty}개 → ${d.returnPlace})", enabled = !busy) { on(TripUiAction.SubmitPickup) },
+            PleosPopupAction("취소", PleosButtonStyle.Basic) { on(TripUiAction.DismissPickup) },
+        ),
+    ) {
         BasicText("장소: ${stop?.let { "${it.label} ${it.name}" } ?: "현재 위치 미정"}", style = t.bodyMedium.copy(color = c.textSecondary))
-        Row(horizontalArrangement = Arrangement.spacedBy(PleosSpacing.s)) {
-            listOf(Triple("빈 용기", "container", "용기"), Triple("반품 박스", "box", "박스"), Triple("팔레트", "pallet", "팔레트")).forEach { (name, kind, _) ->
-                PleosButton(name, style = if (d.itemName == name) PleosButtonStyle.Filled else PleosButtonStyle.Basic) {
-                    on(TripUiAction.EditPickup(d.copy(itemName = name, kind = kind)))
-                }
-            }
+        PleosSegmentedControl(items, items.firstOrNull { it.first == d.itemName }, { it.first }) { (name, kind) ->
+            on(TripUiAction.EditPickup(d.copy(itemName = name, kind = kind)))
         }
         PleosStepper("수량", d.qty, { on(TripUiAction.EditPickup(d.copy(qty = it))) }, min = 1)
-        Row(horizontalArrangement = Arrangement.spacedBy(PleosSpacing.s)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(PleosSpacing.l)) {
             BasicText("반납지", style = t.bodyLarge.copy(color = c.textPrimary))
-            listOf("창고", "본사", "거래처").forEach { place ->
-                PleosButton(place, style = if (d.returnPlace == place) PleosButtonStyle.Filled else PleosButtonStyle.Basic) {
-                    on(TripUiAction.EditPickup(d.copy(returnPlace = place)))
-                }
+            PleosSegmentedControl(listOf("창고", "본사", "거래처"), d.returnPlace, { it }) { place ->
+                on(TripUiAction.EditPickup(d.copy(returnPlace = place)))
             }
         }
         BasicText("회수품은 배송품과 따로 관리되고 예상 잔량에 더해집니다.", style = t.labelMedium.copy(color = c.textTertiary))
-        Row(horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {
-            PleosButton("기록 (${d.itemName} ${d.qty}개 → ${d.returnPlace})", enabled = !busy) { on(TripUiAction.SubmitPickup) }
-            PleosButton("취소", style = PleosButtonStyle.Basic) { on(TripUiAction.DismissPickup) }
-        }
     }
 }
 
@@ -163,7 +166,7 @@ internal fun PickupsCard(trip: Trip, on: (TripUiAction) -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {
                 val from = trip.stops.firstOrNull { it.id == p.stopId }?.label ?: "-"
                 BasicText("${p.itemName} ${p.qty}개 · $from 회수 → ${p.returnPlace}", Modifier.weight(1f), style = t.bodyMedium.copy(color = c.textPrimary))
-                if (p.loaded) PleosButton("반납 완료", style = PleosButtonStyle.Basic) { on(TripUiAction.ReturnPickup(p.id)) }
+                if (p.loaded) PleosButton("반납 완료", style = PleosButtonStyle.Basic, size = PleosButtonSize.Small) { on(TripUiAction.ReturnPickup(p.id)) }
                 else BasicText("반납됨", style = t.bodyMedium.copy(color = c.positive))
             }
         }
@@ -210,8 +213,19 @@ internal fun EndTripDialog(trip: Trip, on: (TripUiAction) -> Unit) {
     val c = Pleos.colors
     val t = Pleos.type
     val unfinished = trip.pendingStops.isNotEmpty() || trip.loadedPickups.isNotEmpty() || trip.openIssues.isNotEmpty()
-    Dialog(onDismiss = { on(TripUiAction.DismissEndTrip) }) {
-        BasicText("운행을 종료할까요?", style = t.titleMedium.copy(color = c.textPrimary))
+    PleosSystemPopup(
+        title = "운행을 종료할까요?",
+        onDismiss = { on(TripUiAction.DismissEndTrip) },
+        buttons = if (unfinished) PleosPopupButtons.Vertical else PleosPopupButtons.Horizontal,
+        actions = if (unfinished) {
+            listOf("기사 교대로 인계", "운행 시간 종료", "차량 문제").map { r -> PleosPopupAction(r, PleosButtonStyle.Basic) { on(TripUiAction.EndTrip(r)) } }
+        } else {
+            listOf(
+                PleosPopupAction("종료") { on(TripUiAction.EndTrip(null)) },
+                PleosPopupAction("닫기", PleosButtonStyle.Basic) { on(TripUiAction.DismissEndTrip) },
+            )
+        },
+    ) {
         if (unfinished) {
             BasicText(
                 listOfNotNull(
@@ -222,25 +236,9 @@ internal fun EndTripDialog(trip: Trip, on: (TripUiAction) -> Unit) {
                 style = t.bodyLarge.copy(color = c.negative),
             )
             BasicText("남은 업무가 있어 종료 사유를 기록합니다. 다른 기사가 이어받으면 '장비·인계'에서 인계하세요.", style = t.bodyMedium.copy(color = c.textSecondary))
-            listOf("기사 교대로 인계", "운행 시간 종료", "차량 문제").forEach { r ->
-                PleosButton(r, style = PleosButtonStyle.Basic) { on(TripUiAction.EndTrip(r)) }
-            }
         } else {
-            PleosButton("종료") { on(TripUiAction.EndTrip(null)) }
+            BasicText("모든 업무가 끝났습니다.", style = t.bodyLarge.copy(color = c.textSecondary))
         }
-        PleosButton("닫기", style = PleosButtonStyle.Basic) { on(TripUiAction.DismissEndTrip) }
-    }
-}
-
-@Composable
-internal fun Dialog(onDismiss: () -> Unit, content: @Composable () -> Unit) {
-    val c = Pleos.colors
-    Box(Modifier.fillMaxSize().background(c.overlayDefault).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) {
-        Column(
-            Modifier.widthIn(max = 960.dp).clickable(enabled = false) {}
-                .background(c.surfaceBasic, RoundedCornerShape(PleosShape.medium)).padding(PleosSpacing.xl),
-            verticalArrangement = Arrangement.spacedBy(PleosSpacing.m),
-        ) { content() }
     }
 }
 

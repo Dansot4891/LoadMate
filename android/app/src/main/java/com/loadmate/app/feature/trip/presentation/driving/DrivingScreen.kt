@@ -1,22 +1,19 @@
 package com.loadmate.app.feature.trip.presentation.driving
 
+import com.loadmate.app.shared.designsystem.components.PleosSystemPopup
+import com.loadmate.app.shared.designsystem.components.PleosPopupAction
 import com.loadmate.app.feature.trip.presentation.shared.*
 import com.loadmate.app.feature.trip.presentation.*
 
 import com.loadmate.app.core.pleos.RouteRequestStatus
 import com.loadmate.app.core.pleos.routeRequestStatus
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -26,17 +23,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.loadmate.app.core.designsystem.Pleos
-import com.loadmate.app.core.designsystem.PleosButton
-import com.loadmate.app.core.designsystem.PleosButtonStyle
-import com.loadmate.app.core.designsystem.PleosCard
-import com.loadmate.app.core.designsystem.PleosShape
-import com.loadmate.app.core.designsystem.PleosSpacing
-import com.loadmate.app.core.designsystem.PleosStepper
-import com.loadmate.app.core.designsystem.PleosTag
+import com.loadmate.app.shared.designsystem.theme.Pleos
+import com.loadmate.app.shared.designsystem.components.PleosButton
+import com.loadmate.app.shared.designsystem.components.PleosButtonStyle
+import com.loadmate.app.shared.designsystem.project.PleosCard
+import com.loadmate.app.shared.designsystem.dimens.PleosShape
+import com.loadmate.app.shared.designsystem.dimens.PleosSpacing
+import com.loadmate.app.shared.designsystem.components.PleosStepper
+import com.loadmate.app.shared.designsystem.project.PleosTag
 import com.loadmate.app.core.pleos.RearDoorConnection
 import com.loadmate.app.feature.trip.domain.Comparison
 import com.loadmate.app.feature.trip.domain.ComparisonState
@@ -108,17 +104,17 @@ internal fun DrivingScreen(s: DrivingUiState, trip: Trip, on: (TripUiAction) -> 
 internal fun RouteDialog(plan: RoutePlan, on: (TripUiAction) -> Unit) {
     val c = Pleos.colors
     val t = Pleos.type
-    Box(Modifier.fillMaxSize().background(c.overlayDefault).clickable { on(TripUiAction.DismissRoute) }, contentAlignment = Alignment.Center) {
-        PleosCard(Modifier.widthIn(max = 880.dp).clickable(enabled = false) {}) {
-            BasicText("내비에 안내를 보낼까요?", style = t.titleMedium.copy(color = c.textPrimary))
-            BasicText(plan.stopLabels.joinToString(" → "), style = t.titleSmall.copy(color = c.textPrimary))
-            BasicText((plan.waypoints + plan.destination).joinToString("\n") { it.name }, style = t.bodyMedium.copy(color = c.textSecondary))
-            BasicText("진행 중인 안내가 있으면 새 경로로 바뀝니다.", style = t.labelMedium.copy(color = c.textTertiary))
-            Row(horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {
-                PleosButton("보내기") { on(TripUiAction.ConfirmRoute) }
-                PleosButton("취소", style = PleosButtonStyle.Basic) { on(TripUiAction.DismissRoute) }
-            }
-        }
+    PleosSystemPopup(
+        title = "내비에 안내를 보낼까요?",
+        onDismiss = { on(TripUiAction.DismissRoute) },
+        actions = listOf(
+            PleosPopupAction("보내기") { on(TripUiAction.ConfirmRoute) },
+            PleosPopupAction("취소", PleosButtonStyle.Basic) { on(TripUiAction.DismissRoute) },
+        ),
+    ) {
+        BasicText(plan.stopLabels.joinToString(" → "), style = t.titleSmall.copy(color = c.textPrimary))
+        BasicText((plan.waypoints + plan.destination).joinToString("\n") { it.name }, style = t.bodyMedium.copy(color = c.textSecondary))
+        BasicText("진행 중인 안내가 있으면 새 경로로 바뀝니다.", style = t.labelMedium.copy(color = c.textTertiary))
     }
 }
 
