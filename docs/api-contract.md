@@ -122,6 +122,61 @@
 | 계산 규칙 | `backend/app/features/trip/rules.py` (DB 없는 순수 함수, 단위 테스트) |
 | 샘플 데이터 | `backend/app/features/trip/seed.py` (A3·B3·C4 박스 10개) |
 
+## 운행 관리·회수·이상·이력 — 확정 (2026-11-08)
+
+공통: 요청 본문에 `idempotency_key`, 선택 `source`(`screen`·`voice`, 기본 screen). 헤더 `X-Driver-Id`(현재 기사, 인증 아님 · F56)는 이력 작성자로 기록.
+응답은 모두 `{"trip": <Trip>, "replayed": bool}`. `<Trip>` 에 `driver_id`, `vehicle_id`, `end_reason`, `pickups[]`, `issues[]`, 방문지 `place_key`·`cancel_reason`, 물품 `zone`(rear·middle·front) 이 추가됨.
+관측 요청·응답에 선택 `zones: {"rear": {"box": 3}}` (F12).
+
+| 요청 | 규칙 | 오류 코드 |
+|---|---|---|
+| `POST /trips/{id}/stops` `{name, address, latitude, longitude, place_key?, cargo:[{item_name, kind, qty, zone?}]}` | 기준 확정 전: 계획만 추가. 확정 후: **추가 상차**로 예상 잔량 + (R05) | `trip_already_ended` |
+| `POST /trips/{id}/stops/reorder` `{stop_ids}` | 남은(pending) 방문지 전체를 새 순서로. 완료된 곳은 앞에 유지 (F18) | `reorder_must_list_pending_stops` |
+| `POST /trips/{id}/stops/{sid}/cancel` `{reason}` | 방문지 취소. 물품은 차에 남음 → 잔량 변화 없음 (F29) | `stop_already_completed` |
+| `POST /trips/{id}/stops/{sid}/cargo` `{cargo_line_id, planned_qty}` | 계획 수량 변경. 확정 기준은 바꾸지 않음 (F29) | `cargo_not_found`, `stop_already_completed` |
+| `POST /trips/{id}/end` `{reason?}` | 남은 방문지·미반납 회수품·미해결 이상이 있으면 사유 필수 → `ended_incomplete`, 없으면 `completed` (F07·R13) | `end_reason_required`, `trip_already_ended` |
+| `POST /trips/{id}/pickups` `{stop_id?, item_name, kind, qty, return_place}` | 회수·추가 상차. 예상 잔량 + (F44·F47). 기준 확정 후만 | `baseline_not_confirmed` |
+| `POST /trips/{id}/pickups/{pid}/return` `{}` | 반납 처리. 예상 잔량 − (F46) | `pickup_already_returned` |
+| `POST /trips/{id}/issues` `{kind: shift·fall·leak·other, zone?, note, observation_source, observed_at}` | 적재 이상 **의심** 기록. 파손·책임 확정 아님 (F30·F31) | — |
+| `POST /trips/{id}/issues/{iid}/resolve` `{resolution: no_issue·rearranged·needs_action, note?}` | 기사 확인·조치 기록 (F34) | `issue_already_resolved` |
+| `GET /trips/{id}/history` | `items[]: {type, stop_id, delta, source, actor_id, created_at, summary}` (F64) | — |
+
+운행 완료(`completed`)는 모든 방문지가 처리되고 **미반납 회수품이 없을 때**만 (F48).
+
+## 기사·장비 — 확정 (2026-11-08)
+
+- `GET /drivers` → `{drivers:[{id, name}]}` (샘플 기사 2명)
+- `GET /vehicles/{vid}/equipment` → `{equipment:[{id, name, location, status, note, updated_by, updated_at}]}`
+- `POST /equipment/{eid}/status` `{status: ok·missing·broken·lent·not_returned, location?, note?}` → 장비 (상태 지정이라 멱등 키 없음)
+
+## 메모 — 확정 (2026-11-08)
+
+개인(`private`) 메모는 작성자만 조회·수정. 공유(`shared`) 메모는 누구나 조회·본문 수정, 수정자 기록. 공유 범위는 작성자만 변경 (R12·F53·F54). 작성에는 `X-Driver-Id` 필수(`422 driver_required`).
+
+- `POST /memos` `{idempotency_key, scope_type: place·vehicle·equipment·trip, scope_id, body, tags[], visibility, persistence: always·this_trip, trip_id?, source}` → `201 {memo, replayed}`
+- `PUT /memos/{id}` `{body?, tags?, visibility?}` → 메모 (`404 memo_not_found`, `403 not_author`)
+- `GET /memos?scope_type&scope_id&trip_id&q` → 보이는 메모 (q: 본문 검색, F42)
+- `GET /trips/{id}/stops/{sid}/memos` → 그 장소의 상시 메모 + 이번 운행 메모 (F50·F55)
+
+## 인계 — 확정 (2026-11-08)
+
+- `GET /trips/{id}/handover/preview` → `{remaining_stops, pickups_loaded, open_issues, equipment_alerts, shared_memos, expected_remaining, summary_lines[], summary_method: "rule_based"}`. **개인 메모 제외** (R12). 요약은 규칙 기반 자동 요약 (F61, AI 모델 미정)
+- `POST /trips/{id}/handover` `{idempotency_key, to_driver_id, note}` → `201 {handover, replayed}`. 현재 운행 기사만 (`403 not_current_driver`), 대기 중 인계가 있으면 `409 handover_pending`
+- `GET /trips/{id}/handover` → 최근 인계
+- `POST /handovers/{hid}/accept` → 인수 대상 기사만(`403 not_handover_target`). 운행 기사 변경, 이력 `handover_accepted` (R13: 인계 확정과 인수 구분)
+
+## 음성 해석 — 확정 (2026-11-08)
+
+`POST /assistant/interpret` `{trip_id, text, pending?}` (헤더 `X-Driver-Id`)
+```json
+{ "kind": "answer | confirm | clarify | unknown", "speech": "TTS 문장", "display": "화면 문장",
+  "action": null | { "type": "add_pickup | add_memo | navigate_next", "payload": {...}, "summary": "..." },
+  "missing": ["return_place"], "intent": "...", "method": "rule_based" }
+```
+- 조회(`answer`)는 즉시 답한다. 변경은 `confirm` 으로 요약만 돌려주고 **서버는 저장하지 않는다.** 앱이 기사 확인 후 해당 API 를 `source: "voice"` 로 호출한다 (R08·F41).
+- `clarify` 는 부족한 항목만 묻는다(F40). 다음 발화를 `pending: <이전 action>` 과 함께 보낸다.
+- 해석기: `backend/app/integrations/assistant/rule_based.py` (키워드 규칙). 대화 AI 로 교체 가능한 어댑터.
+
 ## 예정 (미확정)
 
-회수·추가 상차(15장), 현장 메모, 인계, 대화 AI 연결. 추가할 때 이 문서부터 고친다.
+대화 AI(LLM) 어댑터, 녹화 영상 분석(vision) 결과 전송. 추가할 때 이 문서부터 고친다.

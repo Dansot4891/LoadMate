@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.features.trip.models import Observation, Stop, Trip, TripEvent
+from app.features.trip.models import Issue, Observation, Pickup, Stop, Trip, TripEvent
 
 
 class TripRepository:
@@ -49,6 +49,12 @@ class TripRepository:
         return self.s.scalars(
             select(Observation).where(Observation.trip_id == trip_id, Observation.idempotency_key == key)
         ).first()
+
+    def pickups(self, trip_id: str) -> list[Pickup]:
+        return list(self.s.scalars(select(Pickup).where(Pickup.trip_id == trip_id).order_by(Pickup.id)))
+
+    def issues(self, trip_id: str) -> list[Issue]:
+        return list(self.s.scalars(select(Issue).where(Issue.trip_id == trip_id).order_by(Issue.id)))
 
     def add(self, obj) -> None:
         self.s.add(obj)

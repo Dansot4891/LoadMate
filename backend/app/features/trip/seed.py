@@ -15,34 +15,61 @@ from datetime import datetime, timezone
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
-from app.features.trip.models import CargoLine, Observation, Stop, Trip, TripEvent
+from app.features.fleet.models import Driver, Equipment, Vehicle
+from app.features.handover.models import Handover
+from app.features.memo.models import Memo
+from app.features.trip.models import CargoLine, Issue, Observation, Pickup, Stop, Trip, TripEvent
 
 SAMPLE_TRIP_ID = "sample-trip-1"
 
+SAMPLE_VEHICLE_ID = "vehicle-1"
+
 _STOPS = [
-    # id, label, name, address, lat, lng, boxes
-    ("stop-a", "A", "판교역 납품처 (샘플)", "경기 성남시 분당구 판교역 인근", 37.3947, 127.1112, 3),
-    ("stop-b", "B", "정자역 납품처 (샘플)", "경기 성남시 분당구 정자역 인근", 37.3670, 127.1084, 3),
-    ("stop-c", "C", "서현역 납품처 (샘플)", "경기 성남시 분당구 서현역 인근", 37.3850, 127.1233, 4),
+    # id, label, name, address, lat, lng, boxes, place_key, zone(먼저 내릴 물품이 뒷문 쪽)
+    ("stop-a", "A", "판교역 납품처 (샘플)", "경기 성남시 분당구 판교역 인근", 37.3947, 127.1112, 3, "place-pangyo", "rear"),
+    ("stop-b", "B", "정자역 납품처 (샘플)", "경기 성남시 분당구 정자역 인근", 37.3670, 127.1084, 3, "place-jeongja", "middle"),
+    ("stop-c", "C", "서현역 납품처 (샘플)", "경기 성남시 분당구 서현역 인근", 37.3850, 127.1233, 4, "place-seohyeon", "front"),
+]
+_DRIVERS = [("driver-1", "기사 1 (샘플)"), ("driver-2", "기사 2 (샘플)")]
+_EQUIPMENT = [
+    ("equip-cart", "접이식 핸드카트", "적재함 뒷문 오른쪽"),
+    ("equip-strap", "화물 고정 끈 4개", "조수석 뒤 수납함"),
+    ("equip-toolbox", "공구함", "적재함 앞쪽 왼편"),
 ]
 
 
 def ensure_sample(session: Session, reset: bool = False) -> bool:
-    """샘플 운행이 없으면 만든다. 만들었으면 True."""
+    """샘플 운행이 없으면 만든다. 만들었으면 True. 기사·차량·장비는 항상 맞춰 둔다."""
+    now = datetime.now(timezone.utc)
+    for did, name in _DRIVERS:
+        session.merge(Driver(id=did, name=name))
+    session.merge(Vehicle(id=SAMPLE_VEHICLE_ID, name="샘플 차량"))
     if reset:
-        for model in (TripEvent, Observation, CargoLine, Stop):
+        place_keys = [x[7] for x in _STOPS]
+        session.execute(delete(Memo).where((Memo.trip_id == SAMPLE_TRIP_ID) | Memo.scope_id.in_(place_keys)
+                                           | (Memo.scope_type == "vehicle") | (Memo.scope_type == "equipment")))
+        for model in (Handover, Issue, Pickup, TripEvent, Observation, CargoLine, Stop):
             session.execute(delete(model).where(model.trip_id == SAMPLE_TRIP_ID))
         session.execute(delete(Trip).where(Trip.id == SAMPLE_TRIP_ID))
+        session.execute(delete(Equipment).where(Equipment.vehicle_id == SAMPLE_VEHICLE_ID))
         session.flush()
-    elif session.get(Trip, SAMPLE_TRIP_ID) is not None:
+    for eid, name, loc in _EQUIPMENT:
+        if session.get(Equipment, eid) is None:
+            session.add(Equipment(id=eid, vehicle_id=SAMPLE_VEHICLE_ID, name=name, location=loc))
+    if session.get(Trip, SAMPLE_TRIP_ID) is not None:
+        session.commit()
         return False
     trip = Trip(id=SAMPLE_TRIP_ID, name="샘플 운행 · A·B·C", data_source="sample", status="planned",
-                created_at=datetime.now(timezone.utc))
-    for seq, (sid, label, name, addr, lat, lng, boxes) in enumerate(_STOPS, start=1):
-        st = Stop(id=sid, seq=seq, label=label, name=name, address=addr, latitude=lat, longitude=lng)
-        st.cargo.append(CargoLine(trip_id=SAMPLE_TRIP_ID, item_name="박스", kind="box", planned_qty=boxes))
+                created_at=now, vehicle_id=SAMPLE_VEHICLE_ID)
+    for seq, (sid, label, name, addr, lat, lng, boxes, place_key, zone) in enumerate(_STOPS, start=1):
+        st = Stop(id=sid, seq=seq, label=label, name=name, address=addr, latitude=lat, longitude=lng, place_key=place_key)
+        st.cargo.append(CargoLine(trip_id=SAMPLE_TRIP_ID, item_name="박스", kind="box", planned_qty=boxes, zone=zone))
         trip.stops.append(st)
     session.add(trip)
+    # 공유 현장 메모 예시 (샘플). 실제 기사 경험 기록이 아니다
+    session.add(Memo(idempotency_key="seed-memo-1", scope_type="place", scope_id="place-jeongja",
+                     body="(샘플) 정문은 오전 혼잡. 하역은 건물 뒤편 출입구가 편함", tags=["진입", "하역"], visibility="shared",
+                     persistence="always", source="screen", author_id="driver-2", created_at=now, updated_at=now, updated_by="driver-2"))
     session.commit()
     return True
 

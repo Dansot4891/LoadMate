@@ -15,8 +15,13 @@ class Trip(Base):
     name: Mapped[str] = mapped_column(String(200))
     # 출처 표시 (원칙 5). 지금은 "sample" 만 사용
     data_source: Mapped[str] = mapped_column(String(32))
-    status: Mapped[str] = mapped_column(String(32), default="planned")
+    status: Mapped[str] = mapped_column(String(32), default="planned")  # planned | in_progress | completed | ended_incomplete
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    driver_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    vehicle_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # 미완료 업무가 남은 채 종료한 사유 (R13)
+    end_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     stops: Mapped[list[Stop]] = relationship(back_populates="trip", order_by="Stop.seq", cascade="all, delete-orphan")
 
@@ -32,7 +37,10 @@ class Stop(Base):
     address: Mapped[str] = mapped_column(String(300), default="")
     latitude: Mapped[float] = mapped_column(Float)
     longitude: Mapped[float] = mapped_column(Float)
-    status: Mapped[str] = mapped_column(String(32), default="pending")  # pending | completed | partial
+    # 장소 식별자. 같은 장소의 메모를 운행이 바뀌어도 다시 보여 준다 (F50)
+    place_key: Mapped[str] = mapped_column(String(64), default="")
+    status: Mapped[str] = mapped_column(String(32), default="pending")  # pending | completed | partial | cancelled
+    cancel_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     resolution: Mapped[str | None] = mapped_column(String(32), nullable=True)  # matched | driver_confirmed
 
@@ -52,6 +60,8 @@ class CargoLine(Base):
     kind: Mapped[str] = mapped_column(String(32))
     planned_qty: Mapped[int] = mapped_column(Integer)
     delivered_qty: Mapped[int] = mapped_column(Integer, default=0)
+    # 적재 구역 (F13). 관측·기사 입력으로 정해지며 불확실하면 null
+    zone: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     stop: Mapped[Stop] = relationship(back_populates="cargo")
 
@@ -72,6 +82,8 @@ class Observation(Base):
     note: Mapped[str | None] = mapped_column(String(500), nullable=True)
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # 구역별 종류 수량 (F12) 예: {"front": {"box": 3}}. 없으면 null
+    zones: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
 
 class TripEvent(Base):
@@ -89,4 +101,43 @@ class TripEvent(Base):
     delta: Mapped[dict] = mapped_column(JSON)
     # 확인 당시 근거(비교 결과·관측 ID·resolution). 근거와 확인 기록 분리 (R07)
     detail: Mapped[dict] = mapped_column(JSON, default=dict)
+    # 수정 이력 출처 (F64): screen | voice | system
+    source: Mapped[str] = mapped_column(String(16), default="screen")
+    actor_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class Pickup(Base):
+    """회수품·추가 상차 (F44~F47). 배송품과 업무 용도를 구분해 관리한다 (F45)."""
+
+    __tablename__ = "pickups"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    trip_id: Mapped[str] = mapped_column(ForeignKey("trips.id", ondelete="CASCADE"), index=True)
+    stop_id: Mapped[str | None] = mapped_column(String(64), nullable=True)  # 회수한 장소
+    item_name: Mapped[str] = mapped_column(String(200))
+    kind: Mapped[str] = mapped_column(String(32))
+    qty: Mapped[int] = mapped_column(Integer)
+    return_place: Mapped[str] = mapped_column(String(200))
+    status: Mapped[str] = mapped_column(String(32), default="loaded")  # loaded | returned
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    returned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Issue(Base):
+    """적재 이상 의심·미해결 문제 (F30·F31·F34·F60). 의심으로 기록하고 책임·파손을 확정하지 않는다."""
+
+    __tablename__ = "issues"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    trip_id: Mapped[str] = mapped_column(ForeignKey("trips.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(32))  # shift | fall | leak | other
+    zone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    note: Mapped[str] = mapped_column(String(500), default="")
+    source: Mapped[str] = mapped_column(String(32))  # sample | manual | recorded_video
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(32), default="open")  # open | resolved
+    resolution: Mapped[str | None] = mapped_column(String(32), nullable=True)  # no_issue | rearranged | needs_action
+    resolution_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    resolved_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

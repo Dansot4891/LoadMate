@@ -3,8 +3,20 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.actor import actor_id
 from app.core.db import get_session
 from app.features.trip.schemas import (
+    CargoQtyIn,
+    ChangeResultOut,
+    HistoryOut,
+    IssueIn,
+    IssueResolveIn,
+    PickupIn,
+    ReorderIn,
+    SimpleChangeIn,
+    StopAddIn,
+    StopCancelIn,
+    TripEndIn,
     BaselineIn,
     BaselineResultOut,
     CompleteIn,
@@ -39,10 +51,64 @@ def record_observation(trip_id: str, body: ObservationIn, svc: TripService = Dep
 
 
 @router.post("/{trip_id}/baseline", response_model=BaselineResultOut)
-def confirm_baseline(trip_id: str, body: BaselineIn, svc: TripService = Depends(get_service)) -> BaselineResultOut:
-    return svc.confirm_baseline(trip_id, body)
+def confirm_baseline(trip_id: str, body: BaselineIn, svc: TripService = Depends(get_service), actor: str | None = Depends(actor_id)) -> BaselineResultOut:
+    return svc.confirm_baseline(trip_id, body, actor)
 
 
 @router.post("/{trip_id}/stops/{stop_id}/complete", response_model=CompleteResultOut)
-def complete_stop(trip_id: str, stop_id: str, body: CompleteIn, svc: TripService = Depends(get_service)) -> CompleteResultOut:
-    return svc.complete_stop(trip_id, stop_id, body)
+def complete_stop(trip_id: str, stop_id: str, body: CompleteIn, svc: TripService = Depends(get_service), actor: str | None = Depends(actor_id)) -> CompleteResultOut:
+    return svc.complete_stop(trip_id, stop_id, body, actor)
+
+
+Svc = Depends(get_service)
+Actor = Depends(actor_id)
+
+
+@router.post("/{trip_id}/stops", response_model=ChangeResultOut)
+def add_stop(trip_id: str, body: StopAddIn, svc: TripService = Svc, actor: str | None = Actor) -> ChangeResultOut:
+    return svc.add_stop(trip_id, body, actor)
+
+
+@router.post("/{trip_id}/stops/reorder", response_model=ChangeResultOut)
+def reorder_stops(trip_id: str, body: ReorderIn, svc: TripService = Svc, actor: str | None = Actor) -> ChangeResultOut:
+    return svc.reorder_stops(trip_id, body, actor)
+
+
+@router.post("/{trip_id}/stops/{stop_id}/cancel", response_model=ChangeResultOut)
+def cancel_stop(trip_id: str, stop_id: str, body: StopCancelIn, svc: TripService = Svc, actor: str | None = Actor) -> ChangeResultOut:
+    return svc.cancel_stop(trip_id, stop_id, body, actor)
+
+
+@router.post("/{trip_id}/stops/{stop_id}/cargo", response_model=ChangeResultOut)
+def change_cargo(trip_id: str, stop_id: str, body: CargoQtyIn, svc: TripService = Svc, actor: str | None = Actor) -> ChangeResultOut:
+    return svc.change_cargo_qty(trip_id, stop_id, body, actor)
+
+
+@router.post("/{trip_id}/end", response_model=ChangeResultOut)
+def end_trip(trip_id: str, body: TripEndIn, svc: TripService = Svc, actor: str | None = Actor) -> ChangeResultOut:
+    return svc.end_trip(trip_id, body, actor)
+
+
+@router.post("/{trip_id}/pickups", response_model=ChangeResultOut)
+def add_pickup(trip_id: str, body: PickupIn, svc: TripService = Svc, actor: str | None = Actor) -> ChangeResultOut:
+    return svc.add_pickup(trip_id, body, actor)
+
+
+@router.post("/{trip_id}/pickups/{pickup_id}/return", response_model=ChangeResultOut)
+def return_pickup(trip_id: str, pickup_id: int, body: SimpleChangeIn, svc: TripService = Svc, actor: str | None = Actor) -> ChangeResultOut:
+    return svc.return_pickup(trip_id, pickup_id, body, actor)
+
+
+@router.post("/{trip_id}/issues", response_model=ChangeResultOut)
+def record_issue(trip_id: str, body: IssueIn, svc: TripService = Svc, actor: str | None = Actor) -> ChangeResultOut:
+    return svc.record_issue(trip_id, body, actor)
+
+
+@router.post("/{trip_id}/issues/{issue_id}/resolve", response_model=ChangeResultOut)
+def resolve_issue(trip_id: str, issue_id: int, body: IssueResolveIn, svc: TripService = Svc, actor: str | None = Actor) -> ChangeResultOut:
+    return svc.resolve_issue(trip_id, issue_id, body, actor)
+
+
+@router.get("/{trip_id}/history", response_model=HistoryOut)
+def history(trip_id: str, svc: TripService = Svc) -> HistoryOut:
+    return svc.history(trip_id)

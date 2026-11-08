@@ -7,6 +7,9 @@ from app.core.config import get_settings
 from app.core.db import Base
 
 # Feature ORM 모델을 import 해야 autogenerate가 테이블을 인식한다.
+import app.features.fleet.models  # noqa: E402,F401
+import app.features.handover.models  # noqa: E402,F401
+import app.features.memo.models  # noqa: E402,F401
 import app.features.trip.models  # noqa: E402,F401
 
 config = context.config
