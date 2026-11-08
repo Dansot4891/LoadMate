@@ -5,17 +5,20 @@ Pleos Connect(AAOS 차량 IVI) 앱 + FastAPI 서버 + 영상 분석. 현대자�
 **새 세션은 `docs/next-steps.md`부터** (인수인계: 현재 상태·재실행 명령·결정·다음 할 일·주의). 작업 후 검증 기록·체크리스트 갱신. 기능별 현황 `docs/feature-status.md`.
 SDK 실측 기록은 형제 저장소 `../hyundai_app` (PleosLab: docs/sdk-catalog.md, docs/vehicle-api-matrix.md).
 
+이 파일에는 프로젝트 공통 원칙만 둔다. 영역별 구조·규칙:
+- 앱 → **`android/CLAUDE.md`** (화면 폴더·UiState/UiAction·DTO/mapper·AppContainer·Pleos SDK 제약)
+- 서버 → **`backend/CLAUDE.md`** (router·schemas·service·repository·models, 기능 의존 방향, 멱등 키)
+- 진행 상태·이행 중인 작업은 CLAUDE.md 에 쓰지 않고 `docs/next-steps.md` 에 쓴다
+
 ## 명령
 
 ```bash
 # 서버 (Docker 엔진 = Colima. 재부팅 후 `colima start`)
 docker compose up --build
-cd backend && .venv/bin/pytest
 
 # 앱
 cd android && export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
-adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
 ## 원칙
@@ -27,13 +30,5 @@ adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
 5. 샘플 데이터·녹화 영상·에뮬레이터 신호·미연결 SDK는 화면과 문서에 그렇게 표시한다. 실제 연동이나 실차 지원으로 표현하지 않는다. 실패 시 데모 데이터로 조용히 전환하지 않는다.
 6. 공식 값만 공식이라 부른다. 디자인 토큰은 `core/designsystem`(출처·PROJECT 표시 유지). 화면에서 hex 직접 사용 금지.
 7. 자격 증명·고객 개인정보·기획서 원본은 Git에 넣지 않는다 (.env, local.properties).
-8. Android: Feature 기반 + MVVM(StateFlow UiState / UiAction). 빈 계층·UseCase를 미리 만들지 않는다. Pleos SDK 객체를 화면에 노출하지 않는다. 리스너는 화면 이탈·release 전 해제. 단 내비 리스너는 운행 중(운행 시작~종료) 유지하고 운행 종료 시 해제 (2026-11-08 결정: 내비가 화면을 덮어도 경로 결과를 받아야 함).
+8. 빈 계층·UseCase를 미리 만들지 않는다. 구조 규칙은 영역별 CLAUDE.md 를 따른다. 내비 리스너는 운행 중(운행 시작~종료) 유지 (2026-11-08 결정).
 9. 완료 기준은 화면 생성이 아니라 빌드·서버 실행·DB 저장/복원·대표 시나리오 연속 동작. 실행 결과를 docs에 기록.
-
-## 주의
-
-- Vehicle 2.3.2: 차량 속도 API 없음, Gear deprecated, DrivingMode 에뮬레이터 미지원 → 주행/정차는 기사 확인 버튼이 기본.
-- STT/TTS/FusedLocation 콘솔 준비 중. STT ON_DEVICE는 에뮬레이터에서 자격 증명 없이 동작(2026-11-08, 오인식 있음). 호스트 마이크: `adb emu avd hostmicon`.
-- NaviHelper `requestRoute` 시 내비 앱이 메인 패널을 덮어 Loadmate가 ON_STOP 된다 → 내비 리스너는 운행 범위로 유지. 목적지 전달은 기사 확인 후, 실패 시 실패 표시·다시 보내기·목적지 정보 유지 (기획서 16장).
-- 경유지는 2개까지(`requestRouteWithWaypoints`). 헤드업 알림은 카테고리 지정 필수. TTS `speak(text, isFinal=true)`.
-- AGP 8.7.3 고정 (Studio 2024.2.1).

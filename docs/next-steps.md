@@ -76,12 +76,29 @@ cd .. && docker run --rm -v "$PWD/backend:/srv" -w /srv loadmate-backend sh -c "
 | 음성 변경 | 인식 문장을 보여 주고 기사가 맞다고 확인해야 저장 | `VoicePanel`·서버 `assistant` |
 | 관측값 | Pleos SDK에 카메라 API 없음 → **샘플 관측·기사 입력**, 출처 표시 | `ObservationInput`, `sampleZones` |
 | 작업 순서 | 제출 준비보다 기능 구현 먼저 | — |
+| 코드 구조 | 앱: Hangari(Flutter)식 화면 폴더 + DTO/mapper(kotlinx.serialization), DI는 `AppContainer` 유지, 운행 탭은 화면별 ViewModel. 서버: 모든 기능 router·schemas·service·repository·models 통일, trip service 분리, 샘플 시드 `app/seed.py`, 기능 의존 한 방향. 운행 선택 화면(F02) 추가 | `android/CLAUDE.md`, `backend/CLAUDE.md` |
 | 진행 중 기본값(사용자 확인 전) | 대화 이해 = 규칙 기반 해석기(LLM 교체 가능), 인계 요약 = 규칙 기반, 바코드(F06) 제외 | feature-status.md |
 
 ## 6. 다음 할 일 (사용자에게 순서 확인)
 
+A0. 구조 이행 (2026-11-08 결정, 영상 분석 붙이기 전에) — 규칙은 `android/CLAUDE.md`·`backend/CLAUDE.md`
+- 서버
+  - [ ] `trip/seed.py` → `app/seed.py` (Dockerfile CMD·conftest·api-contract·architecture 명령 경로 함께)
+  - [ ] `core/time.py` 로 시각 함수 통일 (memo·fleet·trip 의 `_utc`/`as_utc` 중복 제거)
+  - [ ] memo·fleet·handover·assistant 를 router·schemas·service·repository·models 로 분리 (memo 는 멱등·공개 범위 규칙을 service 로)
+  - [ ] memo 가 `trip.models.Stop` 직접 쿼리 → trip repository 공개 메서드 호출
+  - [ ] `trip/service.py`(517줄) → `trip/service/{trips,stops,loading,pickups,issues,common}.py`
+  - [ ] pytest 61개 유지 + PostgreSQL 대표 시나리오 재확인
+- 앱
+  - [ ] `ApiResult`·`ApiError` 를 `feature/trip/domain` → `core/network` 로 이동
+  - [ ] kotlinx.serialization 도입(AGP 8.7.3·Kotlin 2.0.0 호환 버전), org.json 파서 9개 파일 → `dto/` + `mapper/`
+  - [ ] `HttpXxxRepository` → `XxxRepositoryImpl`, 운행 데이터는 Repository StateFlow 로 보관
+  - [ ] 운행 탭 분리: `trip/presentation/{overview,loadcheck,driving,sitework,mismatch}/` 화면별 ViewModel, 내비 리스너는 운행 범위 객체로 이동
+  - [ ] 나머지 기능(records·fleet·assistant·settings)도 `presentation/<screen>/` 폴더로
+  - [ ] 운행 선택 첫 화면 (F02, `GET /trips`), `AppContainer.sampleTripId` 제거
+  - [ ] 단위 테스트 25개 유지 + 에뮬레이터 대표 시나리오 재확인
+
 A. 남은 코드 기능 (선택)
-- [ ] 운행 목록 선택 화면 (F02) — 지금은 `AppContainer.sampleTripId` 고정
 - [ ] 메모 사진 첨부 (F51)
 - [ ] 오프라인 디스크 보관·요청 대기열 (F66) — 지금은 이번 실행 중 메모리만
 - [ ] 임시 반출·재적재 (F29 일부)
