@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 공식 Figma Pleos Connect design assets 2.1.5: ic_telltale | type=저전납 배터리 경고. 색은 화면에서 Pleos 토큰으로 입힌다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp"
+    android:height="56dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M48.5 15L48.5 42.5L7.5 42.5L7.5 15L48.5 15ZM50.5 11.5L5.5 11.5C4.67 11.5 4 12.17 4 13L4 44.5C4 45.33 4.67 46 5.5 46L50.5 46C51.33 46 52 45.33 52 44.5L52 13C52 12.17 51.33 11.5 50.5 11.5Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M21 11.5L13 11.5L13 8.5C13 7.67 13.67 7 14.5 7L19.5 7C20.33 7 21 7.67 21 8.5L21 11.5Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M43 11.5L35 11.5L35 8.5C35 7.67 35.67 7 36.5 7L41.5 7C42.33 7 43 7.67 43 8.5L43 11.5Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M40.5 20.96C40.5 20.132 39.828 19.46 39 19.46C38.172 19.46 37.5 20.132 37.5 20.96L37.5 29.96C37.5 30.788 38.172 31.46 39 31.46C39.828 31.46 40.5 30.788 40.5 29.96L40.5 20.96Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M43.5 23.96L34.5 23.96C33.672 23.96 33 24.632 33 25.46C33 26.288 33.672 26.96 34.5 26.96L43.5 26.96C44.328 26.96 45 26.288 45 25.46C45 24.632 44.328 23.96 43.5 23.96Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M21.5 23.96L12.5 23.96C11.672 23.96 11 24.632 11 25.46C11 26.288 11.672 26.96 12.5 26.96L21.5 26.96C22.328 26.96 23 26.288 23 25.46C23 24.632 22.328 23.96 21.5 23.96Z" />
+</vector>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 공식 Figma Pleos Connect design assets 2.1.5: ic_sound | volume=up. 색은 화면에서 Pleos 토큰으로 입힌다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M11.607 18.327L7.636 18.327C6.733 18.327 6 19.061 6 19.967L6 28.026C6 28.93 6.731 29.664 7.633 29.665L11.607 29.673L23.008 38.388C24.085 39.212 25.636 38.442 25.636 37.084L25.636 10.915C25.636 9.558 24.085 8.788 23.008 9.612L11.607 18.327Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M28.2 24C28.2 23.006 29.006 22.2 30 22.2L34.2 22.2L34.2 18C34.2 17.006 35.006 16.2 36 16.2C36.994 16.2 37.8 17.006 37.8 18L37.8 22.2L42 22.2C42.994 22.2 43.8 23.006 43.8 24C43.8 24.994 42.994 25.8 42 25.8L37.8 25.8L37.8 30C37.8 30.994 36.994 31.8 36 31.8C35.006 31.8 34.2 30.994 34.2 30L34.2 25.8L30 25.8C29.006 25.8 28.2 24.994 28.2 24Z" />
+</vector>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 공식 Figma Pleos Connect design assets 2.1.5: ic_telltale | type=에어백 경고. 색은 화면에서 Pleos 토큰으로 입힌다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp"
+    android:height="56dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M33.087 33.12C33.747 33.77 34.737 33.87 35.497 33.42L38.567 27.34C39.027 26.43 39.097 25.43 38.847 24.51L33.077 30.28C32.297 31.06 32.297 32.34 33.077 33.12L33.087 33.12Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M50.269 15.93C49.489 15.15 48.219 15.15 47.439 15.93L40.789 22.58C41.629 24.23 41.759 26.21 41.009 28.02L50.269 18.76C51.049 17.98 51.049 16.71 50.269 15.93Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M21.391 31.17L23.311 38.32L27.311 38.32L25.361 31.02L21.391 31.17Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M18.978 31.81L18.808 31.18L17.218 31.38C16.928 31.38 16.638 31.41 16.358 31.49C15.468 31.73 14.668 32.31 14.168 33.17L8.528 42.93C7.578 44.58 7.918 46.76 9.488 47.85C10.128 48.3 10.848 48.51 11.558 48.51C12.808 48.51 14.018 47.86 14.688 46.7L19.538 38.31L20.728 38.31L18.988 31.81L18.978 31.81Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M36.809 21.95C36.229 21.66 35.609 21.52 34.999 21.52C33.699 21.52 32.429 22.16 31.659 23.31L27.539 29.49L27.779 30.37L29.869 38.19C32.099 37.79 34.039 36.37 35.059 34.3L38.579 27.34C39.579 25.36 38.789 22.95 36.809 21.95Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M37.883 19.52C40.644 19.52 42.883 17.281 42.883 14.52C42.883 11.758 40.644 9.52 37.883 9.52C35.121 9.52 32.883 11.758 32.883 14.52C32.883 17.281 35.121 19.52 37.883 19.52Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M30.731 51.07L25.361 31.02L21.391 31.17L26.991 52.08C27.221 52.92 27.981 53.51 28.851 53.51C30.121 53.51 31.051 52.3 30.721 51.07L30.731 51.07Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M16.18 27C22.255 27 27.18 22.075 27.18 16C27.18 9.925 22.255 5 16.18 5C10.105 5 5.18 9.925 5.18 16C5.18 22.075 10.105 27 16.18 27Z" />
+</vector>

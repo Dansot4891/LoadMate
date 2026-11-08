@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 공식 Figma Pleos Connect design assets 2.1.5: ic_telltale | type=AUTO HOLD. 색은 화면에서 Pleos 토큰으로 입힌다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp"
+    android:height="56dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M9.62 48.14C9.17 48.14 8.72 47.97 8.38 47.63C3.14 42.38 0.25 35.41 0.25 28C0.25 20.59 3.14 13.62 8.38 8.38C9.06 7.7 10.17 7.7 10.85 8.38C11.53 9.06 11.53 10.17 10.85 10.85C6.27 15.43 3.75 21.52 3.75 28C3.75 34.48 6.27 40.57 10.85 45.15C11.53 45.83 11.53 46.94 10.85 47.62C10.51 47.96 10.06 48.13 9.61 48.13L9.62 48.14Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M46.391 48.14C45.941 48.14 45.491 47.97 45.151 47.63C44.471 46.95 44.471 45.84 45.151 45.16C54.601 35.7 54.601 20.32 45.151 10.87C44.471 10.19 44.471 9.08 45.151 8.4C45.831 7.72 46.941 7.72 47.621 8.4C58.441 19.22 58.441 36.82 47.621 47.64C47.281 47.98 46.831 48.15 46.381 48.15L46.391 48.14Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M28 10C37.93 10 46 18.07 46 28C46 37.93 37.93 46 28 46C18.07 46 10 37.93 10 28C10 18.07 18.07 10 28 10ZM28 6.5C16.13 6.5 6.5 16.13 6.5 28C6.5 39.87 16.13 49.5 28 49.5C39.87 49.5 49.5 39.87 49.5 28C49.5 16.13 39.87 6.5 28 6.5Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M15.992 39.69L25.642 12.82L30.372 12.82L40.042 39.69L35.682 39.69L28.112 17.74L27.892 17.74L20.302 39.69L16.002 39.69L15.992 39.69ZM34.972 29.17L34.972 32.58L21.022 32.58L21.022 29.17L34.972 29.17Z" />
+</vector>

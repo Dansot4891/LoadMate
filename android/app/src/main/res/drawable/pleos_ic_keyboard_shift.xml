@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 공식 Figma Pleos Connect design assets 2.1.5: ic_keyboard | Type=Shift. 색은 화면에서 Pleos 토큰으로 입힌다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M25.327 6.784C24.986 6.412 24.505 6.2 24 6.2C23.495 6.2 23.014 6.412 22.673 6.784L6.173 24.784C5.691 25.31 5.565 26.071 5.852 26.725C6.14 27.378 6.786 27.8 7.5 27.8L15.2 27.8L15.2 40C15.2 40.994 16.006 41.8 17 41.8L31 41.8C31.994 41.8 32.8 40.994 32.8 40L32.8 27.8L40.5 27.8C41.214 27.8 41.86 27.378 42.148 26.725C42.435 26.071 42.309 25.31 41.827 24.784L25.327 6.784ZM36.408 24.2L24 10.664L11.592 24.2L18.8 24.2L18.8 38.2L29.2 38.2L29.2 24.2L36.408 24.2Z" />
+</vector>

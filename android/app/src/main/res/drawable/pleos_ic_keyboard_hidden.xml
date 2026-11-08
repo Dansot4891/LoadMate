@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 공식 Figma Pleos Connect design assets 2.1.5: ic_keyboard | Type=Hidden. 색은 화면에서 Pleos 토큰으로 입힌다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M15 10C15 12.209 13.209 14 11 14C8.791 14 7 12.209 7 10C7 7.791 8.791 6 11 6C13.209 6 15 7.791 15 10Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M14.571 33C13.659 33 13.223 34.121 13.895 34.737L22.649 42.761C23.413 43.462 24.587 43.462 25.351 42.761L34.105 34.737C34.777 34.121 34.341 33 33.429 33L14.571 33Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M11 26C13.209 26 15 24.209 15 22C15 19.791 13.209 18 11 18C8.791 18 7 19.791 7 22C7 24.209 8.791 26 11 26Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M28 10C28 12.209 26.209 14 24 14C21.791 14 20 12.209 20 10C20 7.791 21.791 6 24 6C26.209 6 28 7.791 28 10Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M24 26C26.209 26 28 24.209 28 22C28 19.791 26.209 18 24 18C21.791 18 20 19.791 20 22C20 24.209 21.791 26 24 26Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M41 10C41 12.209 39.209 14 37 14C34.791 14 33 12.209 33 10C33 7.791 34.791 6 37 6C39.209 6 41 7.791 41 10Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M37 26C39.209 26 41 24.209 41 22C41 19.791 39.209 18 37 18C34.791 18 33 19.791 33 22C33 24.209 34.791 26 37 26Z" />
+</vector>

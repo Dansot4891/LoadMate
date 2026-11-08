@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 공식 Figma Pleos Connect design assets 2.1.5: ic_telltale | type=Low Beam. 색은 화면에서 Pleos 토큰으로 입힌다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp"
+    android:height="56dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M5.098 15.5L18.868 12.2C19.258 10.53 19.618 9.26 19.868 8.46L4.308 12.19C3.538 12.37 3.008 13.06 3.008 13.84C3.008 14.94 4.038 15.75 5.108 15.49L5.098 15.5Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M5.098 31.25L17.008 28.39C17.008 28.26 17.008 28.13 17.008 28C17.008 26.93 17.038 25.89 17.088 24.87L4.308 27.94C3.538 28.12 3.008 28.81 3.008 29.59C3.008 30.69 4.038 31.5 5.108 31.24L5.098 31.25Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M5.1 23.37L17.44 20.41C17.59 19.13 17.76 17.92 17.94 16.79L4.3 20.06C3.53 20.24 3 20.93 3 21.71C3 22.81 4.03 23.62 5.1 23.36L5.1 23.37Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M5.098 39.12L17.508 36.14C17.378 35.05 17.268 33.9 17.178 32.72L4.308 35.81C3.538 35.99 3.008 36.68 3.008 37.46C3.008 38.56 4.038 39.37 5.108 39.11L5.098 39.12Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M18.15 40.36L4.3 43.68C3.53 43.86 3 44.55 3 45.33C3 46.43 4.03 47.24 5.1 46.98L18.84 43.68C18.61 42.7 18.38 41.57 18.15 40.35L18.15 40.36Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M35.548 12C43.398 12 50.348 17.48 52.058 25.03C52.418 26.63 52.498 27.52 52.498 28C52.498 28.48 52.418 29.37 52.058 30.97C50.348 38.52 43.398 44 35.548 44L25.608 44C24.778 40.86 23.488 34.89 23.488 28C23.488 21.11 24.778 15.14 25.608 12L35.548 12ZM35.548 8.5L24.098 8.5C23.438 8.5 22.848 8.93 22.668 9.56C21.888 12.18 20.008 19.36 20.008 28C20.008 36.64 21.888 43.82 22.668 46.44C22.858 47.07 23.438 47.5 24.098 47.5L35.548 47.5C45.038 47.5 53.368 41 55.468 31.74C55.798 30.31 55.988 29.01 55.988 28C55.988 26.99 55.788 25.69 55.468 24.26C53.368 15.01 45.038 8.5 35.548 8.5Z" />
+</vector>

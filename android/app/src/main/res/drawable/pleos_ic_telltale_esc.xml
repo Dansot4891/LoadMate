@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 공식 Figma Pleos Connect design assets 2.1.5: ic_telltale | type=ESC. 색은 화면에서 Pleos 토큰으로 입힌다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp"
+    android:height="56dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M34.781 11C34.961 11 35.121 11.1 35.211 11.25L36.901 14.18L19.091 14.18L20.781 11.25C20.871 11.1 21.031 11 21.211 11L34.781 11ZM34.781 7.5L21.211 7.5C19.781 7.5 18.461 8.26 17.751 9.5L13.031 17.68L42.971 17.68L38.251 9.5C37.541 8.26 36.211 7.5 34.791 7.5L34.781 7.5Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M43.501 22.97L38.211 22.97L38.211 27C38.211 27.83 38.881 28.5 39.711 28.5L42.001 28.5C42.831 28.5 43.501 27.83 43.501 27L43.501 22.97Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M12.5 22.97L17.79 22.97L17.79 27C17.79 27.83 17.12 28.5 16.29 28.5L14 28.5C13.17 28.5 12.5 27.83 12.5 27L12.5 22.97Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M40.447 14.31L15.547 14.31L13.017 17.68C12.667 18.29 12.477 18.98 12.477 19.68L12.477 25L43.487 25L43.487 19.68C43.487 18.98 43.307 18.29 42.957 17.68L40.437 14.31L40.447 14.31Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M38.367 13.31L44.407 13.31C45.287 13.31 45.997 14.02 45.997 14.9C45.997 15.78 45.287 16.49 44.407 16.49L38.367 16.49L38.367 13.31Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="nonZero"
+        android:pathData="M17.633 16.48L11.593 16.48C10.713 16.48 10.003 15.77 10.003 14.89C10.003 14.01 10.713 13.3 11.593 13.3L17.633 13.3L17.633 16.48Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M17.621 31.5L13.701 31.5C13.381 31.5 13.241 31.91 13.491 32.11L19.081 36.55L4.661 40.46C3.531 40.77 2.781 41.6 2.781 42.53C2.781 43.32 3.331 44.06 4.211 44.44L11.791 47.35C12.051 47.45 12.321 47.5 12.591 47.5L20.681 47.5C21.061 47.5 21.151 46.97 20.801 46.84L10.491 43L25.531 38.2C26.541 37.88 27.191 37.11 27.191 36.26C27.191 35.49 26.661 34.79 25.801 34.42L18.391 31.65C18.141 31.56 17.871 31.51 17.601 31.51L17.621 31.5Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M40.871 31.5L36.951 31.5C36.631 31.5 36.491 31.91 36.741 32.11L42.331 36.55L27.911 40.46C26.781 40.77 26.031 41.6 26.031 42.53C26.031 43.32 26.581 44.06 27.461 44.44L35.431 47.5L43.941 47.5C44.321 47.5 44.411 46.97 44.061 46.84L33.751 43L48.791 38.2C49.801 37.88 50.451 37.11 50.451 36.26C50.451 35.49 49.921 34.79 49.061 34.42L41.651 31.65C41.401 31.56 41.131 31.51 40.861 31.51L40.871 31.5Z" />
+</vector>
