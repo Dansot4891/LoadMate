@@ -14,7 +14,8 @@ import androidx.core.content.ContextCompat
 import com.loadmate.app.MainActivity
 
 /**
- * 내비가 화면을 덮고 있을 때의 짧은 알림 (F32·R09). 화면을 강제로 바꾸지 않는다.
+ * 정차가 확실할 때의 알림 전용(도착, 도착 후 짐칸 변화). 내비 안내를 가리므로 운전 중에는 띄우지 않고 음성만 쓴다 (2026-11-09 사용자 결정).
+ * 뒤에 있는 앱은 스스로 앞으로 나올 수 없어(실측) 이 알림을 눌러야 앱으로 전환된다.
  * 실측(2026-11-08): 카테고리를 지정해야 내비 위 헤드업으로 뜬다 (CATEGORY_MESSAGE / CATEGORY_NAVIGATION).
  */
 class DriverNotifier(context: Context) {
@@ -30,7 +31,7 @@ class DriverNotifier(context: Context) {
             ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) return
         val open = PendingIntent.getActivity(
-            ctx, 0, Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            ctx, 0, Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_IMMUTABLE,
         )
         nm.notify(
@@ -51,5 +52,7 @@ class DriverNotifier(context: Context) {
         const val CHANNEL = "trip"
         const val ID_ROUTE = 1
         const val ID_ISSUE = 2
+        const val ID_ARRIVAL = 3
+        const val ID_COUNT = 4
     }
 }
