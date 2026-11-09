@@ -7,6 +7,7 @@ from app.features.assistant.router import router as assistant_router
 from app.features.fleet.router import router as fleet_router
 from app.features.handover.router import router as handover_router
 from app.features.memo.router import router as memo_router
+from app.features.place.router import router as place_router
 from app.features.trip.router import router as trip_router
 
 
@@ -20,6 +21,7 @@ def create_app() -> FastAPI:
     app.include_router(memo_router)
     app.include_router(handover_router)
     app.include_router(assistant_router)
+    app.include_router(place_router)
     return app
 
 

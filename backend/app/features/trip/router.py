@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.actor import actor_id
@@ -14,9 +14,11 @@ from app.features.trip.schemas import (
     PickupIn,
     PlacementsIn,
     ReorderIn,
+    RoutePointsOut,
     SimpleChangeIn,
     StopAddIn,
     StopCancelIn,
+    StopPlaceIn,
     TripEndIn,
     BaselineIn,
     BaselineResultOut,
@@ -28,8 +30,9 @@ from app.features.trip.schemas import (
     TripOut,
 )
 from app.features.trip.service import TripService
+from app.integrations.places.vworld import PlaceSearch, get_place_search
 
-router = APIRouter(prefix="/trips", tags=["trip"])
+router =APIRouter(prefix="/trips", tags=["trip"])
 
 
 def get_service(session: Session = Depends(get_session)) -> TripService:
@@ -65,9 +68,19 @@ Svc = Depends(get_service)
 Actor = Depends(actor_id)
 
 
+@router.get("/{trip_id}/route-points", response_model=RoutePointsOut)
+def route_points(trip_id: str, stop_ids: str = Query(min_length=1), svc: TripService = Svc, places: PlaceSearch = Depends(get_place_search)) -> RoutePointsOut:
+    return svc.route_points(trip_id, [s for s in stop_ids.split(",") if s], places)
+
+
 @router.post("/{trip_id}/stops", response_model=ChangeResultOut)
 def add_stop(trip_id: str, body: StopAddIn, svc: TripService = Svc, actor: str | None = Actor) -> ChangeResultOut:
     return svc.add_stop(trip_id, body, actor)
+
+
+@router.post("/{trip_id}/stops/{stop_id}/place", response_model=ChangeResultOut)
+def change_stop_place(trip_id: str, stop_id: str, body: StopPlaceIn, svc: TripService = Svc, actor: str | None = Actor) -> ChangeResultOut:
+    return svc.change_stop_place(trip_id, stop_id, body, actor)
 
 
 @router.post("/{trip_id}/stops/reorder", response_model=ChangeResultOut)

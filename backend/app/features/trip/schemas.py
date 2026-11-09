@@ -108,8 +108,8 @@ class StopOut(_Out):
     label: str
     name: str
     address: str
-    latitude: float
-    longitude: float
+    latitude: float | None
+    longitude: float | None
     status: str
     completed_at: datetime | None
     resolution: str | None
@@ -191,6 +191,17 @@ class CompleteResultOut(BaseModel):
     comparison: ComparisonOut
 
 
+class RoutePointOut(BaseModel):
+    stop_id: str
+    latitude: float
+    longitude: float
+
+
+class RoutePointsOut(BaseModel):
+    points: list[RoutePointOut]
+    missing: list[str]
+
+
 # ---------- 운행 관리·회수·이상 (단계 A·B·F)
 
 Source = Literal["screen", "voice"]
@@ -211,10 +222,29 @@ class CargoIn(BaseModel):
 class StopAddIn(_Change):
     name: str = Field(min_length=1, max_length=200)
     address: str = ""
-    latitude: float
-    longitude: float
+    latitude: float | None = None
+    longitude: float | None = None
     place_key: str | None = None
     cargo: list[CargoIn] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _location_given(self):
+        if (self.latitude is None) != (self.longitude is None):
+            raise ValueError("위도와 경도는 함께 보내야 합니다")
+        if self.latitude is None and not self.address.strip():
+            raise ValueError("좌표가 없으면 주소가 필요합니다")
+        return self
+
+
+class StopPlaceIn(_Change):
+    name: str = Field(min_length=1, max_length=200)
+    address: str = Field(min_length=2, max_length=300)
+
+    @model_validator(mode="after")
+    def _not_blank(self):
+        if not self.name.strip() or not self.address.strip():
+            raise ValueError("이름과 주소가 필요합니다")
+        return self
 
 
 class ReorderIn(_Change):

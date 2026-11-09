@@ -250,7 +250,7 @@ _RESOLUTION = {"matched": "관측 일치", "driver_confirmed": "기사 확인", 
 
 _EVENT_LABEL = {
     "baseline_confirmed": "최초 적재 기준 확정", "stop_completed": "하차 완료", "stop_added": "방문지 추가",
-    "stops_reordered": "방문 순서 변경", "stop_cancelled": "방문지 취소", "cargo_qty_changed": "물품 수량 변경",
+    "stops_reordered": "방문 순서 변경", "stop_place_changed": "방문지 수정", "stop_cancelled": "방문지 취소", "cargo_qty_changed": "물품 수량 변경",
     "trip_ended": "운행 종료", "pickup_added": "회수·추가 상차", "pickup_returned": "회수품 반납",
     "issue_recorded": "적재 이상 의심 기록", "issue_resolved": "이상 처리", "handover_accepted": "인계 인수",
 }

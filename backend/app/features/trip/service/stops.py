@@ -25,9 +25,12 @@ from app.features.trip.schemas import (
     PickupIn,
     PickupOut,
     ReorderIn,
+    RoutePointOut,
+    RoutePointsOut,
     SimpleChangeIn,
     StopAddIn,
     StopCancelIn,
+    StopPlaceIn,
     TripEndIn,
     BaselineIn,
     BaselineOut,
@@ -48,9 +51,27 @@ from app.features.trip.schemas import (
 
 
 from app.features.trip.service.common import request_hash, stop_planned, summarize_event, ZONE_NAMES, _ISSUE_KIND, _RESOLUTION
+from app.integrations.places.vworld import PlaceSearch
 
 class StopsMixin:
     # ------------------------------------------------------------ 운행 관리 (F04·F07·F18·F29)
+
+    def route_points(self, trip_id: str, stop_ids: list[str], places: PlaceSearch) -> RoutePointsOut:
+        """내비 전달 직전 좌표. 주소로 조회한 좌표는 응답으로만 돌려주고 저장하지 않는다."""
+        trip = self._trip(trip_id)
+        points: list[RoutePointOut] = []
+        missing: list[str] = []
+        for stop_id in stop_ids:
+            stop = self._stop(trip, stop_id)
+            if stop.latitude is not None and stop.longitude is not None:
+                points.append(RoutePointOut(stop_id=stop.id, latitude=stop.latitude, longitude=stop.longitude))
+                continue
+            found = places.locate(stop.address) if stop.address else None
+            if found is None:
+                missing.append(stop.id)
+            else:
+                points.append(RoutePointOut(stop_id=stop.id, latitude=found.latitude, longitude=found.longitude))
+        return RoutePointsOut(points=points, missing=missing)
 
     def add_stop(self, trip_id: str, body: StopAddIn, actor_id: str | None) -> ChangeResultOut:
         trip = self._trip(trip_id, for_update=True)
@@ -74,6 +95,23 @@ class StopsMixin:
             return {}, {"stop_id": sid, "label": label, "name": body.name, "added_cargo": added}
 
         return self._change(trip, body, "stop_added", apply, actor_id)
+
+    def change_stop_place(self, trip_id: str, stop_id: str, body: StopPlaceIn, actor_id: str | None) -> ChangeResultOut:
+        """장소만 바꾼다. 짐은 그대로 두고, 이전 장소의 좌표와 장소 메모는 따라가지 않는다."""
+        trip = self._trip(trip_id, for_update=True)
+        self._require_open(trip)
+        stop = self._stop(trip, stop_id)
+
+        def apply() -> tuple[dict, dict]:
+            if stop.status != "pending":
+                raise AppError(409, "stop_already_completed", "이미 처리된 방문지입니다")
+            before = {"name": stop.name, "address": stop.address}
+            stop.name, stop.address = body.name.strip(), body.address.strip()
+            stop.latitude, stop.longitude = None, None
+            stop.place_key = "addr-" + hashlib.sha256(stop.address.encode("utf-8")).hexdigest()[:32]
+            return {}, {"before": before, "after": {"name": stop.name, "address": stop.address}}
+
+        return self._change(trip, body, "stop_place_changed", apply, actor_id, stop_id=stop.id)
 
     def reorder_stops(self, trip_id: str, body: ReorderIn, actor_id: str | None) -> ChangeResultOut:
         trip = self._trip(trip_id, for_update=True)

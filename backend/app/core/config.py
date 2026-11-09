@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     gemini_api_key: str = Field(default="", validation_alias="GEMINI_API_KEY")  # 없으면 규칙 기반으로만 동작
     ai_model: str = "gemini-3.5-flash-lite"  # 무료 등급 지원, 기본 사고량이 최소라 음성 응답에 맞다
     ai_timeout_seconds: float = 5.0  # 운전 중 대화라 오래 기다리지 않고 규칙 기반으로 넘어간다
+    vworld_api_key: str = Field(default="", validation_alias="VWORLD_API_KEY")  # 없으면 장소 검색을 쓸 수 없다고 응답
+    place_search_timeout_seconds: float = 4.0  # 앱 읽기 제한(5초)보다 짧게
 
 
 @lru_cache

@@ -35,8 +35,9 @@ class Stop(Base):
     label: Mapped[str] = mapped_column(String(16))
     name: Mapped[str] = mapped_column(String(200))
     address: Mapped[str] = mapped_column(String(300), default="")
-    latitude: Mapped[float] = mapped_column(Float)
-    longitude: Mapped[float] = mapped_column(Float)
+    # 검색으로 추가한 방문지는 비어 있고 내비 전달 때 주소로 조회한다
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     # 장소 식별자. 같은 장소의 메모를 운행이 바뀌어도 다시 보여 준다 (F50)
     place_key: Mapped[str] = mapped_column(String(64), default="")
     status: Mapped[str] = mapped_column(String(32), default="pending")  # pending | completed | partial | cancelled

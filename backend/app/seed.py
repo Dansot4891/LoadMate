@@ -26,10 +26,10 @@ SAMPLE_TRIP_ID = "sample-trip-1"
 SAMPLE_VEHICLE_ID = "vehicle-1"
 
 _STOPS = [
-    # id, label, name, address, lat, lng, boxes, place_key, zone(먼저 내릴 물품이 뒷문 쪽)
-    ("stop-a", "A", "판교역 납품처 (샘플)", "경기 성남시 분당구 판교역 인근", 37.3947, 127.1112, 3, "place-pangyo", "rear"),
-    ("stop-b", "B", "정자역 납품처 (샘플)", "경기 성남시 분당구 정자역 인근", 37.3670, 127.1084, 3, "place-jeongja", "middle"),
-    ("stop-c", "C", "서현역 납품처 (샘플)", "경기 성남시 분당구 서현역 인근", 37.3850, 127.1233, 4, "place-seohyeon", "front"),
+    # id, label, name, address, boxes, place_key, zone(먼저 내릴 물품이 뒷문 쪽). 좌표는 내비 전달 때 주소로 조회한다
+    ("stop-a", "A", "판교역", "경기도 성남시 분당구 판교역로 160", 3, "place-pangyo", "rear"),
+    ("stop-b", "B", "정자역", "경기도 성남시 분당구 성남대로 333", 3, "place-jeongja", "middle"),
+    ("stop-c", "C", "서현역", "경기도 성남시 분당구 성남대로 601", 4, "place-seohyeon", "front"),
 ]
 _DRIVERS = [("driver-1", "기사 1 (샘플)"), ("driver-2", "기사 2 (샘플)")]
 # 박스별 계획 자리 (lane, layer). 실제 적재 기록이 아닌 샘플. 나중에 내릴 C 부터 앞쪽에 싣는다
@@ -59,7 +59,7 @@ def ensure_sample(session: Session, reset: bool = False, demo_issue: bool = Fals
         session.merge(Driver(id=did, name=name))
     session.merge(Vehicle(id=SAMPLE_VEHICLE_ID, name="샘플 차량"))
     if reset:
-        place_keys = [x[7] for x in _STOPS]
+        place_keys = [x[5] for x in _STOPS]
         session.execute(delete(Memo).where((Memo.trip_id == SAMPLE_TRIP_ID) | Memo.scope_id.in_(place_keys)
                                            | (Memo.scope_type == "vehicle") | (Memo.scope_type == "equipment")))
         for model in (Handover, Issue, Pickup, TripEvent, Observation, PlacementRequest, CargoUnit, CargoLine, Stop):
@@ -82,13 +82,13 @@ def ensure_sample(session: Session, reset: bool = False, demo_issue: bool = Fals
         return False
     trip = Trip(id=SAMPLE_TRIP_ID, name="샘플 운행 · A·B·C", data_source="sample", status="planned",
                 created_at=now, vehicle_id=SAMPLE_VEHICLE_ID)
-    for seq, (sid, label, name, addr, lat, lng, boxes, place_key, zone) in enumerate(_STOPS, start=1):
-        st = Stop(id=sid, seq=seq, label=label, name=name, address=addr, latitude=lat, longitude=lng, place_key=place_key)
+    for seq, (sid, label, name, addr, boxes, place_key, zone) in enumerate(_STOPS, start=1):
+        st = Stop(id=sid, seq=seq, label=label, name=name, address=addr, place_key=place_key)
         st.cargo.append(CargoLine(trip_id=SAMPLE_TRIP_ID, item_name="박스", kind="box", planned_qty=boxes, zone=zone))
         trip.stops.append(st)
     session.add(trip)
     session.flush()
-    zone_by_stop = {x[0]: x[8] for x in _STOPS}
+    zone_by_stop = {x[0]: x[6] for x in _STOPS}
     lines = {st.id: st.cargo[0] for st in trip.stops}
     load_seq = 0
     for sid in _LOAD_ORDER:
