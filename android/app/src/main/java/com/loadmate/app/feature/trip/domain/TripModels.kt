@@ -25,6 +25,8 @@ data class Trip(
     val endReason: String? = null,
     val pickups: List<Pickup> = emptyList(),
     val issues: List<Issue> = emptyList(),
+    /** 박스별 자리 기록 (F12·F13). 표시용이며 잔량·완료 판정에 쓰지 않는다 */
+    val units: List<CargoUnit> = emptyList(),
 ) {
     val loadedPickups: List<Pickup> get() = pickups.filter { it.loaded }
     val openIssues: List<Issue> get() = issues.filter { it.open }
@@ -70,11 +72,38 @@ enum class StopStatus { PENDING, COMPLETED, PARTIAL, CANCELLED, UNKNOWN }
 /** zone: 적재 구역 rear(뒷문 쪽)·middle·front. 불확실하면 null (F13) */
 data class CargoLine(val id: Int, val itemName: String, val kind: String, val plannedQty: Int, val deliveredQty: Int, val zone: String? = null)
 
+/** 적재함 격자의 한 칸. zone front·middle·rear, lane 0(왼쪽)~2(오른쪽, 운전석을 바라본 기준), layer 1~3층 */
+data class CargoSlot(val zone: String, val lane: Int, val layer: Int)
+
+enum class CargoUnitState { PLANNED, LOADED, UNLOADED, UNKNOWN }
+
+/** 박스 한 개. slot 은 기록된 자리, plannedSlot 은 계획 자리. 칸이 모자라면 둘 다 null (자리 미정) */
+data class CargoUnit(
+    val id: Int,
+    val stopId: String?,
+    val pickupId: Int?,
+    val kind: String,
+    val itemName: String,
+    val no: Int,
+    val state: CargoUnitState,
+    val loadSeq: Int,
+    val slot: CargoSlot?,
+    val plannedSlot: CargoSlot?,
+    val positionSource: ObservationSource?,
+) {
+    val misplaced: Boolean get() = state == CargoUnitState.LOADED && slot != null && plannedSlot != null && slot != plannedSlot
+}
+
+/** 자리 소식. 카메라·샘플 시뮬레이션·기사 입력이 같은 형식으로 보낸다 */
+data class PlacementEvent(val unitId: Int, val type: PlacementType, val slot: CargoSlot? = null)
+
+enum class PlacementType(val wire: String) { PLACED("placed"), MOVED("moved"), REMOVED("removed"), ACCEPTED("accepted") }
+
 /** 회수품·추가 상차 (F44~F46) */
 data class Pickup(val id: Int, val stopId: String?, val itemName: String, val kind: String, val qty: Int, val returnPlace: String, val loaded: Boolean)
 
 /** 적재 이상 의심 (F30·F31·F34). 의심일 뿐 파손·책임을 확정하지 않는다 */
-data class Issue(val id: Int, val kind: String, val zone: String?, val note: String, val source: ObservationSource, val observedAt: String, val open: Boolean, val resolution: String?)
+data class Issue(val id: Int, val kind: String, val zone: String?, val note: String, val source: ObservationSource, val observedAt: String, val open: Boolean, val resolution: String?, val unitId: Int? = null)
 
 /** 수정 이력 (F64) */
 data class HistoryItem(val type: String, val source: String, val actorId: String?, val createdAt: String, val summary: String)
@@ -156,4 +185,5 @@ interface TripRepository {
     suspend fun recordIssue(tripId: String, key: String, kind: String, zone: String?, note: String, source: ObservationSource, observedAtIso: String): ApiResult<Trip>
     suspend fun resolveIssue(tripId: String, issueId: Int, key: String, resolution: String, note: String?): ApiResult<Trip>
     suspend fun history(tripId: String): ApiResult<List<HistoryItem>>
+    suspend fun recordPlacements(tripId: String, key: String, source: ObservationSource, observedAtIso: String, events: List<PlacementEvent>): ApiResult<Trip>
 }

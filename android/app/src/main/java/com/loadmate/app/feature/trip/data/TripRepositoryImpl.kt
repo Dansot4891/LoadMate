@@ -46,6 +46,11 @@ class TripRepositoryImpl(private val api: ApiClient) : TripRepository {
         change("/trips/$tripId/issues/$issueId/resolve", key, ResolveIssueDto(resolution, note))
     override suspend fun history(tripId: String): ApiResult<List<HistoryItem>> = api.get("/trips/$tripId/history", parse = TripJsonParser::history)
 
+    override suspend fun recordPlacements(tripId: String, key: String, source: ObservationSource, observedAtIso: String, events: List<PlacementEvent>) =
+        change("/trips/$tripId/placements", key, PlacementsDto(observedAtIso, events.map { e ->
+            PlacementEventDto(e.unitId, e.type.wire, e.slot?.let { SlotDto(it.zone, it.lane, it.layer) })
+        }), source.wire)
+
     private suspend inline fun <reified T> change(path: String, key: String, request: T, source: String = "screen"): ApiResult<Trip> {
         val payload = json.encodeToJsonElement(kotlinx.serialization.serializer<T>(), request) as JsonObject
         val body = JsonObject(payload + mapOf("idempotency_key" to JsonPrimitive(key), "source" to JsonPrimitive(source)))

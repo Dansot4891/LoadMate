@@ -51,6 +51,8 @@ class CachingTripRepository(private val inner: TripRepository) : TripRepository 
     override suspend fun resolveIssue(tripId: String, issueId: Int, key: String, resolution: String, note: String?) =
         remember(inner.resolveIssue(tripId, issueId, key, resolution, note))
     override suspend fun history(tripId: String) = inner.history(tripId)
+    override suspend fun recordPlacements(tripId: String, key: String, source: com.loadmate.app.feature.trip.domain.ObservationSource, observedAtIso: String,
+        events: List<com.loadmate.app.feature.trip.domain.PlacementEvent>) = remember(inner.recordPlacements(tripId, key, source, observedAtIso, events))
 
     /** 이번 실행 중 마지막으로 받은 운행과 수신 시각 */
     fun cached(tripId: String): Pair<Trip, Instant>? = memory[tripId]

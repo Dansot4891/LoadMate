@@ -5,13 +5,19 @@ import com.loadmate.app.feature.trip.domain.*
 
 internal fun TripSummaryDto.toDomain() = TripSummary(id, name, tripStatus(status), dataSource, stopCount)
 internal fun TripDto.toDomain() = Trip(id, name, dataSource, tripStatus(status), baseline?.toDomain(), stops.map { it.toDomain() }, expectedRemaining,
-    comparison.toDomain(), driverId, vehicleId, endReason, pickups.map { it.toDomain() }, issues.map { it.toDomain() })
+    comparison.toDomain(), driverId, vehicleId, endReason, pickups.map { it.toDomain() }, issues.map { it.toDomain() }, units.map { it.toDomain() })
+internal fun CargoUnitDto.toDomain() = CargoUnit(id, stopId, pickupId, kind, itemName, no, unitState(state), loadSeq,
+    slotOf(zone, lane, layer), slotOf(plannedZone, plannedLane, plannedLayer), positionSource?.let(::sourceOf))
+private fun slotOf(zone: String?, lane: Int?, layer: Int?) = if (zone != null && lane != null && layer != null) CargoSlot(zone, lane, layer) else null
+private fun unitState(value: String) = when (value) {
+    "planned" -> CargoUnitState.PLANNED; "loaded" -> CargoUnitState.LOADED; "unloaded" -> CargoUnitState.UNLOADED; else -> CargoUnitState.UNKNOWN
+}
 internal fun BaselineDto.toDomain() = Baseline(counts, confirmedAt, observationId)
 internal fun StopDto.toDomain() = Stop(id, seq, label, name, address, latitude, longitude, stopStatus(status), resolution,
     cargo.map { it.toDomain() }, placeKey, cancelReason)
 internal fun CargoLineDto.toDomain() = CargoLine(id, itemName, kind, plannedQty, deliveredQty, zone)
 internal fun PickupDto.toDomain() = Pickup(id, stopId, itemName, kind, qty, returnPlace, status == "loaded")
-internal fun IssueDto.toDomain() = Issue(id, kind, zone, note, sourceOf(source), observedAt, status == "open", resolution)
+internal fun IssueDto.toDomain() = Issue(id, kind, zone, note, sourceOf(source), observedAt, status == "open", resolution, unitId)
 internal fun HistoryItemDto.toDomain() = HistoryItem(type, source, actorId, createdAt, summary)
 internal fun ComparisonDto.toDomain() = Comparison(comparisonState(state), expected, observed, differences.map { it.toDomain() }, observation?.toDomain(), countOnly, staleAfterSeconds)
 internal fun DifferenceDto.toDomain() = Difference(kind, expected, observed)

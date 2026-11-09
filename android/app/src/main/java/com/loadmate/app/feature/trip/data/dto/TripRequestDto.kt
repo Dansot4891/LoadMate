@@ -19,4 +19,7 @@ import kotlinx.serialization.Serializable
 @Serializable data class AddPickupDto(@SerialName("stop_id") val stopId: String?, @SerialName("item_name") val itemName: String, val kind: String, val qty: Int, @SerialName("return_place") val returnPlace: String)
 @Serializable data class RecordIssueDto(val kind: String, val zone: String?, val note: String, @SerialName("observation_source") val source: String, @SerialName("observed_at") val observedAt: String)
 @Serializable data class ResolveIssueDto(val resolution: String, val note: String?)
+@Serializable data class SlotDto(val zone: String, val lane: Int, val layer: Int)
+@Serializable data class PlacementEventDto(@SerialName("unit_id") val unitId: Int, val type: String, val slot: SlotDto?)
+@Serializable data class PlacementsDto(@SerialName("observed_at") val observedAt: String, val events: List<PlacementEventDto>)
 @Serializable class EmptyRequestDto
