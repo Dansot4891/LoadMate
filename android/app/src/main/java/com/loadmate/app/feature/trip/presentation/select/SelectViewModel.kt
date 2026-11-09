@@ -22,8 +22,6 @@ class SelectViewModel(private val repository: TripRepository) : ViewModel() {
     private val mutableEffect = MutableSharedFlow<SelectUiEffect>()
     val effect = mutableEffect.asSharedFlow()
 
-    init { onAction(SelectUiAction.Refresh) }
-
     fun onAction(action: SelectUiAction) {
         when (action) {
             SelectUiAction.Refresh -> refresh()

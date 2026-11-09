@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.loadmate.app.shared.designsystem.theme.Pleos
 import com.loadmate.app.shared.designsystem.components.PleosButton
@@ -23,6 +24,11 @@ import com.loadmate.app.feature.trip.presentation.select.components.TripRow
 
 @Composable
 fun SelectScreen(viewModel: SelectViewModel) {
+    // 화면에 들어오거나 운행·다른 앱에서 돌아올 때마다 목록을 다시 받는다
+    LifecycleStartEffect(viewModel) {
+        viewModel.onAction(SelectUiAction.Refresh)
+        onStopOrDispose { }
+    }
     val state by viewModel.state.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize().background(Pleos.colors.backgroundPrimary).verticalScroll(rememberScrollState()).padding(PleosSpacing.xl),
         verticalArrangement = Arrangement.spacedBy(PleosSpacing.l)) {
