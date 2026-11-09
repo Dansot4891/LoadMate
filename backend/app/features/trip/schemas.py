@@ -124,6 +124,25 @@ class BaselineOut(_Out):
     observation_id: int | None
 
 
+class CargoUnitOut(_Out):
+    id: int
+    stop_id: str | None
+    pickup_id: int | None
+    kind: str
+    item_name: str
+    no: int
+    state: Literal["planned", "loaded", "unloaded"]
+    load_seq: int
+    zone: str | None
+    lane: int | None
+    layer: int | None
+    planned_zone: str | None
+    planned_lane: int | None
+    planned_layer: int | None
+    position_source: str | None
+    updated_at: datetime
+
+
 class TripOut(_Out):
     id: str
     name: str
@@ -138,6 +157,7 @@ class TripOut(_Out):
     end_reason: str | None = None
     pickups: list["PickupOut"] = []
     issues: list["IssueOut"] = []
+    units: list[CargoUnitOut] = []
 
 
 class TripSummaryOut(BaseModel):
@@ -237,6 +257,25 @@ class IssueIn(_Change):
 class IssueResolveIn(_Change):
     resolution: Literal["no_issue", "rearranged", "needs_action"]
     note: str | None = Field(default=None, max_length=500)
+
+
+class SlotIn(BaseModel):
+    zone: Literal["front", "middle", "rear"]
+    lane: int = Field(ge=0, le=2)
+    layer: int = Field(ge=1, le=3)
+
+
+class PlacementEventIn(BaseModel):
+    unit_id: int
+    type: Literal["placed", "moved", "removed", "accepted"]
+    slot: SlotIn | None = None
+
+
+class PlacementsIn(BaseModel):
+    idempotency_key: str = Field(min_length=8, max_length=64)
+    source: Literal["sample", "manual", "recorded_video"]
+    observed_at: datetime
+    events: list[PlacementEventIn] = Field(min_length=1, max_length=100)
 
 
 class PickupOut(_Out):

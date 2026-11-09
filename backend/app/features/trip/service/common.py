@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.core.errors import AppError
 from app.core.time import as_utc, utcnow
 from app.features.trip import rules
-from app.features.trip.models import CargoLine, Issue, Observation, Pickup, Stop, Trip, TripEvent
+from app.features.trip.models import CargoLine, CargoUnit, Issue, Observation, Pickup, Stop, Trip, TripEvent
 from app.features.trip.repository import TripRepository
 from app.features.trip.schemas import (
     CargoQtyIn,
@@ -33,6 +33,7 @@ from app.features.trip.schemas import (
     BaselineOut,
     BaselineResultOut,
     CargoOut,
+    CargoUnitOut,
     CompleteIn,
     CompleteResultOut,
     ComparisonOut,
@@ -186,7 +187,53 @@ class CommonMixin:
             driver_id=trip.driver_id, vehicle_id=trip.vehicle_id, end_reason=trip.end_reason,
             pickups=[self._pickup_out(p) for p in self.repo.pickups(trip.id)],
             issues=[self._issue_out(i) for i in self.repo.issues(trip.id)],
+            units=[self._unit_out(u) for u in self.repo.units(trip.id)],
         )
+
+    # ------------------------------------------------------------ 적재 자리 (F12·F13)
+
+    @staticmethod
+    def _unit_out(u: CargoUnit) -> CargoUnitOut:
+        return CargoUnitOut(
+            id=u.id, stop_id=u.stop_id, pickup_id=u.pickup_id, kind=u.kind, item_name=u.item_name, no=u.no, state=u.state, load_seq=u.load_seq,
+            zone=u.zone, lane=u.lane, layer=u.layer, planned_zone=u.planned_zone, planned_lane=u.planned_lane, planned_layer=u.planned_layer,
+            position_source=u.position_source, updated_at=as_utc(u.updated_at),
+        )
+
+    def _add_units(self, trip_id: str, qty: int, *, stop_id: str | None, kind: str, item_name: str, loaded: bool,
+                   cargo_line_id: int | None = None, pickup_id: int | None = None, preferred: str | None = None) -> None:
+        """빈 칸을 배정해 단위를 만든다. loaded 면 이미 실린 것으로 기록한다 (기사 입력 출처)."""
+        existing = self.repo.units(trip_id)
+        held: set[rules.Slot] = set()
+        for u in existing:
+            if u.state == "loaded" and u.zone is not None:
+                held.add((u.zone, u.lane, u.layer))
+            elif u.state == "planned" and u.planned_zone is not None:
+                held.add((u.planned_zone, u.planned_lane, u.planned_layer))
+        same = [u.no for u in existing if (pickup_id is not None and u.pickup_id == pickup_id) or (pickup_id is None and u.stop_id == stop_id and u.pickup_id is None)]
+        no = max(same, default=0)
+        seq = max((u.load_seq for u in existing), default=0)
+        for i, slot in enumerate(rules.free_slots(held, qty, preferred), start=1):
+            z, lane, layer = slot if slot is not None else (None, None, None)
+            self.repo.add(CargoUnit(
+                trip_id=trip_id, stop_id=stop_id, cargo_line_id=cargo_line_id, pickup_id=pickup_id, kind=kind, item_name=item_name,
+                no=no + i, load_seq=seq + i, state="loaded" if loaded else "planned",
+                planned_zone=z, planned_lane=lane, planned_layer=layer,
+                zone=z if loaded else None, lane=lane if loaded else None, layer=layer if loaded else None,
+                position_source="manual" if loaded else None, updated_at=self.now(),
+            ))
+        self.s.flush()
+
+    def _unload_units(self, trip_id: str, targets: list[CargoUnit]) -> None:
+        """하차·반납이 확정된 단위를 빼고, 남은 단위를 아래로 내려앉힌다."""
+        now = self.now()
+        for u in targets:
+            u.state, u.zone, u.lane, u.layer, u.updated_at = "unloaded", None, None, None, now
+        loaded = [u for u in self.repo.units(trip_id) if u.state == "loaded" and u.zone is not None]
+        changed = rules.settle_layers([(u.id, u.zone, u.lane, u.layer) for u in loaded])
+        for u in loaded:
+            if u.id in changed:
+                u.layer, u.updated_at = changed[u.id], now
 
 
 def stop_planned(stop: Stop) -> dict[str, int]:

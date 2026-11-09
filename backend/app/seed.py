@@ -19,7 +19,7 @@ from app.core.time import utcnow
 from app.features.fleet.models import Driver, Equipment, Vehicle
 from app.features.handover.models import Handover
 from app.features.memo.models import Memo
-from app.features.trip.models import CargoLine, Issue, Observation, Pickup, Stop, Trip, TripEvent
+from app.features.trip.models import CargoLine, CargoUnit, Issue, Observation, Pickup, PlacementRequest, Stop, Trip, TripEvent
 
 SAMPLE_TRIP_ID = "sample-trip-1"
 
@@ -32,6 +32,13 @@ _STOPS = [
     ("stop-c", "C", "서현역 납품처 (샘플)", "경기 성남시 분당구 서현역 인근", 37.3850, 127.1233, 4, "place-seohyeon", "front"),
 ]
 _DRIVERS = [("driver-1", "기사 1 (샘플)"), ("driver-2", "기사 2 (샘플)")]
+# 박스별 계획 자리 (lane, layer). 실제 적재 기록이 아닌 샘플. 나중에 내릴 C 부터 앞쪽에 싣는다
+_SLOTS = {
+    "stop-c": [(0, 1), (1, 1), (2, 1), (1, 2)],
+    "stop-b": [(0, 1), (2, 1), (0, 2)],
+    "stop-a": [(0, 1), (1, 1), (1, 2)],
+}
+_LOAD_ORDER = ["stop-c", "stop-b", "stop-a"]
 _EQUIPMENT = [
     ("equip-cart", "접이식 핸드카트", "적재함 뒷문 오른쪽"),
     ("equip-strap", "화물 고정 끈 4개", "조수석 뒤 수납함"),
@@ -55,7 +62,7 @@ def ensure_sample(session: Session, reset: bool = False) -> bool:
         place_keys = [x[7] for x in _STOPS]
         session.execute(delete(Memo).where((Memo.trip_id == SAMPLE_TRIP_ID) | Memo.scope_id.in_(place_keys)
                                            | (Memo.scope_type == "vehicle") | (Memo.scope_type == "equipment")))
-        for model in (Handover, Issue, Pickup, TripEvent, Observation, CargoLine, Stop):
+        for model in (Handover, Issue, Pickup, TripEvent, Observation, PlacementRequest, CargoUnit, CargoLine, Stop):
             session.execute(delete(model).where(model.trip_id == SAMPLE_TRIP_ID))
         session.execute(delete(Trip).where(Trip.id == SAMPLE_TRIP_ID))
         session.execute(delete(Equipment).where(Equipment.vehicle_id == SAMPLE_VEHICLE_ID))
@@ -81,6 +88,16 @@ def ensure_sample(session: Session, reset: bool = False) -> bool:
         trip.stops.append(st)
     session.add(trip)
     session.flush()
+    zone_by_stop = {x[0]: x[8] for x in _STOPS}
+    lines = {st.id: st.cargo[0] for st in trip.stops}
+    load_seq = 0
+    for sid in _LOAD_ORDER:
+        for no, (lane, layer) in enumerate(_SLOTS[sid], start=1):
+            load_seq += 1
+            unit = CargoUnit(trip_id=SAMPLE_TRIP_ID, stop_id=sid, cargo_line_id=lines[sid].id, kind="box", item_name="박스", no=no,
+                             load_seq=load_seq, state="planned", planned_zone=zone_by_stop[sid], planned_lane=lane, planned_layer=layer, updated_at=now)
+            session.add(unit)
+            session.flush()
     # 공유 현장 메모 예시 (샘플). 실제 기사 경험 기록이 아니다
     session.add(Memo(idempotency_key="seed-memo-1", scope_type="place", scope_id="place-jeongja",
                      body="(샘플) 정문은 오전 혼잡. 하역은 건물 뒤편 출입구가 편함", tags=["진입", "하역"], visibility="shared",

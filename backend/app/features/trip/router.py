@@ -12,6 +12,7 @@ from app.features.trip.schemas import (
     IssueIn,
     IssueResolveIn,
     PickupIn,
+    PlacementsIn,
     ReorderIn,
     SimpleChangeIn,
     StopAddIn,
@@ -107,6 +108,11 @@ def record_issue(trip_id: str, body: IssueIn, svc: TripService = Svc, actor: str
 @router.post("/{trip_id}/issues/{issue_id}/resolve", response_model=ChangeResultOut)
 def resolve_issue(trip_id: str, issue_id: int, body: IssueResolveIn, svc: TripService = Svc, actor: str | None = Actor) -> ChangeResultOut:
     return svc.resolve_issue(trip_id, issue_id, body, actor)
+
+
+@router.post("/{trip_id}/placements", response_model=ChangeResultOut)
+def record_placements(trip_id: str, body: PlacementsIn, svc: TripService = Svc) -> ChangeResultOut:
+    return svc.record_placements(trip_id, body)
 
 
 @router.get("/{trip_id}/history", response_model=HistoryOut)

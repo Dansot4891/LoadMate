@@ -42,6 +42,7 @@ def test_add_stop_after_baseline_changes_route_only(client):
     baseline(client)  # 이제 계획 12 중 10 만 확정했다고 가정
     t = post(client, "/stops", {"name": "E", "latitude": 37.4, "longitude": 127.1, "cargo": [{"item_name": "용기", "kind": "container", "qty": 1}]}).json()["trip"]
     assert t["expected_remaining"] == {"box": 10}  # 경로만 늘고 실린 짐은 그대로
+    assert not [u for u in t["units"] if u["kind"] == "container"]
 
 
 def test_reorder_only_pending_and_complete_list(client):

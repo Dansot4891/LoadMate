@@ -64,6 +64,7 @@ class PickupsMixin:
                        return_place=body.return_place, created_at=self.now())
             self.repo.add(p)
             self.s.flush()
+            self._add_units(trip.id, body.qty, stop_id=body.stop_id, kind=body.kind, item_name=body.item_name, loaded=True, pickup_id=p.id, preferred="rear")
             return {body.kind: body.qty}, {"pickup_id": p.id, "item_name": body.item_name, "return_place": body.return_place}
 
         return self._change(trip, body, "pickup_added", apply, actor_id, stop_id=body.stop_id)
@@ -79,6 +80,7 @@ class PickupsMixin:
                 raise AppError(409, "pickup_already_returned", "이미 반납 처리되었습니다")
             p.status = "returned"
             p.returned_at = self.now()
+            self._unload_units(trip.id, [u for u in self.repo.units(trip.id) if u.pickup_id == p.id and u.state == "loaded"])
             self._maybe_finish(trip)
             return {p.kind: -p.qty}, {"pickup_id": p.id, "return_place": p.return_place}
 

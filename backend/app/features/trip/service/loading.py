@@ -86,6 +86,11 @@ class LoadingMixin:
             delta=dict(body.counts), detail={"observation_id": body.observation_id}, actor_id=actor_id, created_at=self.now(),
         ))
         trip.status = "in_progress"
+        # 기사가 적재를 확정했으므로 소식이 없던 단위도 계획 자리에 실린 것으로 기록한다
+        for u in self.repo.units(trip.id):
+            if u.state == "planned":
+                u.state, u.zone, u.lane, u.layer = "loaded", u.planned_zone, u.planned_lane, u.planned_layer
+                u.position_source, u.updated_at = "manual", self.now()
         if actor_id and trip.driver_id is None:
             trip.driver_id = actor_id
         self._commit()
@@ -130,6 +135,7 @@ class LoadingMixin:
             )
 
         self._apply_delivery(stop, body.delivered)
+        self._unload_units(trip.id, self._delivered_units(trip.id, stop.id, body.delivered))
         stop.status = "completed" if all(l.delivered_qty == l.planned_qty for l in stop.cargo) else "partial"
         stop.completed_at = self.now()
         stop.resolution = "matched" if cmp.state == "match" else "driver_confirmed"
@@ -147,3 +153,11 @@ class LoadingMixin:
             expected_remaining=self._expected(trip.id) or {}, comparison=cmp,
         )
 
+    def _delivered_units(self, trip_id: str, stop_id: str, delivered: dict[str, int]) -> list:
+        """내릴 단위: 위층부터, 나중에 실린 것부터 (손이 먼저 닿는 순서)."""
+        out = []
+        loaded = [u for u in self.repo.units(trip_id) if u.stop_id == stop_id and u.pickup_id is None and u.state == "loaded"]
+        for kind, n in delivered.items():
+            same = sorted((u for u in loaded if u.kind == kind), key=lambda u: (u.layer or 0, u.load_seq), reverse=True)
+            out.extend(same[:n])
+        return out

@@ -8,9 +8,10 @@ from app.features.trip.service.stops import StopsMixin
 from app.features.trip.service.loading import LoadingMixin
 from app.features.trip.service.pickups import PickupsMixin
 from app.features.trip.service.issues import IssuesMixin
+from app.features.trip.service.placements import PlacementsMixin
 
 
-class TripService(TripsMixin, StopsMixin, LoadingMixin, PickupsMixin, IssuesMixin, CommonMixin):
+class TripService(TripsMixin, StopsMixin, LoadingMixin, PickupsMixin, IssuesMixin, PlacementsMixin, CommonMixin):
     def __init__(self, session: Session, now=utcnow, stale_after: timedelta = DEFAULT_STALE_AFTER):
         self.s = session
         self.repo = TripRepository(session)

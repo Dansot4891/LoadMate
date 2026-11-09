@@ -73,3 +73,32 @@ def compare(
         if exp.get(k, 0) != latest.counts.get(k, 0)
     ]
     return Comparison("mismatch" if diffs else "match", expected, latest.counts, latest, diffs)
+
+
+# ---------- 적재 자리 (F12·F13)
+
+ZONES = ("front", "middle", "rear")
+LANES = 3
+LAYERS = 3
+Slot = tuple[str, int, int]  # (zone, lane, layer)
+
+
+def free_slots(occupied: set[Slot], n: int, preferred: str | None = None) -> list[Slot | None]:
+    """빈 칸 n 개를 고른다. 선호 구역부터, 아래층부터 채운다. 칸이 모자라면 나머지는 None (자리 미정)."""
+    rest = [z for z in ("rear", "middle", "front") if z != preferred]
+    order = ([preferred] if preferred in ZONES else []) + rest
+    empty = [(z, lane, layer) for z in order for layer in range(1, LAYERS + 1) for lane in range(LANES) if (z, lane, layer) not in occupied]
+    return [empty[i] if i < len(empty) else None for i in range(n)]
+
+
+def settle_layers(units: list[tuple[int, str, int, int]]) -> dict[int, int]:
+    """(id, zone, lane, layer) 목록에서 같은 줄의 아래 칸이 비면 내려앉힌 층을 돌려준다. 바뀐 단위만 담는다."""
+    columns: dict[tuple[str, int], list[tuple[int, int]]] = {}
+    for uid, zone, lane, layer in units:
+        columns.setdefault((zone, lane), []).append((layer, uid))
+    changed: dict[int, int] = {}
+    for items in columns.values():
+        for new_layer, (layer, uid) in enumerate(sorted(items), start=1):
+            if layer != new_layer:
+                changed[uid] = new_layer
+    return changed

@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.features.trip.models import Issue, Observation, Pickup, Stop, Trip, TripEvent
+from app.features.trip.models import CargoUnit, Issue, Observation, Pickup, PlacementRequest, Stop, Trip, TripEvent
 
 
 class TripRepository:
@@ -58,6 +58,14 @@ class TripRepository:
 
     def issues(self, trip_id: str) -> list[Issue]:
         return list(self.s.scalars(select(Issue).where(Issue.trip_id == trip_id).order_by(Issue.id)))
+
+    def units(self, trip_id: str) -> list[CargoUnit]:
+        return list(self.s.scalars(select(CargoUnit).where(CargoUnit.trip_id == trip_id).order_by(CargoUnit.load_seq, CargoUnit.id)))
+
+    def placement_by_key(self, trip_id: str, key: str) -> PlacementRequest | None:
+        return self.s.scalars(
+            select(PlacementRequest).where(PlacementRequest.trip_id == trip_id, PlacementRequest.idempotency_key == key)
+        ).first()
 
     def add(self, obj) -> None:
         self.s.add(obj)

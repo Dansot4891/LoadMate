@@ -66,6 +66,47 @@ class CargoLine(Base):
     stop: Mapped[Stop] = relationship(back_populates="cargo")
 
 
+class CargoUnit(Base):
+    """박스 한 개의 자리 기록 (F12·F13). 표시용이며 잔량·완료 판정에 쓰지 않는다 (원칙 2)."""
+
+    __tablename__ = "cargo_units"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    trip_id: Mapped[str] = mapped_column(ForeignKey("trips.id", ondelete="CASCADE"), index=True)
+    stop_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    cargo_line_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 배송품이면 물품 항목
+    pickup_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 회수품이면 회수 기록
+    kind: Mapped[str] = mapped_column(String(32))
+    item_name: Mapped[str] = mapped_column(String(200))
+    no: Mapped[int] = mapped_column(Integer)  # 방문지(또는 회수 건) 안의 번호
+    load_seq: Mapped[int] = mapped_column(Integer)  # 상차 순서. 먼저 내릴 물품일수록 늦게 싣는다
+    state: Mapped[str] = mapped_column(String(16), default="planned")  # planned | loaded | unloaded
+    planned_zone: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    planned_lane: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    planned_layer: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    zone: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    lane: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    layer: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    position_source: Mapped[str | None] = mapped_column(String(32), nullable=True)  # sample | manual | recorded_video
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class PlacementRequest(Base):
+    """자리 소식 수신 기록. 멱등 처리와 근거 보존용이며 업무 이벤트(TripEvent)와 분리한다."""
+
+    __tablename__ = "placement_requests"
+    __table_args__ = (UniqueConstraint("trip_id", "idempotency_key", name="uq_placement_idem"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    trip_id: Mapped[str] = mapped_column(ForeignKey("trips.id", ondelete="CASCADE"), index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(64))
+    request_hash: Mapped[str] = mapped_column(String(64))
+    source: Mapped[str] = mapped_column(String(32))
+    events: Mapped[list] = mapped_column(JSON)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class Observation(Base):
     """관측(카메라·샘플·수동). 업무 상태를 직접 바꾸지 않는다 (원칙 2)."""
 

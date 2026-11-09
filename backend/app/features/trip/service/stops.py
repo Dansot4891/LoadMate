@@ -120,7 +120,7 @@ class StopsMixin:
                 raise AppError(409, "stop_already_completed", "이미 처리된 방문지입니다")
             before = line.planned_qty
             line.planned_qty = body.planned_qty
-            # 계획 수량 변경. 실제 적재 기준(확정값)은 바꾸지 않는다
+            # 계획 수량 변경. 실제 적재 기준(확정값)과 박스 단위는 바꾸지 않는다
             return {}, {"cargo_line_id": line.id, "kind": line.kind, "before": before, "after": body.planned_qty}
 
         return self._change(trip, body, "cargo_qty_changed", apply, actor_id, stop_id=stop.id)
