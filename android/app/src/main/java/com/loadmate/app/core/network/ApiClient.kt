@@ -30,18 +30,23 @@ class ApiClient(
 
     suspend fun <T> put(path: String, body: String, parse: (String) -> T): ApiResult<T> = call("PUT", path, body, parse)
 
+    suspend fun <T> delete(path: String, parse: (String) -> T): ApiResult<T> = call("DELETE", path, null, parse)
+
+    /** 서버가 AI 응답을 기다리는 요청. 서버 측 제한(12초)보다 길게 기다린다 */
+    suspend fun <T> postWaitingForAi(path: String, body: String, parse: (String) -> T): ApiResult<T> = call("POST", path, body, parse, AI_READ_TIMEOUT_MS)
+
     private fun queryString(q: Map<String, String?>): String {
         val parts = q.filterValues { !it.isNullOrBlank() }.map { (k, v) -> "$k=" + URLEncoder.encode(v, "UTF-8") }
         return if (parts.isEmpty()) "" else "?" + parts.joinToString("&")
     }
 
-    private suspend fun <T> call(method: String, path: String, body: String?, parse: (String) -> T): ApiResult<T> {
+    private suspend fun <T> call(method: String, path: String, body: String?, parse: (String) -> T, readTimeoutMs: Int = 5_000): ApiResult<T> {
         if (baseUrl.isBlank()) return ApiResult.Failure(ApiError.NotConfigured)
         return withContext(io) {
             val conn = URL(baseUrl.trimEnd('/') + path).openConnection() as HttpURLConnection
             try {
                 conn.connectTimeout = 3_000
-                conn.readTimeout = 5_000
+                conn.readTimeout = readTimeoutMs
                 conn.requestMethod = method
                 conn.setRequestProperty("Accept", "application/json")
                 driverId()?.let { conn.setRequestProperty("X-Driver-Id", it) }
@@ -69,6 +74,7 @@ class ApiClient(
     }
 
     companion object {
+        private const val AI_READ_TIMEOUT_MS = 15_000
         /** {"detail":{"code","message"}} → (code, message). FastAPI 422 는 detail 이 배열이라 code 없음 */
         private val json = Json { ignoreUnknownKeys = true }
         fun errorOf(body: String): Pair<String?, String?> = runCatching {
