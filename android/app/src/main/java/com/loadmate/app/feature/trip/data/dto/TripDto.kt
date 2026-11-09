@@ -23,10 +23,13 @@ import kotlinx.serialization.Serializable
 )
 @Serializable data class BaselineDto(val counts: Map<String, Int>, @SerialName("confirmed_at") val confirmedAt: String, @SerialName("observation_id") val observationId: Int? = null)
 @Serializable data class StopDto(
-    val id: String, val seq: Int, val label: String, val name: String, val address: String = "", val latitude: Double, val longitude: Double,
+    val id: String, val seq: Int, val label: String, val name: String, val address: String = "", val latitude: Double? = null, val longitude: Double? = null,
     val status: String, val resolution: String? = null, val cargo: List<CargoLineDto>, @SerialName("place_key") val placeKey: String = "",
     @SerialName("cancel_reason") val cancelReason: String? = null,
 )
+@Serializable data class AddressCheckDto(val found: Boolean)
+@Serializable data class RoutePointDto(@SerialName("stop_id") val stopId: String, val latitude: Double, val longitude: Double)
+@Serializable data class RoutePointsDto(val points: List<RoutePointDto>, val missing: List<String>)
 @Serializable data class CargoLineDto(val id: Int, @SerialName("item_name") val itemName: String, val kind: String, @SerialName("planned_qty") val plannedQty: Int, @SerialName("delivered_qty") val deliveredQty: Int, val zone: String? = null)
 @Serializable data class PickupDto(val id: Int, @SerialName("stop_id") val stopId: String? = null, @SerialName("item_name") val itemName: String, val kind: String, val qty: Int, @SerialName("return_place") val returnPlace: String, val status: String)
 @Serializable data class IssueDto(val id: Int, val kind: String, val zone: String? = null, val note: String = "", val source: String, @SerialName("observed_at") val observedAt: String, val status: String, val resolution: String? = null, @SerialName("unit_id") val unitId: Int? = null)

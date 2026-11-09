@@ -30,7 +30,13 @@ class TripRepositoryImpl(private val api: ApiClient) : TripRepository {
         api.post("/trips/$tripId/stops/$stopId/complete", json.encodeToString(CompleteRequestDto(idempotencyKey, delivered,
             if (driverConfirmed) "driver_confirmed" else null)), TripJsonParser::completeResult)
 
-    override suspend fun addStop(tripId: String, key: String, name: String, address: String, lat: Double, lng: Double, cargo: List<NewCargo>) =
+    override suspend fun checkAddress(address: String): ApiResult<Boolean> = api.get("/places/check", mapOf("address" to address), TripJsonParser::addressFound)
+    override suspend fun changeStopPlace(tripId: String, stopId: String, key: String, name: String, address: String) =
+        change("/trips/$tripId/stops/$stopId/place", key, ChangeStopPlaceDto(name, address))
+    override suspend fun routePoints(tripId: String, stopIds: List<String>): ApiResult<RoutePoints> =
+        api.get("/trips/$tripId/route-points", mapOf("stop_ids" to stopIds.joinToString(",")), TripJsonParser::routePoints)
+
+    override suspend fun addStop(tripId: String, key: String, name: String, address: String, lat: Double?, lng: Double?, cargo: List<NewCargo>) =
         change("/trips/$tripId/stops", key, AddStopDto(name, address, lat, lng, cargo.map { NewCargoDto(it.itemName, it.kind, it.qty) }))
     override suspend fun reorderStops(tripId: String, key: String, stopIds: List<String>) = change("/trips/$tripId/stops/reorder", key, ReorderStopsDto(stopIds))
     override suspend fun cancelStop(tripId: String, stopId: String, key: String, reason: String) = change("/trips/$tripId/stops/$stopId/cancel", key, CancelStopDto(reason))

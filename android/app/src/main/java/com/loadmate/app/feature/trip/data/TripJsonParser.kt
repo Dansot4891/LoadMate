@@ -14,5 +14,7 @@ internal object TripJsonParser {
     fun history(body: String): List<HistoryItem> = json.decodeFromString<HistoryListDto>(body).items.map { it.toDomain() }
     fun observationComparison(body: String): Comparison = json.decodeFromString<ComparisonEnvelopeDto>(body).comparison.toDomain()
     fun baselineTrip(body: String): Trip = changedTrip(body)
+    fun addressFound(body: String): Boolean = json.decodeFromString<AddressCheckDto>(body).found
+    fun routePoints(body: String): RoutePoints = json.decodeFromString<RoutePointsDto>(body).toDomain()
     fun completeResult(body: String): CompleteResult = json.decodeFromString<CompleteResultDto>(body).toDomain()
 }

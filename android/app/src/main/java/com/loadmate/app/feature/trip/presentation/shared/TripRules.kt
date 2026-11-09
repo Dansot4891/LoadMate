@@ -11,7 +11,7 @@ data class RoutePlan(val destination: NaviDestination, val waypoints: List<NaviD
 internal fun routePlan(pending: List<Stop>): RoutePlan? {
     val take = pending.take(NaviGateway.MAX_WAYPOINTS + 1)
     if (take.isEmpty()) return null
-    val dests = take.map { NaviDestination("${it.label} · ${it.name}", it.latitude, it.longitude, it.address) }
+    val dests = take.map { NaviDestination("${it.label} · ${it.name}", it.latitude ?: return null, it.longitude ?: return null, it.address) }
     return RoutePlan(dests.last(), dests.dropLast(1), take.map { it.label })
 }
 

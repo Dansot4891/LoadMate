@@ -35,7 +35,11 @@ class CachingTripRepository(private val inner: TripRepository) : TripRepository 
         remember(inner.confirmBaseline(tripId, idempotencyKey, counts, observationId))
     override suspend fun completeStop(tripId: String, stopId: String, idempotencyKey: String, delivered: com.loadmate.app.feature.trip.domain.Counts, driverConfirmed: Boolean) =
         inner.completeStop(tripId, stopId, idempotencyKey, delivered, driverConfirmed)
-    override suspend fun addStop(tripId: String, key: String, name: String, address: String, lat: Double, lng: Double, cargo: List<com.loadmate.app.feature.trip.domain.NewCargo>) =
+    override suspend fun checkAddress(address: String) = inner.checkAddress(address)
+    override suspend fun changeStopPlace(tripId: String, stopId: String, key: String, name: String, address: String) =
+        remember(inner.changeStopPlace(tripId, stopId, key, name, address))
+    override suspend fun routePoints(tripId: String, stopIds: List<String>) = inner.routePoints(tripId, stopIds)
+    override suspend fun addStop(tripId: String, key: String, name: String, address: String, lat: Double?, lng: Double?, cargo: List<com.loadmate.app.feature.trip.domain.NewCargo>) =
         remember(inner.addStop(tripId, key, name, address, lat, lng, cargo))
     override suspend fun reorderStops(tripId: String, key: String, stopIds: List<String>) = remember(inner.reorderStops(tripId, key, stopIds))
     override suspend fun cancelStop(tripId: String, stopId: String, key: String, reason: String) = remember(inner.cancelStop(tripId, stopId, key, reason))

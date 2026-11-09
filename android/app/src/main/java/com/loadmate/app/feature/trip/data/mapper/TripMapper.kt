@@ -16,6 +16,7 @@ internal fun BaselineDto.toDomain() = Baseline(counts, confirmedAt, observationI
 internal fun StopDto.toDomain() = Stop(id, seq, label, name, address, latitude, longitude, stopStatus(status), resolution,
     cargo.map { it.toDomain() }, placeKey, cancelReason)
 internal fun CargoLineDto.toDomain() = CargoLine(id, itemName, kind, plannedQty, deliveredQty, zone)
+internal fun RoutePointsDto.toDomain() = RoutePoints(points.associate { it.stopId to RoutePoint(it.latitude, it.longitude) }, missing)
 internal fun PickupDto.toDomain() = Pickup(id, stopId, itemName, kind, qty, returnPlace, status == "loaded")
 internal fun IssueDto.toDomain() = Issue(id, kind, zone, note, sourceOf(source), observedAt, status == "open", resolution, unitId)
 internal fun HistoryItemDto.toDomain() = HistoryItem(type, source, actorId, createdAt, summary)

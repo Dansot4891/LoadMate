@@ -55,8 +55,9 @@ data class Stop(
     val label: String,
     val name: String,
     val address: String,
-    val latitude: Double,
-    val longitude: Double,
+    /** 검색으로 추가한 방문지는 null. 내비로 보낼 때 서버에서 받아 쓰고 저장하지 않는다 */
+    val latitude: Double?,
+    val longitude: Double?,
     val status: StopStatus,
     /** matched = 관측과 일치해 완료, driver_confirmed = 기사 확인으로 완료 */
     val resolution: String?,
@@ -109,6 +110,11 @@ data class Issue(val id: Int, val kind: String, val zone: String?, val note: Str
 data class HistoryItem(val type: String, val source: String, val actorId: String?, val createdAt: String, val summary: String)
 
 data class NewCargo(val itemName: String, val kind: String, val qty: Int)
+
+data class RoutePoint(val latitude: Double, val longitude: Double)
+
+/** 내비 전달 직전 좌표. missing 은 주소로 위치를 찾지 못한 방문지 ID */
+data class RoutePoints(val points: Map<String, RoutePoint>, val missing: List<String>)
 
 data class Comparison(
     val state: ComparisonState,
@@ -178,7 +184,11 @@ interface TripRepository {
     ): ApiResult<CompleteResult>
 
     // 운행 관리·회수·이상 (응답은 갱신된 운행). source: "screen" | "voice"
-    suspend fun addStop(tripId: String, key: String, name: String, address: String, lat: Double, lng: Double, cargo: List<NewCargo>): ApiResult<Trip>
+    /** 입력한 주소의 위치가 잡히는지만 확인한다 */
+    suspend fun checkAddress(address: String): ApiResult<Boolean>
+    suspend fun changeStopPlace(tripId: String, stopId: String, key: String, name: String, address: String): ApiResult<Trip>
+    suspend fun routePoints(tripId: String, stopIds: List<String>): ApiResult<RoutePoints>
+    suspend fun addStop(tripId: String, key: String, name: String, address: String, lat: Double?, lng: Double?, cargo: List<NewCargo>): ApiResult<Trip>
     suspend fun reorderStops(tripId: String, key: String, stopIds: List<String>): ApiResult<Trip>
     suspend fun cancelStop(tripId: String, stopId: String, key: String, reason: String): ApiResult<Trip>
     suspend fun changeCargoQty(tripId: String, stopId: String, key: String, cargoLineId: Int, plannedQty: Int): ApiResult<Trip>
