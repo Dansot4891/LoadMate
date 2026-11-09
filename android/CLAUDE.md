@@ -36,14 +36,14 @@ app/
 │   │   ├── components/      # 공식 Figma 컴포넌트 전체 (지금 안 쓰는 것도 둔다, 2026-11-09 사용자 결정)
 │   │   └── project/         # Figma 에 없어 직접 만든 컴포넌트 (PROJECT)
 │   └── format/              # 화면 공용 표시 형식
-└── feature/<name>/          # trip, records, fleet, assistant, settings ...
+└── feature/<name>/          # trip, records, assistant, settings ...
     ├── domain/              # 모델 + XxxRepository 인터페이스. Android·HTTP·Pleos 의존 금지
     ├── data/
     │   ├── dto/             # @Serializable 서버 응답/요청 (필드명 = 서버 그대로, @SerialName)
     │   ├── mapper/          # fun XxxDto.toDomain(): Xxx  (DTO → 도메인 변환은 여기서만)
     │   └── XxxRepositoryImpl.kt
     └── presentation/
-        ├── <screen>/        # 화면 하나 = 폴더 하나 (예: trip/presentation/loadcheck/)
+        ├── <screen>/        # 화면 하나 = 폴더 하나 (예: trip/presentation/cargo/)
         │   ├── XxxScreen.kt       # ViewModel 상태 구독·액션 전달만
         │   ├── XxxUiState.kt
         │   ├── XxxUiAction.kt
@@ -54,7 +54,7 @@ app/
 test/                        # main 과 같은 패키지 경로
 ```
 
-- 패키지 이름은 소문자 붙여쓰기 (`loadcheck`, `sitework`). 밑줄 쓰지 않는다
+- 패키지 이름은 소문자 붙여쓰기 (`sitework`). 밑줄 쓰지 않는다
 - 빈 폴더·계층을 미리 만들지 않는다. 화면이 하나뿐인 기능도 `presentation/<screen>/` 형태는 지킨다
 
 ## Presentation (MVVM + UiState/UiAction)
@@ -69,14 +69,14 @@ test/                        # main 과 같은 패키지 경로
 
 ### 여러 화면이 같은 운행을 볼 때
 
-- 운행 탭은 화면(개요·적재 확인·주행·현장 작업·불일치)별로 ViewModel을 나눈다. **ViewModel끼리 서로 참조하지 않는다**
+- 운행 탭은 화면(개요·주행)별로, 적재 메뉴는 `cargo` 로 ViewModel을 나눈다. **ViewModel끼리 서로 참조하지 않는다**
 - 현재 운행 데이터는 data 계층(`TripRepository` 구현)이 `StateFlow` 로 보관하고, 각 ViewModel은 구독만 한다. 상태 변경 후 서버 응답으로 그 Flow를 갱신한다
 - 다른 탭(음성·기록·인계)에서 운행이 바뀌면 같은 Flow 갱신으로 전달한다 (별도 이벤트 버스를 늘리지 않는다)
 - **내비 리스너는 화면 ViewModel이 아니라 운행 범위 객체가 소유한다.** 운행 시작~종료 동안 유지하고 운행 종료 시 `release()` (2026-11-08 결정: 내비가 화면을 덮어 Loadmate가 ON_STOP 되어도 경로 결과를 받아야 함)
 
 ### 화면 전환
 
-- 첫 화면 = 운행 선택(오늘 운행 목록) → 운행을 고르면 왼쪽 세로 메뉴 화면(운행 · 기록·메모 · 장비·인계 · 연결 상태, 맨 위 뒤로가기)
+- 첫 화면 = 운행 선택(오늘 운행 목록) → 운행을 고르면 왼쪽 세로 메뉴 화면(운행 · 적재 · 메모 · 내역 · 연결 상태, 맨 위 뒤로가기)
 - 화면 전환 상태는 `MainActivity` 의 최상위 Composable 한 곳에서 관리한다. 내비게이션 라이브러리를 들이면 이 문서를 고친다
 
 ## Domain
@@ -114,13 +114,15 @@ test/                        # main 과 같은 패키지 경로
 
 ### 실측으로 알게 된 제약 (2026-11-08, 상세 `docs/next-steps.md` 10절)
 
-- Vehicle 2.3.2: 차량 속도 API 없음, Gear deprecated, DrivingMode 에뮬레이터 미지원 → 주행/정차·도착은 **기사 확인 버튼**이 기본
-- NaviHelper `requestRoute` 시 내비 앱이 메인 패널을 덮어 Loadmate가 ON_STOP. 목적지 전달은 기사 확인 후, 실패 시 실패 표시·다시 보내기·목적지 정보 유지
+- Vehicle 2.3.2: 차량 속도 API 없음, Gear deprecated, DrivingMode 에뮬레이터 미지원 → 주행/정차는 알 수 없다. 도착은 내비 신호, 음성 "도착했어", 앱을 보며 뒷문 여닫기로 처리한다
+- NaviHelper `requestRoute` 시 내비 앱이 메인 패널을 덮어 Loadmate가 ON_STOP. 첫 전달은 기사 확인 후, 방문지 완료 뒤 다음 경로는 자동 전달(2026-11-09 결정), 실패 시 실패 표시·다시 보내기·목적지 정보 유지
 - 경유지는 2개까지(`requestRouteWithWaypoints`). 탐색 실패 시 기존 안내도 사라진다
 - 헤드업 알림은 카테고리 지정 필수 (`CATEGORY_MESSAGE` / `CATEGORY_NAVIGATION`)
 - TTS는 `speak(text, isFinal = true)`. STT ON_DEVICE는 자격 증명 없이 동작하지만 오인식이 있다 → 음성 명령은 인식 문장을 보여 주고 기사 확인 후 실행
 - Loadmate 음성은 `NaviAwareSpeechQueue` 를 거친다(내비 음성 중 대기, 끼어들면 멈추고 재생). 길 안내·안내 시작 음성은 내비에 맡기고 Loadmate는 업무·실패·기사 질문 답변만 말한다
 - 호스트 마이크: `adb emu avd hostmicon`
+- 운전 중에는 헤드업 알림을 쓰지 않는다(내비 회전 안내를 가림). 음성만 쓰고, 헤드업은 도착과 도착 후 짐칸 변화 알림에만 쓴다 (2026-11-09 결정)
+- 뒤에 있는 앱은 스스로 앞으로 나올 수 없다(`BAL_BLOCK`). 앱 전환은 알림을 눌러서만 한다. 도착·뒷문 감시는 화면이 아니라 `TripSession` 이 맡고, 뒷문 구독은 `holdForTrip` 으로 운행 중 유지한다
 
 ## 테스트
 
