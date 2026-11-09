@@ -14,8 +14,6 @@ import com.loadmate.app.core.pleos.SpeechOutput
 import com.loadmate.app.core.session.DriverStore
 import com.loadmate.app.feature.assistant.data.AssistantRepositoryImpl
 import com.loadmate.app.feature.assistant.domain.AssistantRepository
-import com.loadmate.app.feature.fleet.data.FleetRepositoryImpl
-import com.loadmate.app.feature.fleet.domain.FleetRepository
 import com.loadmate.app.feature.records.data.MemoRepositoryImpl
 import com.loadmate.app.feature.records.domain.MemoRepository
 import com.loadmate.app.feature.settings.data.ConnectionRepositoryImpl
@@ -38,7 +36,6 @@ class AppContainer(appContext: Context) {
     val connectionRepository: ConnectionRepository by lazy { ConnectionRepositoryImpl(api) }
     val tripRepository: CachingTripRepository by lazy { CachingTripRepository(TripRepositoryImpl(api)) }
     val memoRepository: MemoRepository by lazy { MemoRepositoryImpl(api) }
-    val fleetRepository: FleetRepository by lazy { FleetRepositoryImpl(api) }
     val assistantRepository: AssistantRepository by lazy { AssistantRepositoryImpl(api) }
 
     // Pleos SDK 구현은 여기서만 연결한다. 화면은 인터페이스만 받는다.

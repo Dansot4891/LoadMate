@@ -49,10 +49,10 @@ import com.loadmate.app.feature.assistant.presentation.voice.VoiceEffect
 import com.loadmate.app.feature.assistant.presentation.voice.VoicePanel
 import com.loadmate.app.feature.assistant.presentation.voice.VoiceUiAction
 import com.loadmate.app.feature.assistant.presentation.voice.VoiceViewModel
-import com.loadmate.app.feature.fleet.presentation.equipment.FleetScreen
-import com.loadmate.app.feature.fleet.presentation.equipment.FleetViewModel
-import com.loadmate.app.feature.records.presentation.records.RecordsScreen
-import com.loadmate.app.feature.records.presentation.records.RecordsViewModel
+import com.loadmate.app.feature.records.presentation.history.HistoryScreen
+import com.loadmate.app.feature.records.presentation.history.HistoryViewModel
+import com.loadmate.app.feature.records.presentation.memo.MemoScreen
+import com.loadmate.app.feature.records.presentation.memo.MemoViewModel
 import com.loadmate.app.feature.settings.presentation.connection.ConnectionScreen
 import com.loadmate.app.feature.settings.presentation.connection.ConnectionViewModel
 import com.loadmate.app.feature.settings.presentation.pleosstatus.PleosStatusSection
@@ -72,8 +72,8 @@ private class TabItem(val label: String, @DrawableRes val icon: Int)
 
 private val TABS = listOf(
     TabItem("운행", R.drawable.pleos_ic_vehicle),
-    TabItem("기록·메모", R.drawable.ic_nav_records),
-    TabItem("장비·인계", R.drawable.ic_nav_fleet),
+    TabItem("메모", R.drawable.ic_nav_records),
+    TabItem("내역", R.drawable.pleos_ic_menu_3),
     TabItem("연결 상태", R.drawable.pleos_ic_info_line),
 )
 
@@ -159,8 +159,8 @@ private fun TripTabs(container: AppContainer, tripId: String, onSelectTrip: () -
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 when (tab) {
                     0 -> TripScreen(tripVm, loadCheckVm, drivingVm, siteWorkVm, mismatchVm)
-                    1 -> RecordsScreen(viewModel(key = "records-$tripId", factory = RecordsViewModel.factory(container, tripId)))
-                    2 -> FleetScreen(viewModel(key = "fleet-$tripId", factory = FleetViewModel.factory(container, tripId)))
+                    1 -> MemoScreen(viewModel(key = "memo-$tripId", factory = MemoViewModel.factory(container, tripId)))
+                    2 -> HistoryScreen(viewModel(key = "history-$tripId", factory = HistoryViewModel.factory(container, tripId)))
                     else -> {
                         val vm: ConnectionViewModel = viewModel(factory = ConnectionViewModel.factory(container))
                         val pleosVm: PleosStatusViewModel = viewModel(factory = PleosStatusViewModel.factory(container))
