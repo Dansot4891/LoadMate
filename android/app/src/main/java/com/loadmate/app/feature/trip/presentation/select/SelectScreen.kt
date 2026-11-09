@@ -1,8 +1,8 @@
 package com.loadmate.app.feature.trip.presentation.select
 
 import com.loadmate.app.shared.designsystem.components.PleosTitle
-import com.loadmate.app.shared.designsystem.components.PleosButtonStyle
 import com.loadmate.app.shared.designsystem.project.PleosCard
+import com.loadmate.app.shared.designsystem.project.LoadmateBrand
 import com.loadmate.app.feature.trip.presentation.shared.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -32,12 +32,13 @@ fun SelectScreen(viewModel: SelectViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize().background(Pleos.colors.backgroundPrimary).verticalScroll(rememberScrollState()).padding(PleosSpacing.xl),
         verticalArrangement = Arrangement.spacedBy(PleosSpacing.l)) {
-        PleosTitle(
-            title = "오늘의 운행",
-            suffix = { PleosButton("새로고침", style = PleosButtonStyle.Basic, enabled = !state.loading) { viewModel.onAction(SelectUiAction.Refresh) } },
-        )
-        if (state.loading) BasicText("운행 목록을 불러오는 중…", style = Pleos.type.bodyLarge.copy(color = Pleos.colors.textSecondary))
-        state.error?.let { BasicText(it, style = Pleos.type.bodyLarge.copy(color = Pleos.colors.negative)) }
+        LoadmateBrand()
+        PleosTitle("운행 목록")
+        if (state.loading && state.trips.isEmpty()) BasicText("운행 목록을 불러오는 중…", style = Pleos.type.bodyLarge.copy(color = Pleos.colors.textSecondary))
+        state.error?.let {
+            BasicText(it, style = Pleos.type.bodyLarge.copy(color = Pleos.colors.negative))
+            PleosButton("다시 시도", enabled = !state.loading) { viewModel.onAction(SelectUiAction.Refresh) }
+        }
         if (!state.loading && state.trips.isEmpty() && state.error == null) {
             BasicText("표시할 운행이 없습니다", style = Pleos.type.bodyLarge.copy(color = Pleos.colors.textSecondary))
         }
