@@ -120,7 +120,7 @@ class LoadingMixin:
             if n > planned[kind]:
                 raise AppError(422, "delivered_exceeds_planned", f"{kind} 하차 수량이 계획({planned[kind]})보다 많습니다")
 
-        expected_after = rules.add_counts(self._expected(trip.id) or {}, body.delivered, sign=-1)
+        expected_after = {k: max(v, 0) for k, v in rules.add_counts(self._expected(trip.id) or {}, body.delivered, sign=-1).items()}
         cmp = self._compare(trip.id, expected_after)
         if cmp.state != "match" and body.resolution is None:
             # 반영하지 않음. 키도 소비하지 않는다 (api-contract 공통 규칙)

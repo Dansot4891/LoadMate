@@ -55,7 +55,6 @@ class StopsMixin:
     def add_stop(self, trip_id: str, body: StopAddIn, actor_id: str | None) -> ChangeResultOut:
         trip = self._trip(trip_id, for_update=True)
         self._require_open(trip)
-        baseline = self.repo.baseline_event(trip.id) is not None
 
         def apply() -> tuple[dict, dict]:
             seq = max((st.seq for st in trip.stops), default=0) + 1
@@ -67,11 +66,12 @@ class StopsMixin:
             for c in body.cargo:
                 st.cargo.append(CargoLine(trip_id=trip.id, item_name=c.item_name, kind=c.kind, planned_qty=c.qty, zone=c.zone))
             trip.stops.append(st)
+            self.s.flush()
+            # 경로만 늘어난다. 실린 물건은 카메라·기사 확인으로만 바뀐다
             added: dict[str, int] = {}
             for c in body.cargo:
                 added[c.kind] = added.get(c.kind, 0) + c.qty
-            # 기준 확정 후 추가는 추가 상차로 예상 잔량에 더한다 (R05). 확정 전에는 계획만 바뀐다
-            return (added if baseline else {}), {"stop_id": sid, "label": label, "name": body.name, "added_cargo": added}
+            return {}, {"stop_id": sid, "label": label, "name": body.name, "added_cargo": added}
 
         return self._change(trip, body, "stop_added", apply, actor_id)
 

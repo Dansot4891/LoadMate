@@ -35,13 +35,13 @@ def test_baseline_sets_driver_and_sample_has_vehicle_zones(client):
     assert [s["place_key"] for s in t["stops"]] == ["place-pangyo", "place-jeongja", "place-seohyeon"]
 
 
-def test_add_stop_before_baseline_is_plan_only_after_is_extra_loading(client):
+def test_add_stop_after_baseline_changes_route_only(client):
     r = post(client, "/stops", {"name": "D 납품처", "latitude": 37.4, "longitude": 127.1, "cargo": [{"item_name": "박스", "kind": "box", "qty": 2}]})
     t = r.json()["trip"]
     assert [s["label"] for s in t["stops"]] == ["A", "B", "C", "D"] and t["expected_remaining"] is None
     baseline(client)  # 이제 계획 12 중 10 만 확정했다고 가정
     t = post(client, "/stops", {"name": "E", "latitude": 37.4, "longitude": 127.1, "cargo": [{"item_name": "용기", "kind": "container", "qty": 1}]}).json()["trip"]
-    assert t["expected_remaining"] == {"box": 10, "container": 1}  # 추가 상차 반영 (R05)
+    assert t["expected_remaining"] == {"box": 10}  # 경로만 늘고 실린 짐은 그대로
 
 
 def test_reorder_only_pending_and_complete_list(client):
@@ -63,6 +63,13 @@ def test_cancel_stop_keeps_cargo_on_board_and_finishes_trip(client):
     assert t["stops"][2]["status"] == "cancelled" and t["stops"][2]["cancel_reason"] == "수령인 부재"
     assert t["expected_remaining"] == {"box": 4}  # 취소 물품은 차에 남음
     assert t["status"] == "completed"
+
+
+def test_stop_added_after_baseline_can_be_completed_without_boxes(client):
+    baseline(client)
+    sid = post(client, "/stops", {"name": "D", "latitude": 37.4, "longitude": 127.1, "cargo": [{"item_name": "박스", "kind": "box", "qty": 1}]}).json()["trip"]["stops"][-1]["id"]
+    r = post(client, f"/stops/{sid}/complete", {"delivered": {"box": 1}, "resolution": "driver_confirmed"}).json()
+    assert r["result"] == "completed" and r["expected_remaining"] == {"box": 9}
 
 
 def test_cargo_qty_change_is_plan_change(client):

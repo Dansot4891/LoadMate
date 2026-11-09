@@ -22,7 +22,7 @@ def expected_remaining(deltas: list[Mapping[str, int]]) -> Counts:
     """R05: 최초 기준(+) − 확정된 하차(−) (+ 회수·추가 상차). 이벤트 순서대로 합산."""
     total: Counts = {}
     for d in deltas:
-        total = add_counts(total, d)
+        total = {k: max(v, 0) for k, v in add_counts(total, d).items()}
     return total
 
 
