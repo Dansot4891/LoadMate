@@ -12,6 +12,7 @@ from __future__ import annotations
 import sys
 
 from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from app.core.time import utcnow
 
@@ -36,6 +37,12 @@ _EQUIPMENT = [
     ("equip-strap", "화물 고정 끈 4개", "조수석 뒤 수납함"),
     ("equip-toolbox", "공구함", "적재함 앞쪽 왼편"),
 ]
+# 차량 노트 예시 (샘플). 기사가 화면·음성으로 자유롭게 추가한다. 고정 목록이 아니다
+_VEHICLE_NOTES = [
+    ("seed-note-1", "tool", "접이식 핸드카트", "적재함 뒷문 오른쪽"),
+    ("seed-note-2", "issue", "고정 끈 1개 끊어짐", "조수석 뒤 수납함"),
+    ("seed-note-3", "other", "뒷문은 세게 닫아야 잠김", None),
+]
 
 
 def ensure_sample(session: Session, reset: bool = False) -> bool:
@@ -56,6 +63,13 @@ def ensure_sample(session: Session, reset: bool = False) -> bool:
     for eid, name, loc in _EQUIPMENT:
         if session.get(Equipment, eid) is None:
             session.add(Equipment(id=eid, vehicle_id=SAMPLE_VEHICLE_ID, name=name, location=loc))
+    session.flush()
+    has_notes = session.scalars(select(Memo.id).where(Memo.scope_type == "vehicle", Memo.scope_id == SAMPLE_VEHICLE_ID)).first()
+    if has_notes is None:
+        for key, category, body, location in _VEHICLE_NOTES:
+            session.add(Memo(idempotency_key=key, scope_type="vehicle", scope_id=SAMPLE_VEHICLE_ID, body=body, tags=[], visibility="shared",
+                             persistence="always", source="screen", category=category, location=location, author_id="shared",
+                             created_at=now, updated_at=now, updated_by="shared"))
     if session.get(Trip, SAMPLE_TRIP_ID) is not None:
         session.commit()
         return False
@@ -66,10 +80,11 @@ def ensure_sample(session: Session, reset: bool = False) -> bool:
         st.cargo.append(CargoLine(trip_id=SAMPLE_TRIP_ID, item_name="박스", kind="box", planned_qty=boxes, zone=zone))
         trip.stops.append(st)
     session.add(trip)
+    session.flush()
     # 공유 현장 메모 예시 (샘플). 실제 기사 경험 기록이 아니다
     session.add(Memo(idempotency_key="seed-memo-1", scope_type="place", scope_id="place-jeongja",
                      body="(샘플) 정문은 오전 혼잡. 하역은 건물 뒤편 출입구가 편함", tags=["진입", "하역"], visibility="shared",
-                     persistence="always", source="screen", author_id="driver-2", created_at=now, updated_at=now, updated_by="driver-2"))
+                     persistence="always", source="screen", category="place", author_id="driver-2", created_at=now, updated_at=now, updated_by="driver-2"))
     session.commit()
     return True
 

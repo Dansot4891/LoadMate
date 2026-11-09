@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, field_serializer
 from app.core.time import iso_utc
 
 ScopeType = Literal["place", "vehicle", "equipment", "trip"]
+Category = Literal["tool", "issue", "place", "other"]
 
 
 class MemoIn(BaseModel):
@@ -17,12 +18,16 @@ class MemoIn(BaseModel):
     persistence: Literal["always", "this_trip"] = "always"
     trip_id: str | None = None
     source: Literal["screen", "voice"] = "screen"
+    category: Category | None = None
+    location: str | None = Field(default=None, max_length=200)
 
 
 class MemoUpdateIn(BaseModel):
     body: str | None = Field(default=None, min_length=1, max_length=2000)
     tags: list[str] | None = None
     visibility: Literal["private", "shared"] | None = None
+    category: Category | None = None
+    location: str | None = Field(default=None, max_length=200)
 
 
 class MemoOut(BaseModel):
@@ -35,6 +40,8 @@ class MemoOut(BaseModel):
     persistence: str
     trip_id: str | None
     source: str
+    category: str
+    location: str | None
     author_id: str
     created_at: datetime
     updated_at: datetime

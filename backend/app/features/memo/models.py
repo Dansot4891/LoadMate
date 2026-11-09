@@ -24,6 +24,8 @@ class Memo(Base):
     persistence: Mapped[str] = mapped_column(String(16), default="always")  # always | this_trip
     trip_id: Mapped[str | None] = mapped_column(String(64), nullable=True)  # this_trip 일 때 대상 운행
     source: Mapped[str] = mapped_column(String(16), default="screen")  # screen | voice
+    category: Mapped[str] = mapped_column(String(16), default="other", server_default="other")  # tool | issue | place | other
+    location: Mapped[str | None] = mapped_column(String(200), nullable=True)  # 물건이 있는 곳
     author_id: Mapped[str] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

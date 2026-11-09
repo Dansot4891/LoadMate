@@ -29,6 +29,11 @@ class MemoRepository:
         q = q.where(or_(Memo.persistence == "always", Memo.trip_id == (trip_id or "")))
         return list(self.s.scalars(self.visible(q, actor).order_by(Memo.updated_at.desc())))
 
+    def vehicle_notes(self, vehicle_id: str, actor: str | None):
+        """차량 메모 (최근 수정순)."""
+        q = select(Memo).where(Memo.scope_type == "vehicle", Memo.scope_id == vehicle_id)
+        return list(self.s.scalars(self.visible(q, actor).order_by(Memo.updated_at.desc())))
+
     def shared_for_handover(self, trip_id: str, place_keys: list[str]):
         q = select(Memo).where(Memo.visibility == "shared").where(
             or_(Memo.scope_type == "trip", Memo.scope_type == "vehicle", Memo.scope_id.in_(place_keys))
@@ -43,3 +48,6 @@ class MemoRepository:
 
     def add(self, memo: Memo):
         self.s.add(memo)
+
+    def delete(self, memo: Memo):
+        self.s.delete(memo)

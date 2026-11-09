@@ -5,12 +5,13 @@ from app.core.actor import actor_id
 from app.core.db import get_session
 from app.features.memo.schemas import MemoIn, MemoOut, MemoUpdateIn, ScopeType
 from app.features.memo.service import MemoService
+from app.integrations.assistant.note_ai import NoteAi, get_note_ai
 
 router = APIRouter(tags=["memo"])
 
 
-def get_service(s: Session = Depends(get_session)) -> MemoService:
-    return MemoService(s)
+def get_service(s: Session = Depends(get_session), note_ai: NoteAi | None = Depends(get_note_ai)) -> MemoService:
+    return MemoService(s, note_ai=note_ai)
 
 
 @router.get("/memos", response_model=dict[str, list[MemoOut]])
@@ -33,3 +34,8 @@ def create_memo(body: MemoIn, svc: MemoService = Depends(get_service), actor: st
 @router.put("/memos/{memo_id}", response_model=MemoOut)
 def update_memo(memo_id: int, body: MemoUpdateIn, svc: MemoService = Depends(get_service), actor: str | None = Depends(actor_id)):
     return svc.update(memo_id, body, actor)
+
+
+@router.delete("/memos/{memo_id}")
+def delete_memo(memo_id: int, svc: MemoService = Depends(get_service), actor: str | None = Depends(actor_id)) -> dict:
+    return svc.delete(memo_id, actor)
