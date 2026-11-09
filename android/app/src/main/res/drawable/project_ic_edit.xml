@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- PROJECT: 공식 Figma 2.1.5 아이콘에 수정(연필)이 없어 ic_trash 와 같은 44 격자·면 형태로 직접 그렸다. 색은 화면에서 Pleos 토큰으로 입힌다 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="44dp"
+    android:height="44dp"
+    android:viewportWidth="44"
+    android:viewportHeight="44">
+    <path
+        android:fillColor="#FF000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round"
+        android:pathData="M9 30.2L27.2 12L32 16.8L13.8 35L7.6 36.4Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M29.6 8.6L32 6.2Q33.5 4.9 35 6.2L37.8 9Q39.1 10.5 37.8 12L35.4 14.4Z" />
+</vector>
