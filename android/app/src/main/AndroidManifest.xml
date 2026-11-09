@@ -18,6 +18,9 @@
     <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
     <!-- 내비 위 헤드업 알림 (core/notify/DriverNotifier). Android 13+ 런타임 권한 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 내비가 화면을 덮어도 운행 중 음성 경고·도착 알림을 유지 (core/notify/TripKeepAliveService) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <application
         android:name=".LoadmateApplication"
@@ -41,6 +44,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <service
+            android:name=".core.notify.TripKeepAliveService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keeps in-vehicle delivery voice alerts active while the navigation app is in front during a trip" />
+        </service>
     </application>
 
 </manifest>
