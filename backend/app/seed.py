@@ -52,7 +52,7 @@ _VEHICLE_NOTES = [
 ]
 
 
-def ensure_sample(session: Session, reset: bool = False) -> bool:
+def ensure_sample(session: Session, reset: bool = False, demo_issue: bool = False) -> bool:
     """샘플 운행이 없으면 만든다. 만들었으면 True. 기사·차량·장비는 항상 맞춰 둔다."""
     now = utcnow()
     for did, name in _DRIVERS:
@@ -98,6 +98,9 @@ def ensure_sample(session: Session, reset: bool = False) -> bool:
                              load_seq=load_seq, state="planned", planned_zone=zone_by_stop[sid], planned_lane=lane, planned_layer=layer, updated_at=now)
             session.add(unit)
             session.flush()
+            # 비전 AI 전까지 이상 표시를 보여 주기 위한 시작 데이터
+            if demo_issue and sid == "stop-a" and no == 3:
+                session.add(Issue(trip_id=SAMPLE_TRIP_ID, kind="shift", zone=unit.planned_zone, unit_id=unit.id, note="", source="sample", observed_at=now))
     # 공유 현장 메모 예시 (샘플). 실제 기사 경험 기록이 아니다
     session.add(Memo(idempotency_key="seed-memo-1", scope_type="place", scope_id="place-jeongja",
                      body="(샘플) 정문은 오전 혼잡. 하역은 건물 뒤편 출입구가 편함", tags=["진입", "하역"], visibility="shared",
@@ -111,7 +114,7 @@ def main() -> None:
     from sqlalchemy.orm import sessionmaker
 
     with sessionmaker(bind=get_engine())() as s:
-        created = ensure_sample(s, reset="--reset" in sys.argv)
+        created = ensure_sample(s, reset="--reset" in sys.argv, demo_issue=True)
         print("sample trip created" if created else "sample trip already exists")
 
 

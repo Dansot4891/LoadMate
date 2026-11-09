@@ -98,7 +98,7 @@ class CommonMixin:
 
     @staticmethod
     def _issue_out(i: Issue) -> IssueOut:
-        return IssueOut(id=i.id, kind=i.kind, zone=i.zone, note=i.note, source=i.source, observed_at=as_utc(i.observed_at),
+        return IssueOut(id=i.id, kind=i.kind, zone=i.zone, unit_id=i.unit_id, note=i.note, source=i.source, observed_at=as_utc(i.observed_at),
                         status=i.status, resolution=i.resolution, resolution_note=i.resolution_note, resolved_by=i.resolved_by,
                         resolved_at=as_utc(i.resolved_at) if i.resolved_at else None)
 

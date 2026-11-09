@@ -249,6 +249,7 @@ class SimpleChangeIn(_Change):
 class IssueIn(_Change):
     kind: Literal["shift", "fall", "leak", "other"]
     zone: str | None = None
+    unit_id: int | None = None
     note: str = Field(default="", max_length=500)
     observation_source: Literal["sample", "manual", "recorded_video"]
     observed_at: datetime
@@ -294,6 +295,7 @@ class IssueOut(_Out):
     id: int
     kind: str
     zone: str | None
+    unit_id: int | None
     note: str
     source: str
     observed_at: datetime

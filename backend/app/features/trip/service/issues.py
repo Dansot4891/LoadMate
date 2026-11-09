@@ -53,13 +53,19 @@ class IssuesMixin:
 
     def record_issue(self, trip_id: str, body: IssueIn, actor_id: str | None) -> ChangeResultOut:
         trip = self._trip(trip_id, for_update=True)
+        zone = body.zone
+        if body.unit_id is not None:
+            unit = next((u for u in self.repo.units(trip.id) if u.id == body.unit_id), None)
+            if unit is None:
+                raise AppError(404, "unit_not_found", "물품 단위를 찾을 수 없습니다")
+            zone = zone or unit.zone or unit.planned_zone
 
         def apply() -> tuple[dict, dict]:
-            i = Issue(trip_id=trip.id, kind=body.kind, zone=body.zone, note=body.note, source=body.observation_source,
+            i = Issue(trip_id=trip.id, kind=body.kind, zone=zone, unit_id=body.unit_id, note=body.note, source=body.observation_source,
                       observed_at=as_utc(body.observed_at))
             self.repo.add(i)
             self.s.flush()
-            return {}, {"issue_id": i.id, "kind": body.kind, "zone": body.zone}
+            return {}, {"issue_id": i.id, "kind": body.kind, "zone": zone}
 
         return self._change(trip, body, "issue_recorded", apply, actor_id)
 

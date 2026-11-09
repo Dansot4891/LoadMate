@@ -174,6 +174,7 @@ class Issue(Base):
     trip_id: Mapped[str] = mapped_column(ForeignKey("trips.id", ondelete="CASCADE"), index=True)
     kind: Mapped[str] = mapped_column(String(32))  # shift | fall | leak | other
     zone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    unit_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 어느 물품인지 알 때만
     note: Mapped[str] = mapped_column(String(500), default="")
     source: Mapped[str] = mapped_column(String(32))  # sample | manual | recorded_video
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

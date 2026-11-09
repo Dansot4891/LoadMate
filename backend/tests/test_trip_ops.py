@@ -124,6 +124,18 @@ def test_issue_record_and_resolve(client):
     assert "넘어짐 의심" in summaries[-2] and "재배치함" in summaries[-1]
 
 
+def test_issue_names_a_unit_and_fills_its_zone(client):
+    baseline(client)
+    unit = client.get(T).json()["units"][0]
+    t = post(client, "/issues", {"kind": "shift", "unit_id": unit["id"], "observation_source": "sample", "observed_at": now_iso()}).json()["trip"]
+    assert t["issues"][0]["unit_id"] == unit["id"] and t["issues"][0]["zone"] == unit["zone"]
+
+
+def test_issue_with_unknown_unit_is_rejected(client):
+    r = post(client, "/issues", {"kind": "shift", "unit_id": 99999, "observation_source": "sample", "observed_at": now_iso()})
+    assert r.status_code == 404 and r.json()["detail"]["code"] == "unit_not_found"
+
+
 def test_history_has_source_actor_and_summary(client):
     baseline(client)
     post(client, "/pickups", {"stop_id": "stop-a", "item_name": "빈 용기", "kind": "container", "qty": 1, "return_place": "창고", "source": "voice"})
