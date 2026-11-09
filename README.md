@@ -2,7 +2,7 @@
 
 다지점 배송 기사가 차량 화면과 음성으로 적재 상태를 확인하며 업무를 이어가는 Pleos Connect 물류 동반자 앱.
 
-> 개발 중. 샘플 운행 A→B→C의 적재 확인·내비 전달·하차 불일치 확인·회수·메모·장비 인계가 앱과 서버에 연결되어 있습니다. 운행·적재 관측은 샘플, 음성 해석·인계 요약은 규칙 기반이며 Pleos SDK 동작은 에뮬레이터에서만 확인했습니다.
+> 개발 중. 샘플 운행 A→B→C의 적재 확인·내비 전달·하차 불일치 확인·회수·메모·내역이 앱과 서버에 연결되어 있습니다. 운행·적재 관측은 샘플이며, 음성 해석은 AI 키가 있으면 AI로, 없거나 연결이 끊기면 규칙 기반으로 처리합니다. Pleos SDK 동작은 에뮬레이터에서만 확인했습니다.
 
 ## 구성
 | 폴더 | 내용 |
@@ -16,7 +16,7 @@
 ## 실행
 자세한 내용: [docs/architecture.md](docs/architecture.md)
 
-실행 전에 Docker 엔진을 켜고, 저장소 루트에서 서버를 시작합니다. 샘플 운행은 현재 **기준 10 확정·A/B/C 미완료** 상태입니다. `app.seed --reset`은 기록과 일부 메모도 삭제하므로 시연 준비 시에만 실행하세요.
+실행 전에 Docker 엔진을 켜고, 저장소 루트에서 서버를 시작합니다. 처음 실행하면 샘플 운행(A→B→C)과 샘플 차량 노트가 자동으로 만들어집니다. `docker compose exec backend python -m app.seed --reset`은 샘플 운행의 기록과 일부 메모를 지우고 처음 상태로 되돌립니다.
 
 ```bash
 docker compose up -d --build                    # 서버 + DB → http://localhost:8000/health
@@ -28,11 +28,28 @@ adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
 adb -s emulator-5554 shell am start --user 10 -n com.loadmate.app/.MainActivity
 ```
 
+## AI 기능 켜기 (선택)
+
+키가 없어도 모든 화면이 동작합니다. 음성 해석만 정해진 표현을 처리하는 규칙 기반으로 제한되며, 음성 창에 `AI 키 없음 · 규칙 기반`으로 표시됩니다.
+
+AI를 켜려면 [Google AI Studio](https://aistudio.google.com/apikey)에서 받은 Gemini API 키를 저장소 맨 위 `.env`에 넣고 서버를 다시 시작합니다. 키는 서버에서만 사용하며 앱과 Git에는 들어가지 않습니다.
+
+```bash
+cp .env.example .env      # GEMINI_API_KEY= 뒤에 키를 입력
+docker compose up -d --build
+```
+
+음성 창에 `해석: AI`가 보이면 AI가 말을 해석한 것입니다. AI를 쓸 수 없으면 `AI 연결 안 됨 · 규칙 기반`으로 표시하고 규칙 기반으로 동작합니다. Gemini 무료 등급은 입력 내용이 Google의 제품 개선과 사람 검토에 쓰일 수 있으므로 샘플 데이터로만 사용하세요.
+
+## 방문지 장소 검색 켜기
+
+방문지 추가는 VWorld 검색 API를 씁니다. [VWorld](https://www.vworld.kr/dev/v4api.do) 인증키를 저장소 맨 위 `.env`의 `VWORLD_API_KEY=` 뒤에 넣고 `docker compose up -d`로 서버를 다시 시작합니다. 키가 없으면 검색 창에 `장소 검색 키가 설정되지 않았습니다`로 표시됩니다. 샘플 방문지는 저장된 좌표로 내비 전달이 동작합니다.
+
 ## 테스트 환경
 - Android Studio 2024.2.1, Pleos Connect Emulator v2.1.0 (Android 14)
 - Pleos SDK: Vehicle 2.3.2, NaviHelper 3.0.5, SpeechToText·TextToSpeech 3.3.1 (에뮬레이터 연결 확인)
 - 에뮬레이터 결과는 실차 지원을 의미하지 않습니다.
-- 서버는 Docker에서 pytest 61개, 앱은 JVM 단위 테스트 31개를 통과했습니다(2026-11-08).
+- 서버는 Docker에서 pytest 91개, 앱은 JVM 단위 테스트 57개를 통과했습니다(2026-11-09).
 
 ## 제출 APK 준비
 
