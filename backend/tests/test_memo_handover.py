@@ -47,7 +47,7 @@ def test_stop_memos_relevant_place_and_this_trip(client):
     bodies = [m["body"] for m in client.get(f"{T}/stops/stop-a/memos", headers=D2).json()["memos"]]
     assert set(bodies) == {"상시 메모", "이번 운행만"}
     # 시드: 정자역(B) 공유 메모
-    assert "(샘플)" in client.get(f"{T}/stops/stop-b/memos").json()["memos"][0]["body"]
+    assert "정문" in client.get(f"{T}/stops/stop-b/memos").json()["memos"][0]["body"]
 
 
 def test_shared_memo_update_tracks_editor_private_hidden(client):

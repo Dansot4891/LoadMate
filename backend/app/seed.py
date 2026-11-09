@@ -1,6 +1,6 @@
 """샘플 운행 데이터 (기획서 14장: 목적지 A·B·C, 박스 10개 = A3·B3·C4).
 
-실제 배송 데이터가 아니다. data_source="sample" 로 저장되고 앱은 "샘플"로 표시한다 (원칙 5).
+실제 배송 데이터가 아니다. data_source="sample" 로 저장되고 앱 화면에는 따로 표시하지 않는다 (2026-11-09 사용자 결정).
 좌표는 에뮬레이터 내비에서 경로 생성이 확인된 공공장소(역) 근처이며 실제 납품처가 아니다.
 
     python -m app.seed           # 없으면 생성
@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import sys
 
-from sqlalchemy import delete
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from app.core.time import utcnow
@@ -31,7 +30,6 @@ _STOPS = [
     ("stop-b", "B", "정자역", "경기도 성남시 분당구 성남대로 333", 3, "place-jeongja", "middle"),
     ("stop-c", "C", "서현역", "경기도 성남시 분당구 성남대로 601", 4, "place-seohyeon", "front"),
 ]
-_DRIVERS = [("driver-1", "기사 1 (샘플)"), ("driver-2", "기사 2 (샘플)")]
 # 박스별 계획 자리 (lane, layer). 실제 적재 기록이 아닌 샘플. 나중에 내릴 C 부터 앞쪽에 싣는다
 _SLOTS = {
     "stop-c": [(0, 1), (1, 1), (2, 1), (1, 2)],
@@ -39,6 +37,7 @@ _SLOTS = {
     "stop-a": [(0, 1), (1, 1), (1, 2)],
 }
 _LOAD_ORDER = ["stop-c", "stop-b", "stop-a"]
+_DRIVERS = [("driver-1", "기사 1"), ("driver-2", "기사 2")]
 _EQUIPMENT = [
     ("equip-cart", "접이식 핸드카트", "적재함 뒷문 오른쪽"),
     ("equip-strap", "화물 고정 끈 4개", "조수석 뒤 수납함"),
@@ -57,7 +56,7 @@ def ensure_sample(session: Session, reset: bool = False, demo_issue: bool = Fals
     now = utcnow()
     for did, name in _DRIVERS:
         session.merge(Driver(id=did, name=name))
-    session.merge(Vehicle(id=SAMPLE_VEHICLE_ID, name="샘플 차량"))
+    session.merge(Vehicle(id=SAMPLE_VEHICLE_ID, name="배송 차량"))
     if reset:
         place_keys = [x[5] for x in _STOPS]
         session.execute(delete(Memo).where((Memo.trip_id == SAMPLE_TRIP_ID) | Memo.scope_id.in_(place_keys)
@@ -80,7 +79,7 @@ def ensure_sample(session: Session, reset: bool = False, demo_issue: bool = Fals
     if session.get(Trip, SAMPLE_TRIP_ID) is not None:
         session.commit()
         return False
-    trip = Trip(id=SAMPLE_TRIP_ID, name="샘플 운행 · A·B·C", data_source="sample", status="planned",
+    trip = Trip(id=SAMPLE_TRIP_ID, name="분당 납품 운행 · A·B·C", data_source="sample", status="planned",
                 created_at=now, vehicle_id=SAMPLE_VEHICLE_ID)
     for seq, (sid, label, name, addr, boxes, place_key, zone) in enumerate(_STOPS, start=1):
         st = Stop(id=sid, seq=seq, label=label, name=name, address=addr, place_key=place_key)
@@ -103,7 +102,7 @@ def ensure_sample(session: Session, reset: bool = False, demo_issue: bool = Fals
                 session.add(Issue(trip_id=SAMPLE_TRIP_ID, kind="shift", zone=unit.planned_zone, unit_id=unit.id, note="", source="sample", observed_at=now))
     # 공유 현장 메모 예시 (샘플). 실제 기사 경험 기록이 아니다
     session.add(Memo(idempotency_key="seed-memo-1", scope_type="place", scope_id="place-jeongja",
-                     body="(샘플) 정문은 오전 혼잡. 하역은 건물 뒤편 출입구가 편함", tags=["진입", "하역"], visibility="shared",
+                     body="정문은 오전 혼잡. 하역은 건물 뒤편 출입구가 편함", tags=["진입", "하역"], visibility="shared",
                      persistence="always", source="screen", category="place", author_id="driver-2", created_at=now, updated_at=now, updated_by="driver-2"))
     session.commit()
     return True

@@ -37,7 +37,7 @@ def complete(client, stop, delivered, k=None, resolution=None):
 
 def test_list_and_get_sample_trip(client):
     trips = client.get("/trips").json()["trips"]
-    assert trips == [{"id": "sample-trip-1", "name": "샘플 운행 · A·B·C", "status": "planned", "data_source": "sample", "stop_count": 3}]
+    assert trips == [{"id": "sample-trip-1", "name": "분당 납품 운행 · A·B·C", "status": "planned", "data_source": "sample", "stop_count": 3}]
     t = client.get(T).json()
     assert [s["label"] for s in t["stops"]] == ["A", "B", "C"]
     assert [s["cargo"][0]["planned_qty"] for s in t["stops"]] == [3, 3, 4]
