@@ -15,6 +15,11 @@ interface RearDoorGateway {
 
     /** 구독 해제 후 Vehicle release. 화면 이탈 시 호출. */
     fun stop()
+
+    /** 운행 중 화면과 무관하게 구독을 유지한다. 유지 중에는 화면 쪽 [stop] 이 구독을 끊지 않는다. */
+    fun holdForTrip() = start()
+
+    fun releaseTripHold() = stop()
 }
 
 sealed interface RearDoorConnection {

@@ -22,6 +22,7 @@ class PleosRearDoorGateway(
 
     private val appContext = context.applicationContext
     private var vehicle: Vehicle? = null
+    private var tripHold = false
     private val rear = DoorArea(DoorValue.REAR)
 
     private val _state = MutableStateFlow(RearDoorState())
@@ -58,7 +59,18 @@ class PleosRearDoorGateway(
         }
     }
 
+    override fun holdForTrip() {
+        tripHold = true
+        start()
+    }
+
+    override fun releaseTripHold() {
+        tripHold = false
+        stop()
+    }
+
     override fun stop() {
+        if (tripHold) return
         val v = vehicle ?: return
         runCatching { v.getDoor().unregisterDoorPosition(rear, listener) }
         releaseVehicle()
