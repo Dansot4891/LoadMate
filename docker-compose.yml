@@ -18,6 +18,8 @@ services:
     build: ./backend
     environment:
       LOADMATE_DATABASE_URL: postgresql+psycopg://loadmate:loadmate@db:5432/loadmate
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}   # 저장소 루트 .env(Git 제외)에 넣는다. 비어 있으면 규칙 기반으로만 동작
+      LOADMATE_AI_MODEL: ${LOADMATE_AI_MODEL:-gemini-3.5-flash-lite}
     ports:
       - "8000:8000"   # 에뮬레이터에서는 http://10.0.2.2:8000
     depends_on:

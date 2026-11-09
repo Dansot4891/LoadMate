@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,6 +11,9 @@ class Settings(BaseSettings):
 
     app_version: str = "0.1.0"
     database_url: str = "postgresql+psycopg://loadmate:loadmate@localhost:5432/loadmate"
+    gemini_api_key: str = Field(default="", validation_alias="GEMINI_API_KEY")  # 없으면 규칙 기반으로만 동작
+    ai_model: str = "gemini-3.5-flash-lite"  # 무료 등급 지원, 기본 사고량이 최소라 음성 응답에 맞다
+    ai_timeout_seconds: float = 5.0  # 운전 중 대화라 오래 기다리지 않고 규칙 기반으로 넘어간다
 
 
 @lru_cache
