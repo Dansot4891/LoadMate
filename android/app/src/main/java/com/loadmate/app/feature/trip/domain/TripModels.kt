@@ -146,7 +146,7 @@ data class ObservationInfo(
 
 /** 관측 출처. 화면에 그대로 표시한다 (원칙 5). 카메라 API가 없어 지금은 SAMPLE·MANUAL 만 앱에서 보낸다. */
 enum class ObservationSource(val wire: String, val label: String) {
-    SAMPLE("sample", "샘플 관측"),
+    SAMPLE("sample", "적재함 관측"),
     MANUAL("manual", "기사 입력"),
     RECORDED_VIDEO("recorded_video", "녹화 영상 분석"),
     UNKNOWN("unknown", "출처 알 수 없음"),

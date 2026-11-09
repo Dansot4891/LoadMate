@@ -54,5 +54,5 @@ class SelectViewModel(private val repository: TripRepository) : ViewModel() {
 internal fun errorText(error: ApiError): String = when (error) {
     ApiError.NotConfigured -> "서버 미설정"
     is ApiError.Network -> "서버에 연결할 수 없습니다"
-    is ApiError.Http -> "운행 목록 요청 실패: ${error.message}"
+    is ApiError.Http -> "운행 목록을 불러오지 못했습니다"
 }

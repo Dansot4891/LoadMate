@@ -19,7 +19,7 @@ import com.loadmate.app.feature.settings.presentation.pleosstatus.PleosStatusUiS
 import com.loadmate.app.feature.settings.presentation.shared.StatusLine
 import com.loadmate.app.feature.settings.presentation.shared.StatusRow
 
-/** 기사가 "지금 되는지"만 보는 차량 기능 목록 */
+/** 기사가 "기능 상태"만 보는 차량 기능 목록 */
 @Composable
 fun PleosStatusCard(state: PleosStatusUiState, notificationsAllowed: Boolean) {
     val c = Pleos.colors
@@ -36,10 +36,6 @@ fun PleosStatusCard(state: PleosStatusUiState, notificationsAllowed: Boolean) {
             Box(Modifier.fillMaxWidth().height(PleosShape.hairline).background(c.dividerTertiary))
             StatusRow(line)
         }
-        BasicText(
-            "차량 기능은 에뮬레이터에서만 확인했습니다. 실차 동작은 확인되지 않았습니다.",
-            style = t.labelMedium.copy(color = c.textTertiary),
-        )
     }
 }
 
@@ -63,7 +59,7 @@ private fun doorLine(s: RearDoorState): StatusLine {
         RearDoorConnection.Subscribed -> when (s.isOpen) {
             true -> StatusLine("뒷문", "열림", c.positive)
             false -> StatusLine("뒷문", "닫힘", c.positive)
-            null -> StatusLine("뒷문", "값 대기", c.textSecondary)
+            null -> StatusLine("뒷문", "확인 중", c.textSecondary)
         }
     }
 }
@@ -74,7 +70,7 @@ private fun speechLine(s: SpeechState): StatusLine {
     return when (val conn = s.connection) {
         SpeechConnection.Idle -> StatusLine("음성 인식", "연결 전", c.textSecondary)
         SpeechConnection.Connecting -> StatusLine("음성 인식", "연결 중…", c.textSecondary)
-        is SpeechConnection.Failed -> StatusLine("음성 인식", "사용 불가", c.negative, "${conn.reason} · 화면 입력으로 대체")
+        is SpeechConnection.Failed -> StatusLine("음성 인식", "사용 불가", c.negative, conn.reason)
         SpeechConnection.Ready -> when {
             s.listening -> StatusLine("음성 인식", "듣는 중…", c.active)
             s.lastError != null -> StatusLine("음성 인식", "오류", c.negative, s.lastError)
@@ -87,15 +83,15 @@ private fun speechLine(s: SpeechState): StatusLine {
 private fun ttsLine(available: Boolean?): StatusLine {
     val c = Pleos.colors
     return when (available) {
-        null -> StatusLine("음성 출력", "아직 사용 전", c.textSecondary)
-        true -> StatusLine("음성 출력", "사용 가능", c.positive)
-        false -> StatusLine("음성 출력", "사용 불가", c.negative, "화면 안내로 대체")
+        null -> StatusLine("안내 음성", "아직 사용 전", c.textSecondary)
+        true -> StatusLine("안내 음성", "사용 가능", c.positive)
+        false -> StatusLine("안내 음성", "사용 불가", c.negative, "화면 안내로 대체")
     }
 }
 
 @Composable
 private fun notificationLine(allowed: Boolean): StatusLine {
     val c = Pleos.colors
-    return if (allowed) StatusLine("헤드업 알림", "권한 허용", c.positive)
-    else StatusLine("헤드업 알림", "권한 없음", c.negative, "화면·음성 안내 사용")
+    return if (allowed) StatusLine("알림", "권한 허용", c.positive)
+    else StatusLine("알림", "권한 없음", c.negative, "화면·음성 안내 사용")
 }

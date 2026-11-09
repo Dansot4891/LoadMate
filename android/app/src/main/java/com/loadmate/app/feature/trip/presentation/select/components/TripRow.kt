@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import com.loadmate.app.R
 import com.loadmate.app.shared.designsystem.theme.Pleos
-import com.loadmate.app.shared.designsystem.project.PleosTag
 import com.loadmate.app.feature.trip.domain.TripStatus
 import com.loadmate.app.feature.trip.domain.TripSummary
 import com.loadmate.app.shared.designsystem.components.PleosIcon
@@ -17,7 +16,6 @@ fun TripRow(trip: TripSummary, onChoose: () -> Unit) {
         subtitle = "방문지 ${trip.stopCount}곳 · ${statusText(trip.status)}",
         onClick = onChoose,
         trailing = {
-            if (trip.dataSource == "sample") PleosTag("샘플 데이터")
             PleosIcon(R.drawable.pleos_ic_arrow_right, null, 40.dp, Pleos.colors.iconSecondary)
         },
     )

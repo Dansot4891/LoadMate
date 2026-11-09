@@ -88,7 +88,7 @@ private fun serverLine(status: ServerStatus?): StatusLine {
     val c = Pleos.colors
     return when (status) {
         null -> StatusLine("서버", "확인 중…", c.textSecondary)
-        ServerStatus.NotConfigured -> StatusLine("서버", "미설정", c.negative, "release 빌드에 주소가 없습니다")
+        ServerStatus.NotConfigured -> StatusLine("서버", "미설정", c.negative, "서버 주소가 없습니다")
         is ServerStatus.Offline -> StatusLine("서버", "연결 안 됨", c.negative, "인터넷 연결이나 서버 상태를 확인해 주세요")
         is ServerStatus.Online -> when (status.database) {
             DatabaseStatus.OK -> StatusLine("서버", "연결됨", c.positive)
