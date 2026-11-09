@@ -4,6 +4,16 @@
 이 문서 하나로 새 세션을 시작할 수 있게 정리했다. 근거·규칙은 링크 문서를 본다.
 [기획 대조 planning-review](planning-review.md) · [기능 현황 F01~F66 feature-status](feature-status.md) · [API 계약 api-contract](api-contract.md) · [구조·실행 architecture](architecture.md) · 기획서 원본 `docs/Pleos_물류동반자_기획개발안.docx`(Git 제외)
 
+### 공모전 지원서 1~6번 작성 (2026-11-10)
+
+- [x] 공식 [개요](https://appdevchallenge.auto-hmg.io/guide/overview)·[제출 방법](https://appdevchallenge.auto-hmg.io/guide/submission)·[심사 기준](https://appdevchallenge.auto-hmg.io/guide/judging-awards)·[개발 환경](https://appdevchallenge.auto-hmg.io/guide/development)·[참가 규정](https://appdevchallenge.auto-hmg.io/guide/rules)·[FAQ](https://appdevchallenge.auto-hmg.io/faq), 기존 기획서 v2.1과 현재 코드·검증 기록을 대조.
+- [x] `docs/Loadmate_공모전_지원서_1-6항목_작성본.docx` 작성. 전체 8쪽 중 2~6쪽에 앱 소개·배경·기능·시나리오·개발 계획·기대효과 작성. 원본 양식·기획서 보존, 참가자 정보·앱명 기입란·7~8번·동의·서명은 미작성 상태 유지. DOCX는 기존 `.gitignore` 적용으로 Git 제외.
+- [x] 현재 변경사항 반영: 공유 차량 노트(교대 인계 제외), 뒷문 여닫기 후 관측 비교/기사 확인, 계획 변경과 실린 짐 분리, 2D·3D 상차 기록, 내비 중심 음성·도착 알림 복귀. 카메라·외부 배송 연동·실차·실제 AI 응답은 구현/검증 수준을 구분.
+- [x] 문서 검증: ZIP/XML 정상, 원본 SHA-256 불변, `word/document.xml` 외 모든 패키지 파일 동일, 수정 범위는 답변 셀 6개와 질문 4개의 페이지 나눔 속성뿐. 렌더 8쪽 전부 육안 확인(잘림·겹침 없음). 렌더 환경의 한글 폰트 누락은 임시 fontconfig로 맑은 고딕→Pretendard 대체해 해결했고 DOCX 자체 폰트는 원본 유지.
+- [x] 앱/서버 코드는 수정하거나 실행하지 않음. 문서의 테스트 142개·120개는 기존 2026-11-10 검증 기록 인용이며 이번 작업에서 재실행한 수치가 아님.
+- [ ] 제출 전 사용자 검토: MAU 16명(운영사 2곳×기사 10명×월 이용 80%)·4주 유지율 60%는 작성 시 제안한 실증 가정/목표로, 확정 도입처나 실적이 아님. 실제 모집 계획에 맞춰 조정. 팀 정보·앱명·선택 제출 링크·개별 동의/서명은 사용자가 작성.
+- 재편집/검증 도구: `/tmp/loadmate-proposal/content.json`, `build.py`, `fonts.conf`, `artifact.md`, `template-audit.json`, `final-render/` (임시 파일). 실행: `/Users/myung/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3.12 /tmp/loadmate-proposal/build.py`. 렌더: 같은 Python으로 documents 스킬의 `render_docx.py`에 작성본과 `--output_dir /tmp/loadmate-proposal/final-render --emit_pdf`를 전달하고 `FONTCONFIG_FILE=/tmp/loadmate-proposal/fonts.conf`를 지정. 임시 파일 소멸 시 작성본 DOCX에서 이어서 편집.
+
 ### 분할 화면과 운전 중 앱 역할 (2026-11-10 사용자 결정)
 
 - 역할: 운전 중 화면은 내비가 쓰고 Loadmate는 뒤에서 음성만 낸다. **분할 전용 화면은 만들지 않는다.** 분할은 되면 더 좋은 정도로 본다.
