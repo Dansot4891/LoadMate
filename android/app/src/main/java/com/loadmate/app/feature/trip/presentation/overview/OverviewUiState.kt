@@ -16,8 +16,10 @@ data class OverviewUiState(
     val busy: Boolean = false,
     val message: UiMessage? = null,
     val routeDialog: RoutePlan? = null,
-    val pickupDraft: PickupDraft? = null,
     val endDialog: Boolean = false,
+    val vehicleNotes: List<Memo> = emptyList(),
+    val departureDialog: Boolean = false,
+    val addressCheck: AddressCheckState = AddressCheckState(),
 ) {
-    constructor(s: TripUiState) : this(s.loading, s.trip, s.loadError, s.offlineSince, s.step, s.busy, s.message, s.routeDialog, s.pickupDraft, s.endDialog)
+    constructor(s: TripUiState) : this(s.loading, s.trip, s.loadError, s.offlineSince, s.step, s.busy, s.message, s.routeDialog, s.endDialog, s.vehicleNotes, s.departureDialog, s.addressCheck)
 }

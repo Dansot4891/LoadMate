@@ -1,62 +1,40 @@
 package com.loadmate.app.feature.trip.presentation.overview
 
-import com.loadmate.app.feature.trip.presentation.shared.*
-import com.loadmate.app.feature.trip.presentation.*
-
-import com.loadmate.app.core.pleos.RouteRequestStatus
-import com.loadmate.app.core.pleos.routeRequestStatus
-
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.LifecycleStartEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.loadmate.app.shared.designsystem.theme.Pleos
-import com.loadmate.app.shared.designsystem.components.PleosButton
-import com.loadmate.app.shared.designsystem.components.PleosButtonStyle
-import com.loadmate.app.shared.designsystem.project.PleosCard
-import com.loadmate.app.shared.designsystem.dimens.PleosShape
-import com.loadmate.app.shared.designsystem.dimens.PleosSpacing
-import com.loadmate.app.shared.designsystem.components.PleosStepper
-import com.loadmate.app.shared.designsystem.project.PleosTag
-import com.loadmate.app.core.pleos.RearDoorConnection
-import com.loadmate.app.feature.trip.domain.Comparison
-import com.loadmate.app.feature.trip.domain.ComparisonState
-import com.loadmate.app.feature.trip.domain.ObservationSource
-import com.loadmate.app.feature.trip.domain.Stop
-import com.loadmate.app.feature.trip.domain.StopStatus
+import com.loadmate.app.feature.records.domain.Memo
 import com.loadmate.app.feature.trip.domain.Trip
+import com.loadmate.app.feature.trip.presentation.shared.RouteLoadGapCard
+import com.loadmate.app.feature.trip.presentation.shared.VehicleCheckCard
+import com.loadmate.app.feature.trip.presentation.shared.StopDialog
+import com.loadmate.app.feature.trip.presentation.shared.StopListCard
+import com.loadmate.app.feature.trip.presentation.shared.TripUiAction
+import com.loadmate.app.feature.trip.presentation.shared.countsText
+import com.loadmate.app.shared.designsystem.components.PleosButton
+import com.loadmate.app.shared.designsystem.dimens.PleosSpacing
+import com.loadmate.app.shared.designsystem.project.PleosCard
+import com.loadmate.app.shared.designsystem.theme.Pleos
 
+/** 출발 전: 내비 안내를 누르면 적재 확인 팝업을 한 번 거친다. 수량·배치는 적재 메뉴에서 본다 */
 @Composable
-internal fun OverviewScreen(trip: Trip, on: (TripUiAction) -> Unit) {
+internal fun OverviewScreen(trip: Trip, vehicleNotes: List<Memo>, on: (TripUiAction) -> Unit, onDialog: (StopDialog) -> Unit) {
     val c = Pleos.colors
     val t = Pleos.type
+    LaunchedEffect(trip.id) { on(TripUiAction.RefreshVehicleNotes) }
+    VehicleCheckCard(vehicleNotes)
     PleosCard {
-        BasicText("운행 준비", style = t.titleMedium.copy(color = c.textPrimary))
-        BasicText("방문지 ${trip.stops.size}곳 · 배송품 ${countsText(trip.plannedTotals, trip)}", style = t.bodyLarge.copy(color = c.textPrimary))
-        BasicText("출발 전에 적재 공간을 확인하고 최초 기준을 확정합니다.", style = t.bodyMedium.copy(color = c.textSecondary))
-        PleosButton("적재 확인 시작") { on(TripUiAction.OpenLoadCheck) }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(PleosSpacing.xl)) {
+            trip.currentStop?.let { stop -> PleosButton("안내 시작") { on(TripUiAction.AskDeparture) } }
+            Column(verticalArrangement = Arrangement.spacedBy(PleosSpacing.xs)) {
+                BasicText("방문지 ${trip.stops.size}곳 · 배송품 ${countsText(trip.plannedTotals, trip)}", style = t.bodyLarge.copy(color = c.textPrimary))
+            }
+        }
     }
-    StopManageCard(trip, on, allowQty = true)
+    RouteLoadGapCard(trip)
+    StopListCard(trip, on, onDialog)
 }
-
-// ---------------------------------------------------------------- S05
-

@@ -1,13 +1,13 @@
 package com.loadmate.app.feature.trip.presentation.shared
 
-import com.loadmate.app.feature.trip.presentation.loadcheck.recordObservation
-import com.loadmate.app.feature.trip.presentation.loadcheck.confirmBaseline
-import com.loadmate.app.feature.trip.presentation.driving.enterSite
-import com.loadmate.app.feature.trip.presentation.sitework.complete
-import com.loadmate.app.feature.trip.presentation.overview.moveStop
-import com.loadmate.app.feature.trip.presentation.sitework.submitPickup
-import com.loadmate.app.feature.trip.presentation.overview.recordSampleIssue
+import com.loadmate.app.feature.trip.presentation.cargo.acceptUnitPosition
+import com.loadmate.app.feature.trip.presentation.cargo.restoreUnitPosition
+import com.loadmate.app.feature.trip.presentation.overview.confirmDeparture
+import com.loadmate.app.feature.trip.presentation.driving.completeUnload
+import com.loadmate.app.feature.trip.presentation.cargo.submitPickup
 import com.loadmate.app.feature.trip.presentation.driving.sendRoute
+import com.loadmate.app.feature.trip.presentation.driving.askRoute
+import com.loadmate.app.feature.trip.presentation.overview.checkAddress
 import com.loadmate.app.core.pleos.RouteRequestStatus
 import com.loadmate.app.core.pleos.routeRequestStatus
 
@@ -29,11 +29,16 @@ import com.loadmate.app.feature.trip.domain.ObservationSource
 import com.loadmate.app.feature.trip.domain.Trip
 import com.loadmate.app.feature.trip.domain.TripRepository
 import com.loadmate.app.feature.trip.domain.TripStatus
+import com.loadmate.app.feature.trip.domain.UnloadSignal
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -59,6 +64,10 @@ class TripCoordinator(
     internal val scope: kotlinx.coroutines.CoroutineScope,
     internal val now: () -> Instant = Instant::now,
     internal val newKey: () -> String = { UUID.randomUUID().toString() },
+    doorWarningAt: StateFlow<Long?> = MutableStateFlow(null),
+    unloadSignal: StateFlow<UnloadSignal> = MutableStateFlow(UnloadSignal()),
+    private val setUnloadAsk: (String?) -> Unit = {},
+    internal val appVisible: StateFlow<Boolean> = MutableStateFlow(true),
 ) {
 
     fun release() {
@@ -69,8 +78,8 @@ class TripCoordinator(
     internal val local = MutableStateFlow(TripUiState())
 
     val state: StateFlow<TripUiState> =
-        combine(local, navi.state, rearDoor.state) { s, n, d ->
-            s.copy(naviConnected = n.connection == NaviConnection.Connected, routeStatus = routeRequestStatus(n.events), rearDoor = d)
+        combine(local, navi.state, rearDoor.state, doorWarningAt, unloadSignal) { s, n, d, warnedAt, unload ->
+            s.copy(naviConnected = n.connection == NaviConnection.Connected, routeStatus = routeRequestStatus(n.events), rearDoor = d, doorWarningAt = warnedAt, arrivedStopId = unload.arrivedStopId)
         }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), TripUiState())
 
     // 같은 요청의 재시도는 같은 키로 보낸다 (중복 반영 방지). 반영 확정 후에만 비운다.
@@ -80,40 +89,49 @@ class TripCoordinator(
 
     init {
         refresh()
-        scope.launch { repo.currentTrip.collect { trip -> if (trip != null && trip.id == tripId && trip != local.value.trip) applyTrip(trip, keepStep = true) } }
+        // 뒷문이 닫히면 서버 판정부터 받는다. 문제가 없으면 기사에게 묻지 않는다
+        scope.launch {
+            unloadSignal.map { it.askStopId }.distinctUntilChanged().filterNotNull().collect { stopId ->
+                setUnloadAsk(null)
+                val s = local.first { it.trip != null && !it.busy }
+                if (s.trip?.currentStop?.id == stopId) completeUnload(driverConfirmed = false)
+            }
+        }
+        scope.launch { repo.currentTrip.collect { trip -> if (trip != null && trip.id == tripId && trip != local.value.trip) applyTrip(trip) } }
     }
 
     fun onAction(a: TripUiAction) {
         when (a) {
             TripUiAction.Refresh -> refresh()
-            TripUiAction.OpenLoadCheck -> local.update { it.copy(step = TripStep.LOAD_CHECK, observationDraft = it.trip?.plannedTotals.orEmpty()) }
-            TripUiAction.BackToOverview -> local.update { it.copy(step = TripStep.OVERVIEW) }
-            is TripUiAction.ObservationCount -> local.update { it.copy(observationDraft = it.observationDraft + (a.kind to a.value)) }
-            is TripUiAction.ObservationSourceSelect -> local.update { it.copy(observationSource = a.source) }
-            TripUiAction.RecordObservation -> recordObservation(unavailable = false)
-            TripUiAction.RecordUnavailable -> recordObservation(unavailable = true)
-            TripUiAction.ConfirmBaseline -> confirmBaseline()
-            TripUiAction.AskRoute -> local.update { s -> s.copy(routeDialog = s.trip?.let { routePlan(it.pendingStops) }) }
+            TripUiAction.RefreshVehicleNotes -> refreshVehicleNotes()
+            TripUiAction.AskDeparture -> {
+                local.update { it.copy(departureDialog = true) }
+                if (local.value.trip?.let(::routeLoadGap) != null) speech?.speak(ROUTE_LOAD_GAP_SPEECH)
+            }
+            TripUiAction.DismissDeparture -> local.update { it.copy(departureDialog = false) }
+            TripUiAction.ConfirmDeparture -> confirmDeparture()
+            TripUiAction.AskRoute -> askRoute()
             TripUiAction.ConfirmRoute -> sendRoute()
             TripUiAction.DismissRoute -> local.update { it.copy(routeDialog = null) }
-            TripUiAction.Arrived -> enterSite()
-            TripUiAction.BackToDriving -> local.update { it.copy(step = TripStep.DRIVING) }
-            is TripUiAction.DeliveredCount -> local.update { it.copy(deliveredDraft = it.deliveredDraft + (a.kind to a.value)) }
-            TripUiAction.RequestComplete -> complete(driverConfirmed = false)
-            TripUiAction.RecheckAfterUnload -> local.update { s ->
-                s.copy(step = TripStep.SITE_WORK, pendingConfirmation = null, observationDraft = s.pendingConfirmation?.expected ?: s.observationDraft)
+            TripUiAction.DismissUnload -> local.update { it.copy(unloadAskStopId = null) }
+            TripUiAction.ConfirmUnload -> {
+                local.update { it.copy(unloadAskStopId = null) }
+                completeUnload(driverConfirmed = true)
             }
-            TripUiAction.DriverConfirmComplete -> complete(driverConfirmed = true)
+            TripUiAction.PassUnloadMismatch -> completeUnload(driverConfirmed = true)
+            TripUiAction.DismissUnloadMismatch -> local.update { it.copy(pendingConfirmation = null) }
+            TripUiAction.LoadStopNotes -> loadStopNotes()
             TripUiAction.DismissMessage -> local.update { it.copy(message = null) }
-            TripUiAction.SiteVisible -> rearDoor.start()
-            TripUiAction.SiteHidden -> rearDoor.stop()
-            is TripUiAction.AddSampleStop -> SAMPLE_PLACES.getOrNull(a.index)?.let { p ->
-                change("addStop:${p.name}", "방문지 추가 · ${p.name}") { t, k ->
-                    repo.addStop(t.id, k, p.name, p.address, p.lat, p.lng, listOf(NewCargo("박스", "box", 1)))
-                }
+            is TripUiAction.CheckAddress -> checkAddress(a.address)
+            TripUiAction.ClearAddressCheck -> local.update { it.copy(addressCheck = AddressCheckState()) }
+            is TripUiAction.AddStop -> change("addStop:${a.name}:${a.address}:${a.qty}", "${a.name} 추가했습니다") { t, k ->
+                repo.addStop(t.id, k, a.name, a.address, null, null, listOf(NewCargo("박스", "box", a.qty)))
             }
-            is TripUiAction.MoveStop -> moveStop(a.stopId, a.up)
-            is TripUiAction.CancelStop -> change("cancel:${a.stopId}", "방문지 취소 · 물품은 차에 남습니다") { t, k -> repo.cancelStop(t.id, a.stopId, k, a.reason) }
+            is TripUiAction.EditStopPlace -> change("place:${a.stopId}:${a.name}:${a.address}", "수정했습니다. 안내 시작을 눌러 주세요") { t, k ->
+                repo.changeStopPlace(t.id, a.stopId, k, a.name, a.address)
+            }
+            is TripUiAction.ReorderStops -> change("reorder:${a.stopIds.joinToString(",")}", "순서를 바꿨습니다. 안내 시작을 눌러 주세요") { t, k -> repo.reorderStops(t.id, k, a.stopIds) }
+            is TripUiAction.CancelStop -> change("cancel:${a.stopId}", "경로에서 삭제했습니다") { t, k -> repo.cancelStop(t.id, a.stopId, k, a.reason) }
             is TripUiAction.ChangeQty -> change("qty:${a.cargoLineId}:${a.qty}", null) { t, k -> repo.changeCargoQty(t.id, a.stopId, k, a.cargoLineId, a.qty) }
             TripUiAction.AskEndTrip -> local.update { it.copy(endDialog = true) }
             TripUiAction.DismissEndTrip -> local.update { it.copy(endDialog = false) }
@@ -125,19 +143,40 @@ class TripCoordinator(
             is TripUiAction.EditPickup -> local.update { it.copy(pickupDraft = a.draft) }
             TripUiAction.DismissPickup -> local.update { it.copy(pickupDraft = null) }
             TripUiAction.SubmitPickup -> submitPickup()
-            is TripUiAction.ReturnPickup -> change("return:${a.pickupId}", "반납 처리됨") { t, k -> repo.returnPickup(t.id, a.pickupId, k) }
-            is TripUiAction.RecordSampleIssue -> recordSampleIssue(a.kind)
-            is TripUiAction.ResolveIssue -> change("resolve:${a.issueId}", "이상 처리 기록됨") { t, k -> repo.resolveIssue(t.id, a.issueId, k, a.resolution, null) }
+            is TripUiAction.ReturnPickup -> change("return:${a.pickupId}", "반납했습니다") { t, k -> repo.returnPickup(t.id, a.pickupId, k) }
+            is TripUiAction.ResolveIssue -> change("resolve:${a.issueId}", "확인했습니다") { t, k -> repo.resolveIssue(t.id, a.issueId, k, a.resolution, null) }
+            is TripUiAction.AcceptUnitPosition -> acceptUnitPosition(a.unitId)
+            is TripUiAction.RestoreUnitPosition -> restoreUnitPosition(a.unitId)
         }
     }
 
     // ------------------------------------------------------------------ 서버
 
+    /** 도착한 방문지의 장소 메모와 차량 노트를 적재 화면에 보여 주려고 받아 온다 */
+    private fun loadStopNotes() {
+        val trip = local.value.trip ?: return
+        val stop = trip.currentStop ?: return
+        local.update { it.copy(stopMemos = emptyList()) }
+        refreshVehicleNotes()
+        val repository = memos ?: return
+        scope.launch {
+            (repository.forStop(trip.id, stop.id) as? ApiResult.Success)?.let { r -> local.update { it.copy(stopMemos = r.value) } }
+        }
+    }
+
+    private fun refreshVehicleNotes() {
+        val vehicleId = local.value.trip?.vehicleId ?: return
+        val repository = memos ?: return
+        scope.launch {
+            (repository.list("vehicle", vehicleId, null, null) as? ApiResult.Success)?.let { r -> local.update { it.copy(vehicleNotes = r.value) } }
+        }
+    }
+
     internal fun refresh() {
         local.update { it.copy(loading = true, loadError = null) }
         scope.launch {
             when (val r = repo.getTrip(tripId)) {
-                is ApiResult.Success -> applyTrip(r.value, keepStep = true)
+                is ApiResult.Success -> applyTrip(r.value)
                 is ApiResult.Failure -> {
                     val c = cached(tripId)
                     if (c != null) {
@@ -151,12 +190,11 @@ class TripCoordinator(
         }
     }
 
-    internal fun applyTrip(trip: Trip, keepStep: Boolean) {
+    internal fun applyTrip(trip: Trip) {
         local.update { s ->
             val step = when {
                 trip.isEnded -> TripStep.DONE
-                trip.baseline == null -> if (keepStep && s.step == TripStep.LOAD_CHECK) TripStep.LOAD_CHECK else TripStep.OVERVIEW
-                keepStep && s.step in setOf(TripStep.SITE_WORK, TripStep.MISMATCH) && trip.currentStop?.id == s.trip?.currentStop?.id -> s.step
+                trip.baseline == null -> TripStep.OVERVIEW
                 else -> TripStep.DRIVING
             }
             s.copy(loading = false, loadError = null, offlineSince = null, trip = trip, step = step, lastComparison = trip.comparison)
@@ -189,7 +227,7 @@ class TripCoordinator(
                 is ApiResult.Success -> {
                     done(op)
                     local.update { it.copy(busy = false, message = okText?.let { t -> UiMessage(t, false) } ?: it.message) }
-                    applyTrip(r.value, keepStep = true)
+                    applyTrip(r.value)
                     after?.invoke()
                 }
                 is ApiResult.Failure -> fail(r.error)
@@ -201,7 +239,7 @@ class TripCoordinator(
 
     internal fun reloadQuietly() {
         scope.launch {
-            (repo.getTrip(tripId) as? ApiResult.Success)?.let { applyTrip(it.value, keepStep = true) }
+            (repo.getTrip(tripId) as? ApiResult.Success)?.let { applyTrip(it.value) }
         }
     }
 
@@ -212,6 +250,8 @@ class TripCoordinator(
 
 }
 
+
+internal const val ROUTE_LOAD_GAP_SPEECH = "경로 짐과 실린 짐이 다릅니다. 확인해 주세요."
 
 internal fun countsText(c: Counts?, trip: Trip?): String =
     c?.entries?.joinToString(" · ") { (k, v) -> "${trip?.kindNames?.get(k) ?: k} $v" } ?: "-"
@@ -226,7 +266,7 @@ internal fun issueLabel(kind: String) = when (kind) {
 internal fun mismatchSpeech(c: Comparison, trip: Trip, label: String): String {
     val d = c.differences.firstOrNull()
     return if (d != null && d.observed > d.expected) {
-        "$label 에서 ${trip.kindNames[d.kind] ?: d.kind} ${d.observed - d.expected}개가 더 남아 있는 것으로 보입니다. 확인해 주세요."
-    } else "관측과 예상이 다릅니다. 확인해 주세요."
+        "$label ${trip.kindNames[d.kind] ?: d.kind} ${d.observed - d.expected}개가 더 보입니다. 확인해 주세요."
+    } else "수량이 다릅니다. 확인해 주세요."
 }
 

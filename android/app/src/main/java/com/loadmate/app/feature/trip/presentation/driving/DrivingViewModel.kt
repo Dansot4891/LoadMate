@@ -9,7 +9,6 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.loadmate.app.feature.trip.domain.NewCargo
 import kotlinx.coroutines.flow.update
 import com.loadmate.app.feature.trip.presentation.shared.*
-import com.loadmate.app.feature.trip.presentation.overview.recordSampleIssue
 import com.loadmate.app.AppContainer
 import com.loadmate.app.feature.trip.presentation.shared.TripCoordinator
 import com.loadmate.app.feature.trip.presentation.shared.TripUiAction
@@ -25,17 +24,15 @@ class DrivingViewModel(private val coordinator: TripCoordinator) : ViewModel() {
     fun onAction(action: DrivingUiAction) {
         val a = action.toTripAction()
         when (a) {
-            TripUiAction.AskRoute -> coordinator.local.update { s -> s.copy(routeDialog = s.trip?.let { routePlan(it.pendingStops) }) }
+            TripUiAction.AskRoute -> coordinator.askRoute()
             TripUiAction.ConfirmRoute -> coordinator.sendRoute()
             TripUiAction.DismissRoute -> coordinator.local.update { it.copy(routeDialog = null) }
-            TripUiAction.Arrived -> coordinator.enterSite()
             TripUiAction.AskEndTrip -> coordinator.local.update { it.copy(endDialog = true) }
             TripUiAction.DismissEndTrip -> coordinator.local.update { it.copy(endDialog = false) }
             is TripUiAction.EndTrip -> {
                 coordinator.local.update { it.copy(endDialog = false) }
                 coordinator.change("end", "운행을 종료했습니다") { t, k -> coordinator.repo.endTrip(t.id, k, a.reason) }
             }
-            is TripUiAction.RecordSampleIssue -> coordinator.recordSampleIssue(a.kind)
             else -> coordinator.onAction(a)
         }
     }

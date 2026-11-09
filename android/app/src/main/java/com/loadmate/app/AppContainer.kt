@@ -65,7 +65,8 @@ class AppContainer(appContext: Context) {
         val coordinator =
         TripCoordinator(tripRepository, memoRepository, tripSession.navi, rearDoorGateway, speechOutput,
             { id, title, message -> notifier.notify(id, title, message) }, { tripRepository.cached(it) }, tripId,
-            CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate))
+            CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate), doorWarningAt = tripSession.doorWarningAt,
+            unloadSignal = tripSession.unloadSignal, setUnloadAsk = tripSession::setUnloadAsk, appVisible = appVisible)
         activeCoordinator = tripId to coordinator
         return coordinator
     }

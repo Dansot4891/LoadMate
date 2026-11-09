@@ -11,6 +11,11 @@ data class DrivingUiState(
     val naviConnected: Boolean = false,
     val routeStatus: RouteRequestStatus = RouteRequestStatus.None,
     val lastRoutePlan: RoutePlan? = null,
+    val trip: Trip? = null,
+    val busy: Boolean = false,
+    val arrivedStopId: String? = null,
+    val unloadAskStopId: String? = null,
+    val pendingConfirmation: Comparison? = null,
 ) {
-    constructor(s: TripUiState) : this(s.naviConnected, s.routeStatus, s.lastRoutePlan)
+    constructor(s: TripUiState) : this(s.naviConnected, s.routeStatus, s.lastRoutePlan, s.trip, s.busy, s.arrivedStopId, s.unloadAskStopId, s.pendingConfirmation)
 }

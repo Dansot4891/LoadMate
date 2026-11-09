@@ -1,150 +1,67 @@
 package com.loadmate.app.feature.trip.presentation.shared
 
-import com.loadmate.app.shared.designsystem.components.PleosTitle
-import com.loadmate.app.shared.designsystem.components.PleosToast
-import androidx.compose.runtime.LaunchedEffect
-import kotlinx.coroutines.delay
-import com.loadmate.app.shared.format.localTime
-import com.loadmate.app.feature.trip.presentation.overview.OverviewScreen
-import com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckScreen
-import com.loadmate.app.feature.trip.presentation.driving.DrivingScreen
-import com.loadmate.app.feature.trip.presentation.driving.RouteDialog
-import com.loadmate.app.feature.trip.presentation.sitework.SiteWorkScreen
-import com.loadmate.app.feature.trip.presentation.mismatch.MismatchScreen
-
-import com.loadmate.app.core.pleos.RouteRequestStatus
-import com.loadmate.app.core.pleos.routeRequestStatus
-
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.LifecycleStartEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.loadmate.app.shared.designsystem.theme.Pleos
-import com.loadmate.app.shared.designsystem.components.PleosButton
-import com.loadmate.app.shared.designsystem.components.PleosButtonStyle
-import com.loadmate.app.shared.designsystem.project.PleosCard
-import com.loadmate.app.shared.designsystem.dimens.PleosShape
-import com.loadmate.app.shared.designsystem.dimens.PleosSpacing
-import com.loadmate.app.shared.designsystem.components.PleosStepper
-import com.loadmate.app.shared.designsystem.project.PleosTag
-import com.loadmate.app.core.pleos.RearDoorConnection
-import com.loadmate.app.feature.trip.domain.Comparison
-import com.loadmate.app.feature.trip.domain.ComparisonState
-import com.loadmate.app.feature.trip.domain.ObservationSource
-import com.loadmate.app.feature.trip.domain.Stop
-import com.loadmate.app.feature.trip.domain.StopStatus
-import com.loadmate.app.feature.trip.domain.Trip
+import com.loadmate.app.feature.trip.presentation.driving.DrivingScreen
+import com.loadmate.app.feature.trip.presentation.driving.DrivingUiAction
+import com.loadmate.app.feature.trip.presentation.driving.DrivingUiState
+import com.loadmate.app.feature.trip.presentation.driving.DrivingViewModel
+import com.loadmate.app.feature.trip.presentation.driving.RouteDialog
+import com.loadmate.app.feature.trip.presentation.overview.OverviewScreen
+import com.loadmate.app.feature.trip.presentation.overview.OverviewUiAction
+import com.loadmate.app.feature.trip.presentation.overview.OverviewUiState
+import com.loadmate.app.feature.trip.presentation.overview.OverviewViewModel
+import com.loadmate.app.feature.trip.presentation.overview.components.DepartureDialog
 
 @Composable
 fun TripScreen(
-    overview: com.loadmate.app.feature.trip.presentation.overview.OverviewViewModel,
-    loadcheck: com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckViewModel,
-    driving: com.loadmate.app.feature.trip.presentation.driving.DrivingViewModel,
-    sitework: com.loadmate.app.feature.trip.presentation.sitework.SiteWorkViewModel,
-    mismatch: com.loadmate.app.feature.trip.presentation.mismatch.MismatchViewModel,
+    overview: OverviewViewModel,
+    driving: DrivingViewModel,
 ) {
-    val screenState by overview.state.collectAsStateWithLifecycle()
-    val state = screenState
-    val loadCheckState by loadcheck.state.collectAsStateWithLifecycle()
+    val state by overview.state.collectAsStateWithLifecycle()
     val drivingState by driving.state.collectAsStateWithLifecycle()
-    val siteWorkState by sitework.state.collectAsStateWithLifecycle()
-    val mismatchState by mismatch.state.collectAsStateWithLifecycle()
     val action: (TripUiAction) -> Unit = { value ->
         when (state.step) {
-            TripStep.OVERVIEW, TripStep.DONE -> overview.onAction(com.loadmate.app.feature.trip.presentation.overview.OverviewUiAction.from(value))
-            TripStep.LOAD_CHECK -> loadcheck.onAction(com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckUiAction.from(value))
-            TripStep.DRIVING -> driving.onAction(com.loadmate.app.feature.trip.presentation.driving.DrivingUiAction.from(value))
-            TripStep.SITE_WORK -> sitework.onAction(com.loadmate.app.feature.trip.presentation.sitework.SiteWorkUiAction.from(value))
-            TripStep.MISMATCH -> mismatch.onAction(com.loadmate.app.feature.trip.presentation.mismatch.MismatchUiAction.from(value))
+            TripStep.OVERVIEW, TripStep.DONE -> overview.onAction(OverviewUiAction.from(value))
+            TripStep.DRIVING -> driving.onAction(DrivingUiAction.from(value))
         }
     }
-    TripContent(state, loadCheckState, drivingState, siteWorkState, mismatchState, action)
+    TripContent(state, drivingState, action)
 }
 
 @Composable
 private fun TripContent(
-    s: com.loadmate.app.feature.trip.presentation.overview.OverviewUiState,
-    loadCheck: com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckUiState,
-    driving: com.loadmate.app.feature.trip.presentation.driving.DrivingUiState,
-    siteWork: com.loadmate.app.feature.trip.presentation.sitework.SiteWorkUiState,
-    mismatch: com.loadmate.app.feature.trip.presentation.mismatch.MismatchUiState,
+    s: OverviewUiState,
+    driving: DrivingUiState,
     on: (TripUiAction) -> Unit,
 ) {
-    val c = Pleos.colors
-    val t = Pleos.type
-    Box(Modifier.fillMaxSize().background(c.backgroundPrimary)) {
-        Column(Modifier.fillMaxSize().padding(PleosSpacing.xl), verticalArrangement = Arrangement.spacedBy(PleosSpacing.l)) {
-            // 상단: 앱 이름 · 운행 · 출처
-            PleosTitle(
-                title = s.trip?.name.orEmpty(),
-                accessory = { if (s.trip?.dataSource == "sample") PleosTag("샘플 데이터") },
-                suffix = { PleosButton("새로고침", style = PleosButtonStyle.Basic, enabled = !s.loading) { on(TripUiAction.Refresh) } },
-            )
-            s.offlineSince?.let {
-                MessageBar(UiMessage("오프라인 · ${localTime(it.toString())} 에 받은 정보를 표시 중입니다. 변경 요청은 연결 후 다시 보내세요", true)) {
-                    on(TripUiAction.Refresh)
-                }
+    var stopDialog by remember { mutableStateOf<StopDialog?>(null) }
+    val openDialog: (StopDialog) -> Unit = { stopDialog = it }
+    TripFrame(
+        trip = s.trip,
+        loading = s.loading,
+        loadError = s.loadError,
+        offlineSince = s.offlineSince,
+        message = s.message,
+        on = on,
+        overlays = {
+            if (s.departureDialog) s.trip?.let { DepartureDialog(it, on) }
+            s.routeDialog?.let { RouteDialog(it, s.trip?.let { t -> routeWaitingText(t.pendingStops) }, s.trip?.let { t -> routeLoadGapText(t) }, on) }
+            if (s.endDialog) s.trip?.let { EndTripDialog(it, on) }
+            s.trip?.let { trip -> stopDialog?.let { StopDialogHost(it, trip, s.addressCheck, on) { stopDialog = null } } }
+        },
+    ) { trip ->
+        when (s.step) {
+            TripStep.OVERVIEW -> OverviewScreen(trip, s.vehicleNotes, on, openDialog)
+            TripStep.DRIVING -> DrivingScreen(driving, trip, on, openDialog)
+            TripStep.DONE -> {
+                DonePanel(trip)
+                StopListCard(trip, on, openDialog)
             }
-
-            val trip = s.trip
-            when {
-                trip == null && s.loading -> BasicText("운행 정보를 불러오는 중…", style = t.bodyLarge.copy(color = c.textSecondary))
-                trip == null -> PleosCard(Modifier.widthIn(max = 960.dp)) {
-                    BasicText("운행 정보를 불러오지 못했습니다", style = t.titleSmall.copy(color = c.negative))
-                    BasicText(s.loadError ?: "", style = t.bodyMedium.copy(color = c.textSecondary))
-                    PleosButton("다시 시도") { on(TripUiAction.Refresh) }
-                }
-                else -> Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(PleosSpacing.xl)) {
-                    StopsPanel(trip, Modifier.weight(0.42f).fillMaxHeight())
-                    Column(
-                        Modifier.weight(0.58f).fillMaxHeight().verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(PleosSpacing.l),
-                    ) {
-                        when (s.step) {
-                            TripStep.OVERVIEW -> OverviewScreen(trip, on)
-                            TripStep.LOAD_CHECK -> LoadCheckScreen(loadCheck, trip, on)
-                            TripStep.DRIVING -> DrivingScreen(driving, trip, on)
-                            TripStep.SITE_WORK -> SiteWorkScreen(siteWork, trip, on)
-                            TripStep.MISMATCH -> MismatchScreen(mismatch, trip, on)
-                            TripStep.DONE -> { DonePanel(trip); PickupsCard(trip, on) }
-                        }
-                    }
-                }
-            }
-        }
-        s.routeDialog?.let { RouteDialog(it, on) }
-        s.pickupDraft?.let { PickupDialog(it, s.trip?.currentStop, s.busy, on) }
-        if (s.endDialog) s.trip?.let { EndTripDialog(it, on) }
-        s.message?.let { m ->
-            // 일반 안내는 자동으로 닫고, 오류는 기사가 확인할 때까지 남긴다
-            LaunchedEffect(m) {
-                if (!m.isError) {
-                    delay(TOAST_MILLIS)
-                    on(TripUiAction.DismissMessage)
-                }
-            }
-            PleosToast(m.text, Modifier.align(Alignment.BottomCenter)) { on(TripUiAction.DismissMessage) }
         }
     }
 }
-
-private const val TOAST_MILLIS = 4_000L

@@ -57,21 +57,22 @@ import com.loadmate.app.feature.settings.presentation.connection.ConnectionScree
 import com.loadmate.app.feature.settings.presentation.connection.ConnectionViewModel
 import com.loadmate.app.feature.settings.presentation.pleosstatus.PleosStatusSection
 import com.loadmate.app.feature.settings.presentation.pleosstatus.PleosStatusViewModel
+import com.loadmate.app.feature.trip.presentation.cargo.CargoScreen
+import com.loadmate.app.feature.trip.presentation.cargo.CargoViewModel
 import com.loadmate.app.feature.trip.presentation.select.SelectScreen
 import com.loadmate.app.feature.trip.presentation.select.SelectViewModel
 import com.loadmate.app.feature.trip.presentation.select.SelectUiEffect
 import com.loadmate.app.feature.trip.presentation.shared.TripScreen
 import com.loadmate.app.feature.trip.presentation.shared.TripUiAction
 import com.loadmate.app.feature.trip.presentation.overview.OverviewViewModel
-import com.loadmate.app.feature.trip.presentation.loadcheck.LoadCheckViewModel
 import com.loadmate.app.feature.trip.presentation.driving.DrivingViewModel
-import com.loadmate.app.feature.trip.presentation.sitework.SiteWorkViewModel
-import com.loadmate.app.feature.trip.presentation.mismatch.MismatchViewModel
+import com.loadmate.app.feature.trip.presentation.driving.components.UnloadDialogs
 
 private class TabItem(val label: String, @DrawableRes val icon: Int)
 
 private val TABS = listOf(
     TabItem("운행", R.drawable.pleos_ic_vehicle),
+    TabItem("적재", R.drawable.ic_nav_cargo),
     TabItem("메모", R.drawable.ic_nav_records),
     TabItem("내역", R.drawable.pleos_ic_menu_3),
     TabItem("연결 상태", R.drawable.pleos_ic_info_line),
@@ -97,6 +98,9 @@ class MainActivity : ComponentActivity() {
                         if (effect is SelectUiEffect.OpenTrip) selectedTripId = effect.tripId
                     }
                 }
+                // 앱이 앞에 있을 때만 수집된다. 도착 알림을 누르거나 아이콘으로 돌아오면 그 운행의 적재 화면을 연다
+                val arrival by container.tripSession.arrival.collectAsStateWithLifecycle()
+                LaunchedEffect(arrival?.tripId) { arrival?.tripId?.let { selectedTripId = it } }
                 val tripId = selectedTripId
                 if (tripId == null) {
                     SelectScreen(selectVm)
@@ -131,11 +135,19 @@ class MainActivity : ComponentActivity() {
 @androidx.compose.runtime.Composable
 private fun TripTabs(container: AppContainer, tripId: String, onSelectTrip: () -> Unit) {
     var tab by rememberSaveable(tripId) { mutableIntStateOf(0) }
+    var autoPlay by remember(tripId) { mutableStateOf<Long?>(null) }
+    val arrival by container.tripSession.arrival.collectAsStateWithLifecycle()
+    LaunchedEffect(arrival) {
+        val request = arrival
+        if (request?.tripId == tripId) {
+            tab = 1
+            autoPlay = request.atMillis.takeIf { request.autoPlay }
+            container.tripSession.consumeArrival()
+        }
+    }
     val tripVm: OverviewViewModel = viewModel(key = "overview-$tripId", factory = OverviewViewModel.factory(container, tripId))
-    val loadCheckVm: LoadCheckViewModel = viewModel(key = "loadcheck-$tripId", factory = LoadCheckViewModel.factory(container, tripId))
     val drivingVm: DrivingViewModel = viewModel(key = "driving-$tripId", factory = DrivingViewModel.factory(container, tripId))
-    val siteWorkVm: SiteWorkViewModel = viewModel(key = "sitework-$tripId", factory = SiteWorkViewModel.factory(container, tripId))
-    val mismatchVm: MismatchViewModel = viewModel(key = "mismatch-$tripId", factory = MismatchViewModel.factory(container, tripId))
+    val drivingState by drivingVm.state.collectAsStateWithLifecycle()
     val voiceVm: VoiceViewModel = viewModel(key = "voice-$tripId", factory = VoiceViewModel.factory(container, tripId))
     val voice by voiceVm.state.collectAsStateWithLifecycle()
     LaunchedEffect(voiceVm) {
@@ -171,9 +183,10 @@ private fun TripTabs(container: AppContainer, tripId: String, onSelectTrip: () -
             }
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 when (tab) {
-                    0 -> TripScreen(tripVm, loadCheckVm, drivingVm, siteWorkVm, mismatchVm)
-                    1 -> MemoScreen(viewModel(key = "memo-$tripId", factory = MemoViewModel.factory(container, tripId)))
-                    2 -> HistoryScreen(viewModel(key = "history-$tripId", factory = HistoryViewModel.factory(container, tripId)))
+                    0 -> TripScreen(tripVm, drivingVm)
+                    1 -> CargoScreen(viewModel(key = "cargo-$tripId", factory = CargoViewModel.factory(container, tripId)), autoPlay, { autoPlay = null })
+                    2 -> MemoScreen(viewModel(key = "memo-$tripId", factory = MemoViewModel.factory(container, tripId)))
+                    3 -> HistoryScreen(viewModel(key = "history-$tripId", factory = HistoryViewModel.factory(container, tripId)))
                     else -> {
                         val vm: ConnectionViewModel = viewModel(factory = ConnectionViewModel.factory(container))
                         val pleosVm: PleosStatusViewModel = viewModel(factory = PleosStatusViewModel.factory(container))
@@ -182,6 +195,8 @@ private fun TripTabs(container: AppContainer, tripId: String, onSelectTrip: () -
                 }
             }
         }
+        // 어느 메뉴에 있든 하차 확인을 물을 수 있게 메뉴 바깥에 둔다
+        UnloadDialogs(drivingState) { drivingVm.onAction(com.loadmate.app.feature.trip.presentation.driving.DrivingUiAction.from(it)) }
         VoicePanel(voice, voiceVm::onAction)
     }
 }
