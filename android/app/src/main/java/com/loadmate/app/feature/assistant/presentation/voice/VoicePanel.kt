@@ -17,6 +17,14 @@ import com.loadmate.app.shared.designsystem.dimens.PleosSpacing
 import com.loadmate.app.shared.designsystem.project.PleosTag
 import com.loadmate.app.feature.assistant.domain.AssistantReply
 
+/** 어떤 방식으로 해석했는지 화면에 그대로 알린다. 규칙 기반 결과를 AI 라고 표시하지 않는다 */
+internal fun interpretationLabel(r: AssistantReply): String = when {
+    r.method == "ai" -> "AI 답변"
+    r.aiStatus == "unavailable" -> "AI 연결 안 됨 · 기본 답변"
+    r.aiStatus == "not_configured" -> "AI 연결 안 됨 · 기본 답변"
+    else -> "기본 답변"
+}
+
 @Composable
 fun VoicePanel(s: VoiceUiState, on: (VoiceUiAction) -> Unit) {
     if (!s.open) return
@@ -28,9 +36,9 @@ fun VoicePanel(s: VoiceUiState, on: (VoiceUiAction) -> Unit) {
             VoicePhase.IDLE -> "말씀하세요"
             VoicePhase.LISTENING -> "듣는 중…"
             VoicePhase.PROCESSING -> "처리 중…"
-            VoicePhase.ANSWERED -> "응답"
-            VoicePhase.CONFIRMING -> "확인 대기"
-            VoicePhase.CLARIFYING -> "추가 질문"
+            VoicePhase.ANSWERED -> "답변"
+            VoicePhase.CONFIRMING -> "확인해 주세요"
+            VoicePhase.CLARIFYING -> "추가 확인"
             VoicePhase.FAILED -> if (s.sttReady) "다시 말하거나 직접 입력하세요" else "음성 사용 불가 · 직접 입력하세요"
         },
         onDismiss = { on(VoiceUiAction.Close) },
@@ -50,8 +58,7 @@ fun VoicePanel(s: VoiceUiState, on: (VoiceUiAction) -> Unit) {
         },
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {
-            PleosTag("음성 인식 ON_DEVICE")
-            PleosTag("해석: 규칙 기반")
+            s.reply?.let { PleosTag(interpretationLabel(it)) }
         }
         (s.partial?.takeIf { s.phase == VoicePhase.LISTENING } ?: s.heard)?.let {
             BasicText("들은 말: \"$it\"", style = t.bodyLarge.copy(color = c.textSecondary))
@@ -59,11 +66,11 @@ fun VoicePanel(s: VoiceUiState, on: (VoiceUiAction) -> Unit) {
         s.reply?.let { r ->
             BasicText(r.display, style = t.titleSmall.copy(color = c.textPrimary))
             if (confirming) {
-                BasicText("들은 말과 내용이 맞으면 확인을 누르세요. 확인 전에는 저장하지 않습니다.", style = t.labelMedium.copy(color = c.textTertiary))
+                BasicText("맞으면 확인을 눌러 주세요.", style = t.labelMedium.copy(color = c.textTertiary))
             }
         }
         if (s.phase == VoicePhase.FAILED && s.sttError != null) {
-            BasicText("음성 인식 상태: ${s.sttError}", style = t.labelMedium.copy(color = c.negative))
+            BasicText("${s.sttError}", style = t.labelMedium.copy(color = c.negative))
         }
         // F43 직접 입력 대체
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(PleosSpacing.m)) {

@@ -137,15 +137,35 @@ class VoiceViewModel(
     }
 
     private fun handle(text: String) {
-        local.update { it.copy(open = true, phase = VoicePhase.PROCESSING, heard = text) }
+        // 소음으로 판단되면 팝업을 띄우지 않도록, 응답을 받은 뒤에 연다
+        local.update { it.copy(phase = VoicePhase.PROCESSING, heard = text) }
         viewModelScope.launch {
             when (val r = assistant.interpret(tripId, text, pending)) {
                 is ApiResult.Success -> {
                     val reply = r.value
-                    pending = if (reply.kind == AssistantReply.Kind.CLARIFY) reply.actionRaw else null
+                    if (reply.kind == AssistantReply.Kind.IGNORE) {
+                        local.update { it.copy(phase = VoicePhase.IDLE, reply = null) }
+                        if (local.value.alwaysListening) listen()
+                        return@launch
+                    }
+                    // 운전 중 상시 듣기에서는 한 번 못 알아들어도 듣기를 멈추지 않는다. 소음·자기 음성에 대꾸해 말이 반복되는 것도 막는다
+                    if (reply.kind == AssistantReply.Kind.UNKNOWN && local.value.alwaysListening && !local.value.open) {
+                        local.update { it.copy(phase = VoicePhase.IDLE, reply = null) }
+                        listen()
+                        return@launch
+                    }
+                    // 도착은 저장할 것이 없어 확인 창 없이 적재 화면으로 이어 간다
+                    if (reply.actionType == "arrived") {
+                        local.update { it.copy(open = false, phase = VoicePhase.IDLE, reply = null) }
+                        tts?.speak(reply.speech)
+                        effects.send(VoiceEffect.Arrived)
+                        scheduleNextListen()
+                        return@launch
+                    }
+                    pending =if (reply.kind == AssistantReply.Kind.CLARIFY) reply.actionRaw else null
                     actionKey = if (reply.kind == AssistantReply.Kind.CONFIRM) UUID.randomUUID().toString() else null
                     local.update {
-                        it.copy(reply = reply, phase = when (reply.kind) {
+                        it.copy(open = true, reply = reply, phase = when (reply.kind) {
                             AssistantReply.Kind.CONFIRM -> VoicePhase.CONFIRMING
                             AssistantReply.Kind.CLARIFY -> VoicePhase.CLARIFYING
                             else -> VoicePhase.ANSWERED
@@ -155,7 +175,7 @@ class VoiceViewModel(
                     if (reply.kind == AssistantReply.Kind.ANSWER) scheduleNextListen()
                 }
                 is ApiResult.Failure -> {
-                    local.update { it.copy(phase = VoicePhase.FAILED, reply = null) }
+                    local.update { it.copy(open = true, phase = VoicePhase.FAILED, reply = null) }
                     tts?.speak("서버에 연결하지 못했습니다. 화면에서 입력해 주세요.")
                     local.update { it.copy(heard = "$text  (${describe(r.error)})") }
                     scheduleNextListen()
@@ -187,21 +207,24 @@ class VoiceViewModel(
                 "add_memo" -> memos.create(
                     key,
                     NewMemo(requireNotNull(p.scopeType), requireNotNull(p.scopeId), requireNotNull(p.body), shared = p.visibility == "shared",
-                        thisTripOnly = p.persistence == "this_trip", tripId = tripId, source = "voice"),
+                        thisTripOnly = p.persistence == "this_trip", tripId = tripId, source = "voice", category = p.category, location = p.location),
                 )
+                "update_memo" -> memos.update(requireNotNull(p.memoId), p.body, null, p.category, p.location)
+                "delete_memo" -> memos.delete(requireNotNull(p.memoId))
                 else -> ApiResult.Success(Unit)
             }
+            val verb = if (reply.actionType == "delete_memo") "삭제" else "저장"
             when (result) {
                 is ApiResult.Success -> {
                     actionKey = null
-                    local.update { it.copy(busy = false, phase = VoicePhase.ANSWERED, reply = reply.copy(kind = AssistantReply.Kind.ANSWER, display = "저장했습니다 · ${reply.display}", actionType = null)) }
-                    tts?.speak("저장했습니다.")
+                    local.update { it.copy(busy = false, phase = VoicePhase.ANSWERED, reply = reply.copy(kind = AssistantReply.Kind.ANSWER, display = "${verb}했습니다 · ${reply.display}", actionType = null)) }
+                    tts?.speak("${verb}했습니다.")
                     scheduleNextListen()
                 }
                 is ApiResult.Failure -> {
                     // 같은 키로 다시 확인하면 중복 없이 재시도된다
-                    local.update { it.copy(busy = false, heard = "저장 실패 · ${describe(result.error)}") }
-                    tts?.speak("저장하지 못했습니다.")
+                    local.update { it.copy(busy = false, heard = "$verb 실패 · ${describe(result.error)}") }
+                    tts?.speak("${verb}하지 못했습니다.")
                 }
             }
         }

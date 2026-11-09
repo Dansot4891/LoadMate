@@ -11,9 +11,12 @@ data class AssistantReply(
     val actionType: String?,
     val actionPayload: AssistantPayload?,
     val actionRaw: AssistantAction?,
+    /** ai | rule_based */
     val method: String,
+    /** ok | unavailable | not_configured */
+    val aiStatus: String = "not_configured",
 ) {
-    enum class Kind { ANSWER, CONFIRM, CLARIFY, UNKNOWN }
+    enum class Kind { ANSWER, CONFIRM, CLARIFY, UNKNOWN, IGNORE }
 }
 
 data class AssistantAction(val type: String, val payload: AssistantPayload?, val summary: String?)
@@ -22,6 +25,7 @@ data class AssistantPayload(
     val stopId: String? = null, val itemName: String? = null, val kind: String? = null, val qty: Int? = null,
     val returnPlace: String? = null, val scopeType: String? = null, val scopeId: String? = null,
     val body: String? = null, val visibility: String? = null, val persistence: String? = null,
+    val memoId: Int? = null, val category: String? = null, val location: String? = null,
 )
 
 interface AssistantRepository {

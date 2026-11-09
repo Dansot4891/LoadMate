@@ -65,12 +65,21 @@ class VoiceViewModelTest {
         if (m.name == "addPickup") { pickupCalls += args!!.dropLast(1).toList(); ApiResult.Success(null as Trip?) } else error("unexpected ${m.name}")
     } as TripRepository
 
+    private val updates = mutableListOf<List<Any?>>()
     private val memos = object : MemoRepository {
         override suspend fun list(scopeType: String?, scopeId: String?, tripId: String?, query: String?) = ApiResult.Success(emptyList<Memo>())
         override suspend fun forStop(tripId: String, stopId: String) = ApiResult.Success(emptyList<Memo>())
         override suspend fun create(key: String, memo: NewMemo): ApiResult<Memo> = error("not used")
-        override suspend fun update(id: Int, body: String?, shared: Boolean?): ApiResult<Memo> = error("not used")
+        override suspend fun update(id: Int, body: String?, shared: Boolean?, category: String?, location: String?): ApiResult<Memo> {
+            updates += listOf(id, body, location)
+            return ApiResult.Success(Memo(id, "vehicle", "v", body ?: "", emptyList(), true, false, "voice", "shared", "t", "shared"))
+        }
+        override suspend fun delete(id: Int): ApiResult<Unit> {
+            deletes += id
+            return ApiResult.Success(Unit)
+        }
     }
+    private val deletes = mutableListOf<Int>()
 
     @Before fun setUp() { Dispatchers.setMain(UnconfinedTestDispatcher()) }
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -100,6 +109,90 @@ class VoiceViewModelTest {
         assertEquals(listOf("sample-trip-1"), pickupCalls[0].take(1))
         assertEquals(listOf("stop-a", "빈 용기", "container", 2, "창고", "voice"), pickupCalls[0].drop(2))
         assertEquals(0, changed)
+    }
+
+    @Test
+    fun `상시 듣기에서 못 알아들은 말은 대꾸하지 않고 바로 다시 듣는다`() {
+        val unknown = """{"kind":"unknown","speech":"잘 알아듣지 못했어요.","display":"잘 알아듣지 못했어요.","intent":"unknown","method":"rule_based"}"""
+        val stt = FakeStt(); val tts = FakeTts()
+        val a = FakeAssistant(ArrayDeque(listOf(unknown)))
+        val v = vm(stt, tts, a)
+        v.onAction(VoiceUiAction.ToggleAlwaysListening)
+        stt.say("웅성웅성")
+        assertEquals(VoicePhase.LISTENING, v.state.value.phase)
+        assertTrue(tts.spoken.isEmpty())
+        assertEquals(false, v.state.value.open)
+    }
+
+    @Test
+    fun `도착했다는 말은 확인 창 없이 적재 화면 요청만 보낸다`() {
+        val arrived = """{"kind":"answer","speech":"A 도착 확인했습니다.","display":"A 도착 확인했습니다.","action":{"type":"arrived","payload":{"stop_id":"stop-a"},"summary":"s"},"intent":"arrived","method":"rule_based"}"""
+        val stt = FakeStt(); val tts = FakeTts()
+        val v = vm(stt, tts, FakeAssistant(ArrayDeque(listOf(arrived))))
+        val effects = mutableListOf<VoiceEffect>()
+        CoroutineScope(UnconfinedTestDispatcher()).launch { v.effect.collect { effects += it } }
+        v.onAction(VoiceUiAction.Open)
+        stt.say("도착했어")
+        assertEquals(listOf<VoiceEffect>(VoiceEffect.Arrived), effects)
+        assertEquals(VoicePhase.IDLE, v.state.value.phase)
+        assertEquals(false, v.state.value.open)
+        assertNull(v.state.value.reply)
+        assertEquals("A 도착 확인했습니다.", tts.spoken.last())
+        assertTrue(pickupCalls.isEmpty())
+    }
+
+    @Test
+    fun `AI 수정과 삭제 요청도 확인한 뒤에만 메모를 바꾼다`() {
+        fun confirm(type: String, payload: String) = """{"kind":"confirm","speech":"바꿀까요?","display":"바꿀까요?","action":{"type":"$type","payload":$payload,"summary":"s"},"intent":"note","method":"ai","ai_status":"ok"}"""
+        val stt = FakeStt(); val tts = FakeTts()
+        val v = vm(stt, tts, FakeAssistant(ArrayDeque(listOf(confirm("update_memo", """{"memo_id":7,"location":"조수석 뒤"}"""), confirm("delete_memo", """{"memo_id":8}""")))))
+        v.onAction(VoiceUiAction.Open)
+        stt.say("핸드카트 조수석 뒤로 옮겼어")
+        assertTrue(updates.isEmpty())
+        v.onAction(VoiceUiAction.Confirm)
+        assertEquals(listOf(7, null, "조수석 뒤"), updates[0])
+        v.onAction(VoiceUiAction.Listen)
+        stt.say("끈 새로 샀어")
+        assertTrue(deletes.isEmpty())
+        v.onAction(VoiceUiAction.Confirm)
+        assertEquals(listOf(8), deletes)
+        assertEquals("삭제했습니다.", tts.spoken.last())
+    }
+
+    private val ignoreJson = """{"kind":"ignore","speech":"","display":"","action":null,"intent":"ignore","method":"ai","ai_status":"ok"}"""
+
+    @Test
+    fun `상시 듣기 중 소음은 말하지 않고 팝업 없이 다시 듣는다`() {
+        val stt = FakeStt(); val tts = FakeTts()
+        val v = vm(stt, tts, FakeAssistant(ArrayDeque(listOf(ignoreJson))))
+        v.onAction(VoiceUiAction.ToggleAlwaysListening)
+        stt.say("아 오늘 진짜 덥네")
+        assertTrue(tts.spoken.isEmpty())
+        assertEquals(false, v.state.value.open)
+        assertEquals(VoicePhase.LISTENING, v.state.value.phase)
+        assertTrue(stt.state.value.listening)
+    }
+
+    @Test
+    fun `상시 듣기 중 업무 답변은 팝업을 연다`() {
+        val stt = FakeStt(); val tts = FakeTts()
+        val answer = """{"kind":"answer","speech":"박스 3개입니다.","display":"박스 3개입니다.","action":null,"intent":"x","method":"ai","ai_status":"ok"}"""
+        val v = vm(stt, tts, FakeAssistant(ArrayDeque(listOf(answer))))
+        v.onAction(VoiceUiAction.ToggleAlwaysListening)
+        stt.say("뭐 내려")
+        assertEquals(true, v.state.value.open)
+        assertEquals("박스 3개입니다.", tts.spoken.last())
+    }
+
+    @Test
+    fun `직접 연 패널에서 소음이면 들은 말을 남기고 대기한다`() {
+        val stt = FakeStt(); val tts = FakeTts()
+        val v = vm(stt, tts, FakeAssistant(ArrayDeque(listOf(ignoreJson))))
+        v.onAction(VoiceUiAction.Open)
+        stt.say("음")
+        assertEquals(VoicePhase.IDLE, v.state.value.phase)
+        assertEquals("음", v.state.value.heard)
+        assertNull(v.state.value.reply)
     }
 
     @Test

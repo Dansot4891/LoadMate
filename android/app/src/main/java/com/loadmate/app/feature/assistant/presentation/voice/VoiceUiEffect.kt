@@ -34,6 +34,9 @@ import java.util.UUID
 sealed interface VoiceEffect {
     /** 다음 장소 안내: 운행 화면의 내비 확인창을 연다 (확인은 거기서 한 번 더) */
     data object AskRoute : VoiceEffect
+
+    /** 기사가 도착했다고 말함: 적재 화면을 연다 (서버 기록 없음) */
+    data object Arrived : VoiceEffect
 }
 
 /**

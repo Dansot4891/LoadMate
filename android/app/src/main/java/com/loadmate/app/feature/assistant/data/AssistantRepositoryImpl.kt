@@ -13,7 +13,7 @@ import kotlinx.serialization.json.Json
 
 class AssistantRepositoryImpl(private val api: ApiClient) : AssistantRepository {
     override suspend fun interpret(tripId: String, text: String, pending: AssistantAction?) =
-        api.post("/assistant/interpret", json.encodeToString(InterpretRequestDto(tripId, text, pending?.toDto())), ::parse)
+        api.postWaitingForAi("/assistant/interpret", json.encodeToString(InterpretRequestDto(tripId, text, pending?.toDto())), ::parse)
 
     companion object {
         private val json = Json { ignoreUnknownKeys = true }
