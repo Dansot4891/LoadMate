@@ -13,6 +13,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicInteger
 
+/** 내비가 끼어들어도 그 문장만 다시 읽도록 문장 단위로 나눈다. 소수점처럼 뒤에 공백이 없는 마침표에서는 나누지 않는다. */
+internal fun splitSentences(text: String): List<String> =
+    text.trim().split(Regex("(?<=[.!?])\\s+")).filter { it.isNotBlank() }
+
 /**
  * Loadmate 음성을 내비 음성과 겹치지 않게 한 문장씩 재생한다.
  * - 내비가 말하는 중이면 끝날 때까지 기다린다.

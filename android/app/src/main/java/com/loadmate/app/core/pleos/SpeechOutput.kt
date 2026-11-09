@@ -84,7 +84,7 @@ class PleosSpeechOutput(context: Context) : SpeechOutput {
 
     override fun speak(text: String) {
         ensure()
-        queue.enqueue(text)
+        splitSentences(text).forEach(queue::enqueue)
     }
 
     override fun release() {
