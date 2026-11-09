@@ -3,6 +3,7 @@ package com.loadmate.app.core.pleos
 import ai.pleos.playground.navi.constants.NaviErrorCode
 import ai.pleos.playground.navi.constants.NavigationStatus
 import ai.pleos.playground.navi.data.DestinationArrivedInfo
+import ai.pleos.playground.navi.data.WaypointArrivedInfo
 import ai.pleos.playground.navi.constants.WaypointIndex
 import ai.pleos.playground.navi.data.RequestWaypointInfo
 import ai.pleos.playground.navi.data.RouteInfo
@@ -44,6 +45,8 @@ class PleosNaviGateway(
 
         override fun onDestinationArrived(info: DestinationArrivedInfo) =
             emit(NaviEvent.DestinationArrived(info.name, clock()))
+
+        override fun onWayPointArrived(info: WaypointArrivedInfo) = emit(NaviEvent.WaypointArrived(clock()))
 
         override fun onNavigationStatus(status: NavigationStatus) =
             emit(NaviEvent.StatusChanged(status.name, clock()))

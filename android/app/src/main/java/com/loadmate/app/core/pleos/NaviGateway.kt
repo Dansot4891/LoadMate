@@ -55,6 +55,7 @@ sealed interface NaviEvent {
     data class RouteCancelled(override val atMillis: Long) : NaviEvent
     data class RouteEnded(override val atMillis: Long) : NaviEvent
     data class DestinationArrived(val name: String, override val atMillis: Long) : NaviEvent
+    data class WaypointArrived(override val atMillis: Long) : NaviEvent
     data class StatusChanged(val status: String, override val atMillis: Long) : NaviEvent
     /** SDK NaviErrorCode 이름 그대로 (예: CAUSE_SEARCH_ROUTE) */
     data class Error(val code: String, override val atMillis: Long) : NaviEvent
