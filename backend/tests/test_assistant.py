@@ -23,11 +23,16 @@ def baseline(client):
     ("다음 장소에 뭐 내려야 해", "query_next_stop"),
     ("여기서 뭐 내려", "query_here"),
     ("지금 몇 개 남았어", "query_remaining"),
-    ("핸드카트 어디 있어", "query_equipment"),
+    ("핸드카트 어디 있어", "query_note"),
+    ("빨간 테이프 어딨어", "query_note"),
     ("여기 주의할 거 있어", "query_memo"),
     ("여기서 빈 용기 두 개 회수했어", "add_pickup"),
     ("다음부터 여기는 후문으로 들어와", "add_memo"),
     ("다음 장소 안내해줘", "navigate_next"),
+    ("도착했어", "arrived"),
+    ("A 도착 완료", "arrived"),
+    ("언제 도착해", "unknown"),
+    ("거의 다 왔어", "unknown"),
     ("오늘 날씨 어때", "unknown"),
 ])
 def test_interpret_intents(text, intent):
@@ -50,8 +55,10 @@ def test_query_remaining_before_and_after_baseline(client):
     assert "박스 10개" in ask(client, "몇 개 남았어")["speech"]
 
 
-def test_equipment_location(client):
-    assert "적재함 뒷문 오른쪽" in ask(client, "카트 어디 있어")["speech"]
+def test_note_location_comes_from_saved_notes(client):
+    r = ask(client, "핸드카트 어디 있어")
+    assert "적재함 뒷문 오른쪽" in r["speech"] and r["ai_status"] == "not_configured"
+    assert "기록이 없습니다" in ask(client, "빨간 테이프 어디 있어")["speech"]
 
 
 def test_pickup_full_utterance_needs_confirmation(client):
@@ -73,10 +80,10 @@ def test_pickup_missing_return_place_asks_only_that(client):
     assert r2["kind"] == "confirm" and r2["action"]["payload"]["return_place"] == "물류 창고"
 
 
-def test_memo_request_defaults_private_and_needs_confirmation(client):
+def test_memo_request_is_shared_and_needs_confirmation(client):
     r = ask(client, "다음부터 여기는 후문으로 들어와")
     assert r["kind"] == "confirm" and r["action"]["type"] == "add_memo"
-    assert r["action"]["payload"]["visibility"] == "private"  # R12 개인 기본
+    assert r["action"]["payload"]["visibility"] == "shared"  # 누가 타든 함께 쓰는 기록
     assert r["action"]["payload"]["scope_id"] == "place-pangyo"
 
 

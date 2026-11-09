@@ -87,7 +87,7 @@ fleet  ←  trip  ←  memo  ←  handover  ←  assistant
 
 ## Integrations
 
-- 외부·AI 연동은 `integrations/<name>/` 에 어댑터로 두고 service 는 인터페이스만 호출한다 (예: 규칙 기반 해석기 → LLM 으로 교체 가능)
+- 외부·AI 연동은 `integrations/<name>/` 에 어댑터로 두고 service 는 인터페이스만 호출한다 (예: `assistant/note_ai.py` Gemini 어댑터, `assistant/rule_based.py` 규칙 기반)
 - 규칙 기반·샘플 결과는 응답에 출처(`source`/`data_source`)를 실어 앱이 그렇게 표시하게 한다. AI 라고 부르지 않는다
 
 ## 테스트

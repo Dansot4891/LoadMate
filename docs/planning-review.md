@@ -46,7 +46,7 @@
 | 보조 신호 | BrakePedal, Odometer 주행 거리·시간 (`CAR_DRIVE`) | 에뮬레이터 GET 동작 (BrakePedal=false 등) | 보조 근거로만 사용 가능 |
 | F32, F35~F43 음성 | SpeechToText / TextToSpeech | 콘솔 준비 중. 공식 문서: STT **ON_DEVICE 모드는 앱 등록(Client ID/Secret) 없이 사용 가능**, HYBRID·SERVER는 등록 필요. **에뮬레이터(2026-11-08): 서비스는 `ai.pleos.playground.caas` 4.2.10. ON_DEVICE initialize·한국어 인식 성공(자격 증명 없음). 오인식("에이 하차"→"내일 하체")과 주변 소음 확정 사례 있음.** **TTS ON_DEVICE도 자격 증명 없이 재생. 앱이 백그라운드(내비 전면)여도 STT·TTS 동작** | ✅ 앱에 연결(2026-11-08): 음성 패널 STT → 서버 규칙 기반 해석 → TTS 응답, 변경은 확인 후 저장, 직접 입력 병행. 실차·콘솔 승인 미확인 |
 | F08~F15 적재 공간 카메라 | 적재함 카메라 | Pleos SDK에 카메라 API 없음 | ⚠️ 기획서대로 별도 카메라/녹화 영상 → vision 프로세스. 시연에서 "녹화 영상 분석"으로 표시 |
-| 대화 AI | — | Pleos LLM 제공 종료 | 서버 `integrations/assistant` 규칙 기반 해석기로 구현(2026-11-08), 화면에 "규칙 기반" 표시. LLM 어댑터 교체 가능 (모델 미정) |
+| 대화 AI | — | Pleos LLM 제공 종료 | 서버 `integrations/assistant`의 Gemini 어댑터가 먼저 판단하고(키 필요, 실제 호출 미검증) 키가 없거나 끊기면 규칙 기반 해석기로 동작. 화면에 어느 쪽인지 표시 |
 
 ## 4. 서버 · 데이터 저장
 

@@ -1,7 +1,7 @@
 """규칙 기반 발화 해석기 (대화 AI 어댑터의 기본 구현).
 
-대화 AI 모델·실행 위치가 미정이라(docs/next-steps.md 결정 필요) 키워드 규칙으로 의도·대상·수량만 뽑는다.
-같은 Intent 를 돌려주는 다른 어댑터(LLM 등)로 교체할 수 있다. 업무 실행·확정은 하지 않는다 (기획서 17장).
+키워드 규칙으로 의도·대상·수량만 뽑는다. AI(note_ai.py)가 맡지 않은 말과 AI 를 쓸 수 없을 때 사용한다.
+ 업무 실행·확정은 하지 않는다 (기획서 17장).
 """
 
 from __future__ import annotations
@@ -11,8 +11,8 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 IntentType = Literal[
-    "query_next_stop", "query_here", "query_remaining", "query_memo", "query_equipment",
-    "add_pickup", "add_memo", "navigate_next", "unknown",
+    "query_next_stop", "query_here", "query_remaining", "query_memo", "query_note",
+    "add_pickup", "add_memo", "navigate_next", "arrived", "unknown",
 ]
 
 _NUM = {"한": 1, "하나": 1, "두": 2, "둘": 2, "세": 3, "셋": 3, "석": 3, "네": 4, "넷": 4, "다섯": 5, "여섯": 6,
@@ -20,7 +20,6 @@ _NUM = {"한": 1, "하나": 1, "두": 2, "둘": 2, "세": 3, "셋": 3, "석": 3,
 # 물품 이름 → 종류(kind). 서버·앱이 쓰는 kind 와 맞춘다
 ITEM_KINDS = {"빈 용기": "container", "빈용기": "container", "용기": "container", "박스": "box", "상자": "box",
               "팔레트": "pallet", "파렛트": "pallet", "카트": "cart"}
-_EQUIP_WORDS = ["핸드카트", "카트", "고정 끈", "끈", "공구함", "공구"]
 
 
 @dataclass
@@ -72,16 +71,20 @@ def interpret(text: str) -> Intent:
         return Intent("add_memo", {"body": body}, t)
     if re.search(r"(안내|내비|길)\S*\s*(해|시작|보내|켜|찾)", t) or re.search(r"다음 ?(장소|목적지|곳)으?로\s*(가|출발)", t):
         return Intent("navigate_next", {}, t)
+    if re.search(r"도착\s*(했|함|완료)|(?<!거의 )(?<!거의)다 ?왔어", t) and "?" not in t:
+        return Intent("arrived", {}, t)
     # 조회 (즉시 답변)
     if re.search(r"(몇 ?개|얼마나|잔량).*(남|실려|있)", t) or "잔량" in t:
         return Intent("query_remaining", {}, t)
-    for w in _EQUIP_WORDS:
-        if w in t and re.search(r"어디|위치|있어", t):
-            return Intent("query_equipment", {"word": w}, t)
     if re.search(r"(주의|특이|메모|조심)", t):
-        return Intent("query_memo", {"target": "next" if "다음" in t else "here"}, t)
+        target = "vehicle" if re.search(r"이 ?차|차량", t) else "next" if "다음" in t else "here"
+        return Intent("query_memo", {"target": target}, t)
     if re.search(r"다음 ?(장소|목적지|곳|배송지)|다음에", t) and re.search(r"뭐|무엇|몇|내려|물품|어디", t):
         return Intent("query_next_stop", {}, t)
     if re.search(r"(여기|이번|지금).*(뭐|몇|내려|물품)", t) or re.search(r"뭐 ?내려", t):
         return Intent("query_here", {}, t)
+    # 물건 이름을 고정하지 않는다. 저장된 메모에서 찾는다
+    m = re.search(r"^(.+?)\s*(?:은|는|이|가|을|를)?\s*(?:어디|어딨|어딧|위치)", t)
+    if m:
+        return Intent("query_note", {"word": m.group(1).strip()}, t)
     return Intent("unknown", text=t)
