@@ -2,6 +2,7 @@ package com.loadmate.app
 
 import android.content.Context
 import com.loadmate.app.core.network.ApiClient
+import com.loadmate.app.core.notify.AndroidTripKeepAlive
 import com.loadmate.app.core.notify.DriverNotifier
 import com.loadmate.app.core.pleos.NaviGateway
 import com.loadmate.app.core.pleos.PleosNaviGateway
@@ -25,6 +26,7 @@ import com.loadmate.app.feature.trip.presentation.shared.TripCoordinator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /** 수동 의존성 주입 컨테이너. 구현체 연결은 여기서만 한다. */
 class AppContainer(appContext: Context) {
@@ -40,7 +42,11 @@ class AppContainer(appContext: Context) {
 
     // Pleos SDK 구현은 여기서만 연결한다. 화면은 인터페이스만 받는다.
     val naviGateway: NaviGateway by lazy { PleosNaviGateway(appContext) }
-    val tripSession: TripSession by lazy { TripSession(tripRepository, naviGateway, speechOutput) { id, title, message -> notifier.notify(id, title, message) } }
+    /** Loadmate 화면이 보이는 동안 true. MainActivity 가 갱신한다 */
+    val appVisible = MutableStateFlow(false)
+    val tripSession: TripSession by lazy {
+        TripSession(tripRepository, naviGateway, speechOutput, rearDoorGateway, AndroidTripKeepAlive(appContext), appVisible) { id, title, message -> notifier.notify(id, title, message) }
+    }
     val rearDoorGateway: RearDoorGateway by lazy { PleosRearDoorGateway(appContext) }
     val speechGateway: SpeechGateway by lazy { PleosSpeechGateway(appContext) }
     val speechOutput: SpeechOutput by lazy { PleosSpeechOutput(appContext) }

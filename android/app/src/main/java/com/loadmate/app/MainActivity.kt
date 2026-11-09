@@ -116,6 +116,16 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onStart() {
+        super.onStart()
+        (application as LoadmateApplication).container.appVisible.value = true
+    }
+
+    override fun onStop() {
+        (application as LoadmateApplication).container.appVisible.value = false
+        super.onStop()
+    }
 }
 
 @androidx.compose.runtime.Composable
@@ -130,7 +140,10 @@ private fun TripTabs(container: AppContainer, tripId: String, onSelectTrip: () -
     val voice by voiceVm.state.collectAsStateWithLifecycle()
     LaunchedEffect(voiceVm) {
         voiceVm.effect.collect { e ->
-            if (e == VoiceEffect.AskRoute) { tab = 0; drivingVm.onAction(com.loadmate.app.feature.trip.presentation.driving.DrivingUiAction.AskRoute) }
+            when (e) {
+                VoiceEffect.AskRoute -> { tab = 0; drivingVm.onAction(com.loadmate.app.feature.trip.presentation.driving.DrivingUiAction.AskRoute) }
+                VoiceEffect.Arrived -> container.tripSession.markArrived()
+            }
         }
     }
     val c = Pleos.colors

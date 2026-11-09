@@ -125,6 +125,9 @@ enum class ComparisonState { MATCH, MISMATCH, NO_OBSERVATION, UNAVAILABLE, STALE
 
 data class Difference(val kind: String, val expected: Int, val observed: Int)
 
+/** 정차 중 하차 확인에 쓰는 신호. 도착 처리된 방문지와, 지금 하차 여부를 물어볼 방문지. 화면 전용이며 서버에 저장하지 않는다 */
+data class UnloadSignal(val arrivedStopId: String? = null, val askStopId: String? = null)
+
 data class ObservationInfo(
     val id: Int,
     val source: ObservationSource,
