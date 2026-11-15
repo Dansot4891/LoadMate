@@ -4,6 +4,40 @@
 이 문서 하나로 새 세션을 시작할 수 있게 정리했다. 근거·규칙은 링크 문서를 본다.
 [기획 대조 planning-review](planning-review.md) · [기능 현황 F01~F66 feature-status](feature-status.md) · [API 계약 api-contract](api-contract.md) · [구조·실행 architecture](architecture.md) · 기획서 원본 `docs/Pleos_물류동반자_기획개발안.docx`(Git 제외)
 
+### GitHub 제출 · release APK (2026-11-15 22시)
+
+- [x] 서명된 release APK `apk/TeamLoadMate_LoadMate_release.apk`(팀명 `Team LoadMate`, 앱명 `LoadMate`, 공식 파일명 규칙). 서버 주소 `http://10.0.2.2:8000`(에뮬레이터 → 같은 PC의 docker compose). release 전용 `src/release` 네트워크 설정은 10.0.2.2만 평문 허용.
+- [x] 서명 키 `~/.loadmate/loadmate-release.jks`, 암호는 `android/keystore.properties`(둘 다 Git 제외). **키를 잃으면 같은 서명으로 업데이트할 수 없으니 백업.**
+- [x] 검증: `assembleRelease`·`testDebugUnitTest`(129개, 실패 0)·`lintDebug`, pytest 150개(Docker 격리, `GEMINI_API_KEY` 해제). 에뮬레이터에 release 설치 → 운행 목록 표시 확인(debug 앱은 서명이 달라 삭제 후 설치).
+- [x] README 필수 항목 보강: 화면 규격 2560×1440, APK 위치, release 실행 방법.
+- [x] 지원서 PDF(개인정보 포함)는 `.gitignore` `docs/*지원서*`로 제외.
+- [ ] 접수 메일에 저장소 주소와 최종 커밋 해시 기재. 비공개 저장소면 11/16까지 Public 전환, 11/23까지 유지.
+
+### 지원서 PDF 수정본 DOCX 복원 (2026-11-15)
+
+- [x] 사용자 수정 PDF를 기준으로 `docs/Loadmate_공모전_지원서_PDF수정반영.docx` 생성. 원본 PDF·기존 DOCX 보존, PDF의 기재 내용 반영.
+- [x] 사용자 요청에 따라 팀·일반(스타트업 포함) 선택, 기재된 참가자 2명의 동의 체크. 빈 참가자 행과 서명란은 유지.
+- [x] 3번 소제목 6개에 ①~⑥ 번호 부여, 소제목만 굵게 하고 본문은 일반 굵기로 정리.
+- [x] PDF 본문 대조·ZIP/XML 무결성 검사 통과. 8쪽 렌더 육안 확인, 최종 참가 부문 변경 후 1쪽 재확인. 앱/서버 코드 변경 없어 코드 테스트 생략. DOCX는 Git 제외.
+- 재실행: 런타임 Python으로 `/tmp/loadmate-final/build.py` 실행. 동일 Python으로 documents 스킬 `render_docx.py`에 결과 DOCX와 `--output_dir /tmp/loadmate-final/render3 --emit_pdf` 전달, `FONTCONFIG_FILE=/tmp/loadmate-final/fonts.conf` 지정. 임시 파일 소멸 시 최종 DOCX에서 편집.
+
+### 제출 당일 점검 (2026-11-15)
+
+> **2026-11-15 21시: 시연 영상 9장면 촬영 완료** (`docs/video/`, 장면별 파일은 demo-video-plan 1절). 촬영 중 수정 4건(운전 중 위쪽 알림 8초, 말하는 중 듣기 끊지 않음, 내역 출처 카메라, 짐 이름 박스 고정 해제)은 **미커밋** — demo-video-plan 1-1절.
+>
+> **시연 영상 촬영은 [demo-video-plan.md](demo-video-plan.md)부터.** 장면별 상태(3·4번만 사용, 나머지 다시 찍기), 장면별 진행 명령, 미커밋 코드 목록.
+> 촬영 전 수정은 완료했다. 되묻기·확인 대답도 Gemini가 해석하고 하드코딩은 없다. 앱이 말하는 동안 듣지 않고, 질문은 30초 뒤 만료된다. 검증: 앱 단위 테스트 125개·lint 통과, pytest 148개 통과, 실제 Gemini와 에뮬레이터 음성으로 확인.
+
+- [x] `docker compose up -d --build` → `/health` ok·db ok. pytest 142개 통과. `assembleDebug`·`testDebugUnitTest`(120개, 실패 0)·`lintDebug` 통과.
+- [x] 에뮬레이터 `Pleos_Connect_v2.1` 부팅, debug APK 설치·실행. 운행 목록 → 샘플 운행 열기 확인. 샘플 운행 `planned`, A·B·C `pending`(초기 상태). Loadmate 비정상 종료 없음(크래시 로그는 시스템 앱 `ai.pleos.gleoai.model.provider`의 Firebase 오류뿐).
+- [x] **Gemini 실제 호출 첫 확인**: `/assistant/interpret` 4문장 모두 `method: ai`, `ai_status: ok`. "다음 장소에 뭐 내려야 해"(답변), "짐 몇 개 남았어"(답변), "도착했어"(`arrived` 액션), 혼잣말(`ignore`). 서버 응답 3.4~4.0초로 목표 3초 초과(TTS 시간 제외).
+- [ ] 출발 전 "짐 몇 개 남았어" 답이 "아직 최초 적재 기준 미확정 상태입니다"로 개발 용어(`assistant/service.py:38`).
+- [x] README 필수 항목 중 에뮬레이터 **화면 규격**(2560×1440) 누락 → 2026-11-15 보강. 공식 요구: 앱 이름·소개, 실행 방법, 테스트 환경·설정, 에뮬레이터 버전과 화면 규격, APK 위치.
+- [x] 음성 "도착했습니다/도착했어"에 Loadmate가 "A 도착 확인했습니다"라고 말하던 것 제거(내비 도착 음성과 겹침, 사용자 결정). 화면 전환만 한다. `VoiceViewModel`·테스트 수정, assembleDebug·testDebugUnitTest(120개)·lintDebug 통과. "도착했습니다"는 AI·규칙 모두 `arrived`로 해석 확인. **미커밋.**
+- [x] 주행 중 적재 이상 알림은 음성만(도착 후·앱이 뒤에 있을 때만 팝업 허용, `cargoPopupAllowed`) — 사용자 요구와 일치 확인(코드).
+- 녹화: `adb emu screenrecord start --time-limit 180 <파일.webm>`(최대 180초, VP9 + Vorbis 소리 트랙 있음). 맥 `say` → 호스트 마이크로 음성 입력 시 앱 답변 음성이 다시 마이크로 들어가 오인식("그렇죠")됨 → 말할 때만 `hostmicon`, 끝나면 바로 `hostmicoff`.
+- 공식 제출 요건(재확인): 필수는 접수양식(기획서)과 전원 개별 동의서. 시연 영상·GitHub(소스+`apk/팀명_앱이름_release.apk`, release)은 선택 가산점. 비공개 저장소는 11/16까지 공개 전환, 메일에 저장소 주소와 커밋 해시.
+
 ### 공모전 지원서 1~6번 작성 (2026-11-10)
 
 - [x] 공식 [개요](https://appdevchallenge.auto-hmg.io/guide/overview)·[제출 방법](https://appdevchallenge.auto-hmg.io/guide/submission)·[심사 기준](https://appdevchallenge.auto-hmg.io/guide/judging-awards)·[개발 환경](https://appdevchallenge.auto-hmg.io/guide/development)·[참가 규정](https://appdevchallenge.auto-hmg.io/guide/rules)·[FAQ](https://appdevchallenge.auto-hmg.io/faq), 기존 기획서 v2.1과 현재 코드·검증 기록을 대조.
