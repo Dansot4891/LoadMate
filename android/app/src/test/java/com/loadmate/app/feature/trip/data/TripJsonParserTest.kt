@@ -25,6 +25,14 @@ class TripJsonParserTest {
     }
 
     @Test
+    fun `품목이 섞이면 물품, 하나면 그 이름으로 부른다`() {
+        val t = TripJsonParser.trip(res("trip_in_progress.json"))
+        val pickup = com.loadmate.app.feature.trip.domain.Pickup(1, "stop-c", "물품", "box", 5, "창고", loaded = true)
+        assertEquals(mapOf("box" to "물품"), t.copy(pickups = listOf(pickup)).kindNames)
+        assertEquals(mapOf("box" to "박스"), t.copy(pickups = listOf(pickup.copy(loaded = false))).kindNames)
+    }
+
+    @Test
     fun `운행 응답 파싱`() {
         val t = TripJsonParser.trip(res("trip_in_progress.json"))
         assertEquals("sample", t.dataSource)

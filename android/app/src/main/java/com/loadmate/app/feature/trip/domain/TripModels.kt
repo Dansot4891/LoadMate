@@ -39,11 +39,23 @@ data class Trip(
     val plannedTotals: Counts
         get() = stops.flatMap { it.cargo }.groupingBy { it.kind }.fold(0) { acc, l -> acc + l.plannedQty }
 
-    /** kind → 화면 이름 (예: box → 박스) */
+    /**
+     * kind → 화면 이름. 남은 짐(남은 방문지 배송품 + 실린 회수품) 중 그 종류의 품목명이 하나면 그 이름(예: 박스),
+     * 여러 품목이 섞였으면 "물품". 짐이 무조건 박스는 아니다 (2026-11-15 사용자 결정)
+     */
     val kindNames: Map<String, String>
-        // 같은 종류면 배송품 이름을 우선한다 (회수품 "반품 박스" 가 배송품 "박스" 를 덮지 않게)
-        get() = pickups.associate { it.kind to it.itemName } + stops.flatMap { it.cargo }.associate { it.kind to it.itemName }
+        get() {
+            val remaining = pendingStops.flatMap { it.cargo }.map { it.kind to it.itemName } + loadedPickups.map { it.kind to it.itemName }
+            val all = stops.flatMap { it.cargo }.map { it.kind to it.itemName } + pickups.map { it.kind to it.itemName }
+            fun names(lines: List<Pair<String, String>>) = lines.groupBy({ it.first }, { it.second })
+                .mapValues { (_, n) -> n.distinct().singleOrNull() ?: GENERIC_ITEM }
+            // 다 내린 종류도 이름이 필요하다(완료 후 "남은 짐 박스 0"). 남은 짐 기준 이름이 우선한다
+            return names(all) + names(remaining)
+        }
 }
+
+/** 품목이 섞였을 때 쓰는 이름 */
+const val GENERIC_ITEM = "물품"
 
 enum class TripStatus { PLANNED, IN_PROGRESS, COMPLETED, ENDED_INCOMPLETE, UNKNOWN }
 

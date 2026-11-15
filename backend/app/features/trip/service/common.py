@@ -258,14 +258,33 @@ _EVENT_LABEL = {
 }
 
 
-def summarize_event(e: TripEvent, stop_labels: dict[str, str]) -> str:
+def kind_display_names(cargo: list[tuple[str, str]]) -> dict[str, str]:
+    """kind → 화면 이름. 한 종류에 품목명이 하나뿐이면 그 이름, 여러 개면 "물품" (무조건 박스가 아니다, 2026-11-15)."""
+    names: dict[str, set[str]] = {}
+    for kind, item_name in cargo:
+        names.setdefault(kind, set()).add(item_name)
+    return {k: (next(iter(v)) if len(v) == 1 else GENERIC_ITEM) for k, v in names.items()}
+
+
+GENERIC_ITEM = "물품"
+
+
+def summarize_event(e: TripEvent, stop_labels: dict[str, str], kind_names: dict[str, str] | None = None,
+                    pickup_names: dict[int, str] | None = None) -> str:
+    """이력 한 줄. 수량은 종류 코드(box) 대신 품목명으로 쓴다. 회수품은 그 회수품의 이름을 쓴다."""
+    kind_names = kind_names or {}
+    item = e.detail.get("item_name") or (pickup_names or {}).get(e.detail.get("pickup_id"))
+    name = lambda k: item or kind_names.get(k, GENERIC_ITEM)  # noqa: E731
     parts = [_EVENT_LABEL.get(e.type, e.type)]
     if e.stop_id and e.stop_id in stop_labels:
         parts.append(stop_labels[e.stop_id])
     if e.delta:
-        parts.append(" ".join(f"{k} {'+' if v > 0 else ''}{v}" for k, v in e.delta.items()))
+        parts.append(" ".join(f"{name(k)} {'+' if v > 0 else ''}{v}" for k, v in e.delta.items()))
     if e.detail.get("kind"):
-        parts.append(_ISSUE_KIND.get(e.detail["kind"], e.detail["kind"]))
+        if e.type == "cargo_qty_changed":
+            parts.append(f"{name(e.detail['kind'])} {e.detail.get('before')}→{e.detail.get('after')}")
+        else:
+            parts.append(_ISSUE_KIND.get(e.detail["kind"], e.detail["kind"]))
     if e.detail.get("resolution"):
         parts.append(_RESOLUTION.get(e.detail["resolution"], e.detail["resolution"]))
     if e.detail.get("reason"):

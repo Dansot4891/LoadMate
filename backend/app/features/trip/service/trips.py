@@ -47,7 +47,7 @@ from app.features.trip.schemas import (
 )
 
 
-from app.features.trip.service.common import request_hash, stop_planned, summarize_event, ZONE_NAMES, _ISSUE_KIND, _RESOLUTION
+from app.features.trip.service.common import request_hash, stop_planned, summarize_event, kind_display_names, ZONE_NAMES, _ISSUE_KIND, _RESOLUTION
 
 class TripsMixin:
     def list_trips(self) -> TripListOut:
@@ -86,9 +86,11 @@ class TripsMixin:
     def history(self, trip_id: str) -> HistoryOut:
         trip = self._trip(trip_id)
         labels = {st.id: st.label for st in trip.stops}
+        names = kind_display_names([(c.kind, c.item_name) for st in trip.stops for c in st.cargo])
+        pickup_names = {p.id: p.item_name for p in self.repo.pickups(trip.id)}
         return HistoryOut(items=[
             HistoryItemOut(id=e.id, type=e.type, stop_id=e.stop_id, delta=e.delta, source=e.source, actor_id=e.actor_id,
-                           created_at=as_utc(e.created_at), summary=summarize_event(e, labels))
+                           created_at=as_utc(e.created_at), summary=summarize_event(e, labels, names, pickup_names))
             for e in self.repo.events(trip.id)
         ])
 

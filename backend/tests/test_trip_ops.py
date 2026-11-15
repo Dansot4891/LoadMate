@@ -153,6 +153,14 @@ def test_issue_history_source_follows_who_observed_it(client):
     assert [i["source"] for i in items] == ["camera", "sample", "screen"]
 
 
+def test_history_names_items_instead_of_kind_codes(client):
+    baseline(client)
+    post(client, "/pickups", {"stop_id": "stop-c", "item_name": "물품", "kind": "box", "qty": 5, "return_place": "창고", "source": "voice"})
+    summaries = [i["summary"] for i in client.get(f"{T}/history").json()["items"]]
+    assert "box" not in " ".join(summaries)
+    assert summaries[0].endswith("박스 +10") and summaries[1].endswith("물품 +5")
+
+
 def test_change_idempotent_replay(client):
     baseline(client)
     body = {"idempotency_key": key(), "stop_id": "stop-a", "item_name": "빈 용기", "kind": "container", "qty": 1, "return_place": "창고"}
