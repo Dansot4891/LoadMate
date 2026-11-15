@@ -1,9 +1,9 @@
-# LoadMate
+# Loadmate
 
 **다지점 배송 기사가 차량 화면과 음성으로 짐칸 상태를 확인하며 운행을 이어가는 Pleos Connect 물류 동반자 앱.**
 
-- 팀: Team LoadMate · 앱: LoadMate
-- **APK: [`apk/TeamLoadMate_LoadMate_release.apk`](apk/TeamLoadMate_LoadMate_release.apk)** (서명된 release, 2026-11-15)
+- 팀: Team LoadMate · 앱: Loadmate
+- **APK: [`apk/TeamLoadMate_Loadmate_release.apk`](apk/TeamLoadMate_Loadmate_release.apk)** (서명된 release, 2026-11-15)
 
 > 샘플 운행 A→B→C의 적재 확인·내비 전달·하차 불일치 확인·회수·메모·내역이 앱과 서버에 연결되어 있습니다. 운행·적재 관측은 샘플이며, 음성 해석은 AI 키가 있으면 AI로, 없거나 연결이 끊기면 규칙 기반으로 처리합니다. Pleos SDK 동작은 에뮬레이터에서만 확인했습니다.
 
@@ -14,7 +14,7 @@
 | `backend/` | FastAPI · PostgreSQL · Alembic |
 | `vision/` | 적재 영상 분석 (예정, 녹화 영상 미연결) |
 | `docs/` | [구조와 실행](docs/architecture.md) · [API 계약](docs/api-contract.md) |
-| `apk/` | 제출용 release APK `TeamLoadMate_LoadMate_release.apk` |
+| `apk/` | 제출용 release APK `TeamLoadMate_Loadmate_release.apk` |
 
 ## 실행 방법
 
@@ -26,10 +26,10 @@ release APK는 에뮬레이터와 **같은 PC에서 실행한 서버**(`http://1
    ```
 2. Pleos Connect 에뮬레이터를 켜고 APK를 설치·실행합니다(AAOS 사용자 10).
    ```bash
-   adb -s emulator-5554 install -r apk/TeamLoadMate_LoadMate_release.apk
+   adb -s emulator-5554 install -r apk/TeamLoadMate_Loadmate_release.apk
    adb -s emulator-5554 shell am start --user 10 -n com.loadmate.app/.MainActivity
    ```
-   하단 도크의 상자 모양 LoadMate 아이콘으로도 실행할 수 있습니다. 처음 실행 시 알림 허용을 눌러 주세요(도착·짐칸 알림).
+   하단 도크의 상자 모양 Loadmate 아이콘으로도 실행할 수 있습니다. 처음 실행 시 알림 허용을 눌러 주세요(도착·짐칸 알림).
 3. `운행 목록` → `분당 납품 운행 · A·B·C`를 열어 시작합니다. `docker compose exec backend python -m app.seed --reset`은 샘플 운행의 기록과 일부 메모를 지우고 처음 상태로 되돌립니다.
 
 소스에서 빌드하려면 ([구조와 실행](docs/architecture.md)):
@@ -63,7 +63,7 @@ docker compose up -d --build
 | 항목 | 값 |
 |---|---|
 | 에뮬레이터 | **Pleos Connect Emulator v2.1.0** (AAOS, Android 14 / API 34, AVD `Pleos_Connect_v2.1`) |
-| 화면 규격 | **2560 × 1440** 가로. 왼쪽은 시스템 주행 정보, 오른쪽 앱 영역에 LoadMate 표시 |
+| 화면 규격 | **2560 × 1440** 가로. 왼쪽은 시스템 주행 정보, 오른쪽 앱 영역에 Loadmate 표시 |
 | 앱 | minSdk 28 · targetSdk 34 · Kotlin · Jetpack Compose |
 | Pleos SDK | Vehicle 2.3.2, NaviHelper 3.0.5, SpeechToText·TextToSpeech 3.3.1 |
 | 서버 | Docker(Compose) · FastAPI · PostgreSQL. 에뮬레이터에서 `10.0.2.2:8000` 으로 접속 |
@@ -80,7 +80,7 @@ docker compose up -d --build
 ```bash
 cd android
 ./gradlew :app:assembleRelease -Ploadmate.apiBaseUrl=http://10.0.2.2:8000
-cp app/build/outputs/apk/release/app-release.apk ../apk/TeamLoadMate_LoadMate_release.apk
+cp app/build/outputs/apk/release/app-release.apk ../apk/TeamLoadMate_Loadmate_release.apk
 ```
 
 ## 현재 범위와 다음 작업
