@@ -25,4 +25,12 @@ internal fun visibleHistory(items: List<HistoryItem>, filter: HistoryFilter): Li
 
 /** 내역 한 줄의 부가 정보: 시각 · 입력 방식 · 기사 (기사를 모르면 뺀다) */
 internal fun historyMeta(h: HistoryItem): String =
-    listOfNotNull(localTime(h.createdAt), if (h.source == "voice") "음성" else "화면", h.actorId).joinToString(" · ")
+    listOfNotNull(localTime(h.createdAt), historySourceLabel(h.source), h.actorId).joinToString(" · ")
+
+/** 이력 출처 표시. 카메라·샘플 기록을 기사 입력(화면)으로 보이지 않게 한다 (원칙 5) */
+internal fun historySourceLabel(source: String): String = when (source) {
+    "voice" -> "음성"
+    "camera" -> "카메라"
+    "sample" -> "샘플"
+    else -> "화면"
+}

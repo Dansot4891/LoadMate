@@ -145,6 +145,14 @@ def test_history_has_source_actor_and_summary(client):
     assert "회수" in items[1]["summary"] and "A" in items[1]["summary"]
 
 
+def test_issue_history_source_follows_who_observed_it(client):
+    baseline(client)
+    for src in ("recorded_video", "sample", "manual"):
+        post(client, "/issues", {"kind": "shift", "zone": "rear", "observation_source": src, "observed_at": now_iso()})
+    items = [i for i in client.get(f"{T}/history").json()["items"] if i["type"] == "issue_recorded"]
+    assert [i["source"] for i in items] == ["camera", "sample", "screen"]
+
+
 def test_change_idempotent_replay(client):
     baseline(client)
     body = {"idempotency_key": key(), "stop_id": "stop-a", "item_name": "빈 용기", "kind": "container", "qty": 1, "return_place": "창고"}

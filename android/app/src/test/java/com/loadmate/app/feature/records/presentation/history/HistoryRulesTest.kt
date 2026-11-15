@@ -32,5 +32,7 @@ class HistoryRulesTest {
     @Test fun `시각과 입력 방식과 기사를 잇고 기사를 모르면 뺀다`() {
         assertEquals("${localTime(at)} · 음성 · driver-1", historyMeta(HistoryItem("t", "voice", "driver-1", at, "s")))
         assertEquals("${localTime(at)} · 화면", historyMeta(HistoryItem("t", "screen", null, at, "s")))
+        assertEquals("${localTime(at)} · 카메라", historyMeta(HistoryItem("t", "camera", null, at, "s")))
+        assertEquals("${localTime(at)} · 샘플", historyMeta(HistoryItem("t", "sample", null, at, "s")))
     }
 }

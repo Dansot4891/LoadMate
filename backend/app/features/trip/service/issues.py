@@ -49,6 +49,9 @@ from app.features.trip.schemas import (
 
 from app.features.trip.service.common import request_hash, stop_planned, summarize_event, ZONE_NAMES, _ISSUE_KIND, _RESOLUTION
 
+_ISSUE_EVENT_SOURCE = {"recorded_video": "camera", "sample": "sample"}
+
+
 class IssuesMixin:
 
     def record_issue(self, trip_id: str, body: IssueIn, actor_id: str | None) -> ChangeResultOut:
@@ -67,7 +70,8 @@ class IssuesMixin:
             self.s.flush()
             return {}, {"issue_id": i.id, "kind": body.kind, "zone": zone}
 
-        return self._change(trip, body, "issue_recorded", apply, actor_id)
+        # 이력 출처는 누가 기록했는지를 따른다. 카메라·샘플이 만든 이상을 "화면"으로 보이지 않게 한다 (원칙 5)
+        return self._change(trip, body, "issue_recorded", apply, actor_id, event_source=_ISSUE_EVENT_SOURCE.get(body.observation_source))
 
     def resolve_issue(self, trip_id: str, issue_id: int, body: IssueResolveIn, actor_id: str | None) -> ChangeResultOut:
         trip = self._trip(trip_id, for_update=True)

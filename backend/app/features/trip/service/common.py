@@ -59,8 +59,10 @@ def request_hash(payload: dict) -> str:
 class CommonMixin:
     # ------------------------------------------------------------ 공통 변경 처리
 
-    def _change(self, trip: Trip, body, type_: str, apply, actor_id: str | None, stop_id: str | None = None) -> ChangeResultOut:
-        """멱등 키 확인 → 규칙 검사·적용(apply) → 이력 저장. apply 는 (delta, detail) 을 돌려준다."""
+    def _change(self, trip: Trip, body, type_: str, apply, actor_id: str | None, stop_id: str | None = None,
+                event_source: str | None = None) -> ChangeResultOut:
+        """멱등 키 확인 → 규칙 검사·적용(apply) → 이력 저장. apply 는 (delta, detail) 을 돌려준다.
+        event_source 를 주면 이력 출처로 쓴다(기사가 아닌 카메라·샘플이 만든 기록)."""
         payload = body.model_dump(exclude={"idempotency_key"}, mode="json")
         h = request_hash({"type": type_, "stop_id": stop_id, **payload})
         existing = self.repo.event_by_key(trip.id, body.idempotency_key)
@@ -70,7 +72,7 @@ class CommonMixin:
         delta, detail = apply()
         self.repo.add(TripEvent(
             trip_id=trip.id, idempotency_key=body.idempotency_key, request_hash=h, type=type_, stop_id=stop_id,
-            delta=delta, detail=detail, source=body.source, actor_id=actor_id, created_at=self.now(),
+            delta=delta, detail=detail, source=event_source or body.source, actor_id=actor_id, created_at=self.now(),
         ))
         self._commit()
         return ChangeResultOut(trip=self._trip_out(trip), replayed=False)

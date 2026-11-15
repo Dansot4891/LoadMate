@@ -143,7 +143,7 @@
 | `POST /trips/{id}/pickups/{pid}/return` `{}` | 반납 처리. 예상 잔량 − (F46) | `pickup_already_returned` |
 | `POST /trips/{id}/issues` `{kind: shift·fall·leak·other, zone?, unit_id?, note, observation_source, observed_at}` | 적재 이상 **의심** 기록. `unit_id`로 어느 물품인지 지정(없으면 구역까지만, `zone` 생략 시 물품 자리로 채움). 응답 `issues[]`에 `unit_id` 포함. 파손·책임 확정 아님 (F30·F31) | `unit_not_found` |
 | `POST /trips/{id}/issues/{iid}/resolve` `{resolution: no_issue·rearranged·needs_action, note?}` | 기사 확인·조치 기록 (F34) | `issue_already_resolved` |
-| `GET /trips/{id}/history` | `items[]: {type, stop_id, delta, source, actor_id, created_at, summary}` (F64) | — |
+| `GET /trips/{id}/history` | `items[]: {type, stop_id, delta, source, actor_id, created_at, summary}` (F64). `source`: `screen`·`voice`(기사 입력), `camera`(녹화 영상 분석이 만든 기록), `sample`(샘플 시뮬레이션). 적재 이상 기록(`issue_recorded`)은 `observation_source` 를 따른다: `recorded_video`→`camera`, `sample`→`sample`, `manual`→요청 `source` (2026-11-15) | — |
 
 운행 완료(`completed`)는 모든 방문지가 처리되고 **미반납 회수품이 없을 때**만 (F48).
 
