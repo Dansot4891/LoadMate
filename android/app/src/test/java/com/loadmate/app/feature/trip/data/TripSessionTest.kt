@@ -5,6 +5,7 @@ import com.loadmate.app.core.pleos.NaviDestination
 import com.loadmate.app.core.pleos.NaviEvent
 import com.loadmate.app.core.pleos.NaviGateway
 import com.loadmate.app.core.pleos.NaviState
+import com.loadmate.app.core.notify.DriverNotifier
 import com.loadmate.app.core.notify.TripKeepAlive
 import com.loadmate.app.core.pleos.RearDoorConnection
 import com.loadmate.app.core.pleos.RearDoorGateway
@@ -99,6 +100,7 @@ class TripSessionTest {
         val tts = FakeTts()
         val visible = MutableStateFlow(false)
         val popups = mutableListOf<String>()
+        val cancelled = mutableListOf<Int>()
         private val repo = Proxy.newProxyInstance(TripRepository::class.java.classLoader, arrayOf(TripRepository::class.java)) { _, method, _ ->
             when (method.name) {
                 "getCurrentTrip" -> current
@@ -107,24 +109,31 @@ class TripSessionTest {
             }
         } as TripRepository
         var polls = 0
-        val session = TripSession(repo, navi, tts, door, keepAlive, visible, { 1_000L }) { _, title, _ -> popups += title }
+        val session = TripSession(repo, navi, tts, door, keepAlive, visible, { 1_000L }, { cancelled += it }) { _, title, _ -> popups += title }
         /** runTest 는 가상 시간의 작업이 없어질 때까지 돈다. 운행을 끝내 주기 확인을 멈춘다 */
         fun finish() { current.value = trip.copy(status = TripStatus.COMPLETED) }
         fun guiding() { navi.state.value = navi.state.value.copy(events = listOf(NaviEvent.RouteStarted("A", 100, 60, 2), NaviEvent.RouteRequested("A", 1))) }
         fun arrive(at: Long) { navi.state.value = navi.state.value.copy(events = listOf<NaviEvent>(NaviEvent.WaypointArrived(at)) + navi.state.value.events) }
     }
 
-    @Test fun `운전 중 뒷문이 열리면 음성으로만 경고하고 열려 있으면 한 번 더 말한다`() = runTest(UnconfinedTestDispatcher().also { Dispatchers.setMain(it) }) {
+    @Test fun `운전 중 뒷문이 열리면 음성과 위쪽 알림으로 경고하고 열려 있으면 한 번 더 말한다`() = runTest(UnconfinedTestDispatcher().also { Dispatchers.setMain(it) }) {
         val f = Fixture()
         f.guiding()
+        f.cancelled.clear() // 시작할 때 닫힘 상태로 한 번 지운다
         f.door.set(true)
         assertEquals(1, f.tts.spoken.size)
-        assertEquals(emptyList<String>(), f.popups)
+        assertEquals(listOf("뒷문 열림"), f.popups)
+        assertEquals(false, f.session.arrival.value?.autoPlay)
+        advanceTimeBy(7_000)
+        assertEquals(emptyList<Int>(), f.cancelled)
+        advanceTimeBy(1_001)
+        assertEquals(listOf(DriverNotifier.ID_REAR_DOOR), f.cancelled)
         assertEquals(1_000L, f.session.doorWarningAt.value)
         advanceTimeBy(30_001)
         assertEquals(2, f.tts.spoken.size)
         advanceTimeBy(120_000)
         assertEquals(2, f.tts.spoken.size)
+        assertEquals(1, f.popups.size)
         f.finish()
     }
 
@@ -135,6 +144,7 @@ class TripSessionTest {
         f.door.set(false)
         advanceTimeBy(60_000)
         assertEquals(1, f.tts.spoken.size)
+        assertTrue(DriverNotifier.ID_REAR_DOOR in f.cancelled)
         f.finish()
     }
 
@@ -235,12 +245,26 @@ class TripSessionTest {
             observation = ObservationInfo(id, source, true, mapOf("box" to observed), "2026-11-09T00:00:00Z"),
         )
 
-    @Test fun `운전 중 새 카메라 이상은 음성만 쓰고 팝업을 띄우지 않는다`() {
+    @Test fun `운전 중 새 카메라 이상은 음성과 위쪽 알림으로 알린다`() {
         val f = Fixture()
         f.current.value = trip.copy(issues = listOf(issue(1)))
         assertEquals(1, f.tts.spoken.size)
         assertTrue(f.tts.spoken[0].contains("정차한 뒤"))
-        assertEquals(emptyList<String>(), f.popups)
+        assertEquals(listOf("적재 이상 의심"), f.popups)
+        assertEquals(false, f.session.arrival.value?.autoPlay)
+    }
+
+    @Test fun `운전 중 알림은 8초 뒤 지우고 정차 중 알림은 남긴다`() = runTest(UnconfinedTestDispatcher().also { Dispatchers.setMain(it) }) {
+        val f = Fixture()
+        f.cancelled.clear()
+        f.current.value = trip.copy(issues = listOf(issue(1)))
+        advanceTimeBy(8_001)
+        assertEquals(listOf(DriverNotifier.ID_ISSUE), f.cancelled)
+        f.session.markArrived()
+        f.current.value = trip.copy(issues = listOf(issue(1), issue(2)))
+        advanceTimeBy(60_000)
+        assertEquals(listOf(DriverNotifier.ID_ISSUE), f.cancelled)
+        f.finish()
     }
 
     @Test fun `도착 후 앱이 뒤에 있으면 음성과 팝업으로 알리고 재생 없이 적재 화면을 연다`() {
@@ -281,22 +305,22 @@ class TripSessionTest {
         f.current.value = trip.copy(comparison = camera(6, 8))
         assertEquals(1, f.tts.spoken.size)
         assertTrue(f.tts.spoken[0].contains("예상 10개, 카메라 8개"))
-        assertEquals(emptyList<String>(), f.popups)
+        assertEquals(listOf("짐칸 수량 변화"), f.popups)
         f.current.value = trip.copy(comparison = camera(7, 8))
         assertEquals(1, f.tts.spoken.size)
         f.current.value = trip.copy(comparison = camera(8, 7))
         assertEquals(2, f.tts.spoken.size)
     }
 
-    @Test fun `짐을 내리는 중에는 카메라 수량이 바뀌어도 방문지당 한 번만 알린다`() {
+    @Test fun `짐을 내리는 중에는 카메라 수량이 바뀌어도 알리지 않는다 (하차 확인 팝업이 맡는다)`() {
         val f = Fixture()
         f.session.markArrived()
         f.popups.clear()
         f.current.value = trip.copy(comparison = camera(6, 9))
         f.current.value = trip.copy(comparison = camera(7, 8))
         f.current.value = trip.copy(comparison = camera(8, 7))
-        assertEquals(1, f.tts.spoken.size)
-        assertEquals(listOf("짐칸 수량 변화"), f.popups)
+        assertEquals(emptyList<String>(), f.tts.spoken)
+        assertEquals(emptyList<String>(), f.popups)
     }
 
     @Test fun `운행 중에는 카메라 결과를 주기적으로 받아 오고 끝나면 멈춘다`() = runTest(UnconfinedTestDispatcher().also { Dispatchers.setMain(it) }) {

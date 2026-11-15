@@ -14,7 +14,8 @@ import androidx.core.content.ContextCompat
 import com.loadmate.app.MainActivity
 
 /**
- * 정차가 확실할 때의 알림 전용(도착, 도착 후 짐칸 변화). 내비 안내를 가리므로 운전 중에는 띄우지 않고 음성만 쓴다 (2026-11-09 사용자 결정).
+ * 위쪽에 작게 뜨는 헤드업 알림. 도착, 짐칸 이상, 운전 중 뒷문 열림에 쓴다. 내비 화면을 바꾸지 않고, 누를지는 기사가 정한다
+ * (2026-11-15 사용자 결정. 그전에는 운전 중 음성만 썼다).
  * 뒤에 있는 앱은 스스로 앞으로 나올 수 없어(실측) 이 알림을 눌러야 앱으로 전환된다.
  * 실측(2026-11-08): 카테고리를 지정해야 내비 위 헤드업으로 뜬다 (CATEGORY_MESSAGE / CATEGORY_NAVIGATION).
  */
@@ -48,11 +49,14 @@ class DriverNotifier(context: Context) {
         )
     }
 
+    fun cancel(id: Int) = nm.cancel(id)
+
     companion object {
         const val CHANNEL = "trip"
         const val ID_ROUTE = 1
         const val ID_ISSUE = 2
         const val ID_ARRIVAL = 3
         const val ID_COUNT = 4
+        const val ID_REAR_DOOR = 5
     }
 }

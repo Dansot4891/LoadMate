@@ -45,7 +45,8 @@ class AppContainer(appContext: Context) {
     /** Loadmate 화면이 보이는 동안 true. MainActivity 가 갱신한다 */
     val appVisible = MutableStateFlow(false)
     val tripSession: TripSession by lazy {
-        TripSession(tripRepository, naviGateway, speechOutput, rearDoorGateway, AndroidTripKeepAlive(appContext), appVisible) { id, title, message -> notifier.notify(id, title, message) }
+        TripSession(tripRepository, naviGateway, speechOutput, rearDoorGateway, AndroidTripKeepAlive(appContext), appVisible,
+            cancelNotice = { notifier.cancel(it) }) { id, title, message -> notifier.notify(id, title, message) }
     }
     val rearDoorGateway: RearDoorGateway by lazy { PleosRearDoorGateway(appContext) }
     val speechGateway: SpeechGateway by lazy { PleosSpeechGateway(appContext) }

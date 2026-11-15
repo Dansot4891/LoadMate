@@ -35,10 +35,10 @@ import kotlinx.coroutines.launch
 data class ArrivalRequest(val tripId: String, val stopId: String, val atMillis: Long, val autoPlay: Boolean = true)
 
 /**
- * 짐칸 알림의 팝업 허용 조건. 팝업은 내비를 가려 사고로 이어질 수 있으므로 정차가 확실할 때만 띄운다 (2026-11-09 사용자 결정).
- * 차량 속도를 알 수 없어 도착 처리 후만 정차로 본다. 그 밖에는 모두 음성만 쓴다.
+ * 짐칸 알림의 헤드업 허용 조건. 앱이 뒤에 있을 때만 띄운다. 운전 중에도 위쪽 작은 알림은 내비 화면을 바꾸지 않으므로 띄운다
+ * (2026-11-15 사용자 결정. 2026-11-09 에는 정차 중에만 띄웠다). 앱 화면 전환은 기사가 알림을 눌렀을 때만 일어난다.
  */
-internal fun cargoPopupAllowed(atStop: Boolean, appVisible: Boolean): Boolean = atStop && !appVisible
+internal fun cargoPopupAllowed(appVisible: Boolean): Boolean = !appVisible
 
 internal fun cargoIssueSpeech(kind: String, atStop: Boolean): String {
     val what = when (kind) {
@@ -72,6 +72,7 @@ class TripSession(
     private val keepAlive: TripKeepAlive? = null,
     private val appVisible: StateFlow<Boolean> = MutableStateFlow(false),
     private val clock: () -> Long = System::currentTimeMillis,
+    private val cancelNotice: (id: Int) -> Unit = {},
     private val notify: (id: Int, title: String, text: String) -> Unit,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -81,12 +82,12 @@ class TripSession(
     private var lastStopId: String? = null
     private var lastArrivalEvent: NaviEvent? = null
     private var repeatWarning: Job? = null
+    private val noticeTimers = mutableMapOf<Int, Job>()
     private var polling: Job? = null
     private var watchedTripId: String? = null
     private var knownIssueIds = emptySet<Int>()
     private var lastCameraObservationId: Int? = null
     private var lastCountDifferences: List<Difference>? = null
-    private var countAlertedStopId: String? = null
     private val arrivedStopId = MutableStateFlow<String?>(null)
 
     private val _arrival = MutableStateFlow<ArrivalRequest?>(null)
@@ -163,9 +164,13 @@ class TripSession(
                 active && shouldWarnRearDoor(door.isOpen, routeRequestStatus(nav.events), trip?.currentStop?.id == arrivedId, visible)
             }.distinctUntilChanged().collect { warn ->
                 repeatWarning?.cancel()
+                if (!warn) cancelNotice(DriverNotifier.ID_REAR_DOOR)
                 if (warn) {
                     _doorWarningAt.value = clock()
                     speech?.speak(REAR_DOOR_WARNING)
+                    // 알림을 누르면 앱이 앞에 나오며 적재 화면이 열린다. 뒷문이 닫히면 알림을 지운다
+                    trips.currentTrip.value?.let { t -> t.currentStop?.let { _arrival.value = ArrivalRequest(t.id, it.id, clock(), autoPlay = false) } }
+                    drivingNotice(DriverNotifier.ID_REAR_DOOR, "뒷문 열림")
                     repeatWarning = scope.launch {
                         delay(REPEAT_WARNING_MS)
                         speech?.speak(REAR_DOOR_WARNING)
@@ -250,11 +255,14 @@ class TripSession(
             lastCountDifferences = null
             return
         }
-        // 짐을 내리는 동안은 수량이 계속 바뀌므로 정차 중에는 방문지당 한 번만 알린다
-        val stopId = trip.currentStop?.id
-        if (differences == lastCountDifferences || (atStop && countAlertedStopId == stopId)) return
+        // 정차 중에는 짐을 내리며 수량이 계속 바뀌고, 뒷문을 닫으면 하차 확인 팝업이 하차 후 기준으로 차이를 알린다.
+        // 여기서 하차 전 기준으로 또 알리면 숫자가 서로 달라 혼란스러우므로 운전 중에만 알린다 (2026-11-15)
+        if (atStop) {
+            lastCountDifferences = null
+            return
+        }
+        if (differences == lastCountDifferences) return
         lastCountDifferences = differences
-        if (atStop) countAlertedStopId = stopId
         val first = differences.first()
         alertCargo(trip, DriverNotifier.ID_COUNT, "짐칸 수량 변화", cargoCountSpeech(first, trip.kindNames[first.kind] ?: first.kind, atStop), atStop)
     }
@@ -262,14 +270,28 @@ class TripSession(
     private fun alertCargo(trip: Trip, notificationId: Int, title: String, text: String, atStop: Boolean) {
         speech?.speak(text)
         val stop = trip.currentStop ?: return
-        if (!cargoPopupAllowed(atStop, appVisible.value)) return
+        if (!cargoPopupAllowed(appVisible.value)) return
         _arrival.value = ArrivalRequest(trip.id, stop.id, clock(), autoPlay = false)
-        notify(notificationId, title, "눌러서 적재 확인")
+        if (atStop) notify(notificationId, title, "눌러서 확인") else drivingNotice(notificationId, title)
+    }
+
+    /**
+     * 운전 중 알림은 내비 회전 안내를 가리므로 [DRIVING_NOTICE_MS] 뒤 지운다. AAOS 헤드업은 스스로 사라지지 않는다(2026-11-15 실측).
+     * 음성은 그대로 나간다.
+     */
+    private fun drivingNotice(id: Int, title: String) {
+        notify(id, title, "눌러서 확인")
+        noticeTimers.remove(id)?.cancel()
+        noticeTimers[id] = scope.launch {
+            delay(DRIVING_NOTICE_MS)
+            cancelNotice(id)
+        }
     }
 
     private companion object {
         const val REAR_DOOR_WARNING = "뒷문이 열려 있습니다. 안전한 곳에 정차해 확인해 주세요."
         const val REPEAT_WARNING_MS = 30_000L
+        const val DRIVING_NOTICE_MS = 8_000L
         const val CARGO_POLL_MS = 10_000L
     }
 }
