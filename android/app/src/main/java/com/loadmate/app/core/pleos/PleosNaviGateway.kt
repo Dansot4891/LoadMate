@@ -134,6 +134,13 @@ class PleosNaviGateway(
         return h
     }
 
+    /**
+     * 에뮬레이터 시연 전용: SDK 도착 콜백과 같은 이벤트를 넣는다. debug 빌드의 `EmulatorNaviReceiver` 에서만 호출한다.
+     * 에뮬레이터 GPS 가 NMEA 검사값을 잘못 만들어 내비가 위치를 버리므로 실제 도착 신호를 재현할 수 없다 (2026-11-15 실측).
+     */
+    internal fun injectArrivalForEmulator(destination: Boolean) =
+        emit(if (destination) NaviEvent.DestinationArrived("에뮬레이터", clock()) else NaviEvent.WaypointArrived(clock()))
+
     private fun emit(event: NaviEvent) {
         Log.i(TAG, event.toString())
         _state.update { it.copy(events = (listOf(event) + it.events).take(NaviState.MAX_EVENTS)) }

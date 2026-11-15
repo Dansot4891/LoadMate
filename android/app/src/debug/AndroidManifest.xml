@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application android:networkSecurityConfig="@xml/network_security_config" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application android:networkSecurityConfig="@xml/network_security_config">
+        <!-- 에뮬레이터 시연 전용 내비 도착 신호 입력 (debug 빌드만). adb 로 명시 호출 -->
+        <receiver
+            android:name=".EmulatorNaviReceiver"
+            android:exported="true"
+            tools:ignore="ExportedReceiver" />
+    </application>
 </manifest>
