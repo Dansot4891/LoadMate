@@ -17,3 +17,9 @@ __pycache__/
 
 # 기획서 원본 등 외부 문서
 *.docx
+docs/video/
+
+# release 서명 정보 (키는 ~/.loadmate)
+android/keystore.properties
+# 공모전 지원서 (개인정보 포함)
+docs/*지원서*
