@@ -26,7 +26,7 @@ loadmate/
 - 기능 의존 방향 `fleet ← trip ← memo ← handover ← assistant` (역방향·순환 금지). 샘플 데이터는 `app/seed.py`
 - 외부 배송 시스템·대화 AI·영상 결과는 `app/integrations/` 어댑터. 업무 오류는 `AppError` → `{"detail": {"code", "message"}}`
 
-2026-11-08 위 구조로 결정. 코드 이행 현황은 `next-steps.md` 6절.
+2026-11-08 위 구조로 결정.
 
 ## 실행
 

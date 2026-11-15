@@ -23,3 +23,8 @@ docs/video/
 android/keystore.properties
 # 공모전 지원서 (개인정보 포함)
 docs/*지원서*
+
+# docs 는 구조·API 계약만 공개. 나머지(작업 기록·증거·영상)는 로컬
+docs/*
+!docs/architecture.md
+!docs/api-contract.md

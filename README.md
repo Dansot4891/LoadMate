@@ -13,7 +13,7 @@
 | `android/` | Kotlin · Jetpack Compose 차량 앱 (Pleos Connect, minSdk 28) |
 | `backend/` | FastAPI · PostgreSQL · Alembic |
 | `vision/` | 적재 영상 분석 (예정, 녹화 영상 미연결) |
-| `docs/` | [다음 작업](docs/next-steps.md) · [기획서 대조 검토](docs/planning-review.md) · [구조와 실행](docs/architecture.md) · [API 계약](docs/api-contract.md) |
+| `docs/` | [구조와 실행](docs/architecture.md) · [API 계약](docs/api-contract.md) |
 | `apk/` | 제출용 release APK `TeamLoadMate_LoadMate_release.apk` |
 
 ## 실행 방법
@@ -85,4 +85,4 @@ cp app/build/outputs/apk/release/app-release.apk ../apk/TeamLoadMate_LoadMate_re
 
 ## 현재 범위와 다음 작업
 
-기능별 구현·샘플·미구현 구분은 [기능 현황](docs/feature-status.md), 최신 실행 상태와 다음 작업은 [인수인계](docs/next-steps.md)를 확인하세요. 영상 분석, 오프라인 디스크 저장, 메모 사진 첨부 등은 남아 있습니다.
+적재 카메라·영상 분석, 운영사 배송 시스템 연동은 아직 연결하지 않았습니다(운행·적재 데이터는 샘플). 그 밖에 오프라인 디스크 저장, 메모 사진 첨부 등은 남아 있습니다.
