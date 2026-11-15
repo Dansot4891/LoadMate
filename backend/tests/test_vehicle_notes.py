@@ -6,7 +6,7 @@ import uuid
 import httpx2
 import pytest
 
-from app.integrations.assistant.note_ai import Fact, GeminiNoteAi, NoteAiUnavailable, NoteClassification, NoteDecision, get_note_ai
+from app.integrations.assistant.note_ai import ConfirmDecision, Fact, GeminiNoteAi, NoteAiUnavailable, NoteClassification, NoteDecision, get_note_ai
 
 T = "sample-trip-1"
 V = "vehicle-1"
@@ -19,13 +19,20 @@ def decision(action, **kw):
 
 class FakeAi:
     def __init__(self, result=None, error=False):
-        self.result, self.error, self.calls = result, error, []
+        self.result, self.error, self.calls, self.pending, self.confirm_result = result, error, [], [], "unclear"
 
-    def decide(self, text, notes, stop_label, facts):
+    def decide(self, text, notes, stop_label, facts, pending=None):
         self.calls.append((text, notes, stop_label, facts))
+        self.pending.append(pending)
         if self.error:
             raise NoteAiUnavailable
         return self.result
+
+    def confirm(self, text, question):
+        self.calls.append((text, question))
+        if self.error:
+            raise NoteAiUnavailable
+        return ConfirmDecision(decision=self.confirm_result)
 
     def classify(self, body):
         if self.error:
@@ -186,10 +193,39 @@ def test_ai_ignore_stays_silent(client, ai):
     assert r["kind"] == "ignore" and r["speech"] == "" and r["action"] is None and r["ai_status"] == "ok"
 
 
-def test_pending_clarify_answer_does_not_call_ai(client, ai):
+def test_clarify_answer_goes_to_ai_with_question_and_draft(client, ai):
+    """되물은 대답도 AI 가 질문·초안을 알고 판단한다. 말하지 않은 값은 초안 값을 쓴다."""
+    pending = {"type": "add_pickup", "payload": {"item_name": "빈 용기", "kind": "container", "return_place": "창고"}, "summary": None}
+    ai.result = decision("add_pickup", qty=3)
+    r = client.post("/assistant/interpret", json={"trip_id": T, "text": "세계", "pending": pending}).json()
+    assert ai.pending[0].question == "몇 개인가요?" and ai.pending[0].payload["return_place"] == "창고"
+    assert r["kind"] == "confirm" and r["method"] == "ai"
+    p = r["action"]["payload"]
+    assert (p["item_name"], p["kind"], p["qty"], p["return_place"]) == ("빈 용기", "container", 3, "창고")
+
+
+def test_clarify_answer_without_ai_falls_back_to_rules(client, ai):
+    ai.error = True
     pending = {"type": "add_pickup", "payload": {"item_name": "빈 용기", "kind": "container", "qty": 2}, "summary": None}
     r = client.post("/assistant/interpret", json={"trip_id": T, "text": "창고", "pending": pending}).json()
-    assert r["kind"] == "confirm" and r["method"] == "rule_based" and ai.calls == []
+    assert r["kind"] == "confirm" and r["method"] == "rule_based" and r["ai_status"] == "unavailable"
+
+
+@pytest.mark.parametrize("answer", ["yes", "no", "unclear"])
+def test_confirm_answer_is_judged_by_ai_and_saves_nothing(client, ai, answer):
+    action = {"type": "add_pickup", "payload": {"item_name": "빈 용기", "kind": "container", "qty": 2, "return_place": "창고"}, "summary": "빈 용기 2개 회수, 창고 반납 예정으로 기록할까요?"}
+    ai.confirm_result = answer
+    r = client.post("/assistant/interpret", json={"trip_id": T, "text": "응 그렇게 해", "pending": action, "pending_kind": "confirm"}).json()
+    assert r["kind"] == "confirm_answer" and r["decision"] == answer and r["action"] == action and r["method"] == "ai"
+    assert ai.calls[-1] == ("응 그렇게 해", action["summary"])
+    assert client.get(f"/trips/{T}").json()["pickups"] == []  # 저장은 앱이 기존 API 로 한다 (R08)
+
+
+def test_confirm_answer_without_ai_is_unclear(client, ai):
+    ai.error = True
+    action = {"type": "add_memo", "payload": {}, "summary": "저장할까요?"}
+    r = client.post("/assistant/interpret", json={"trip_id": T, "text": "응", "pending": action, "pending_kind": "confirm"}).json()
+    assert r["decision"] == "unclear" and r["ai_status"] == "unavailable"
 
 
 def _gemini_with(handler):
@@ -214,6 +250,22 @@ def test_gemini_adapter_request_and_parse():
     assert b["model"] == "gemini-3.5-flash-lite" and "업무 도우미" in b["system_instruction"]
     assert "예상 잔량: 박스 10개" in json.dumps(b["input"], ensure_ascii=False)
     assert b["response_format"]["mime_type"] == "application/json" and "action" in b["response_format"]["schema"]["properties"]
+
+
+def test_gemini_adapter_sends_pending_question_and_confirm_question():
+    from app.integrations.assistant.note_ai import PendingTurn
+    seen = []
+
+    def handler(request):
+        seen.append(json.loads(request.content))
+        return _reply(json.dumps({"decision": "yes"}) if len(seen) == 2 else json.dumps(decision("add_pickup", qty=3).model_dump()))
+
+    ai = _gemini_with(handler)
+    ai.decide("세계", [], "C", [], PendingTurn("몇 개인가요?", "add_pickup", {"item_name": "빈 용기"}))
+    assert ai.confirm("응", "빈 용기 3개 기록할까요?").decision == "yes"
+    first, second = (json.dumps(b["input"], ensure_ascii=False) for b in seen)
+    assert "몇 개인가요?" in first and "빈 용기" in first
+    assert "빈 용기 3개 기록할까요?" in second and "decision" in seen[1]["response_format"]["schema"]["properties"]
 
 
 @pytest.mark.parametrize("handler", [

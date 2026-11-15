@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.features.assistant.repository import AssistantRepository
 from app.features.trip.service import TripService
-from app.integrations.assistant.note_ai import Fact, NoteAi, NoteAiUnavailable, NoteContext, NoteDecision
+from app.integrations.assistant.note_ai import Fact, NoteAi, NoteAiUnavailable, NoteContext, NoteDecision, PendingTurn
 from app.integrations.assistant.rule_based import Intent, interpret, parse_item, parse_qty, parse_return_place
 
 METHOD = "rule_based"
@@ -47,7 +47,7 @@ def _pickup_reply(trip, current, slots: dict, method: str) -> dict:
         slots.setdefault("stop_id", current.id)
     missing = [k for k in ("item_name", "qty", "return_place") if not slots.get(k)]
     if missing:
-        q = {"item_name": "어떤 물품을 회수했나요?", "qty": "몇 개인가요?", "return_place": "어디로 반납할까요?"}[missing[0]]
+        q = _QUESTION[missing[0]]
         return {"kind": "clarify", "speech": q, "display": q, "missing": missing, "intent": "add_pickup", "method": method,
                 "action": {"type": "add_pickup", "payload": slots, "summary": None}}
     label = next((st.label for st in trip.stops if st.id == slots.get("stop_id")), "현재 장소")
@@ -73,6 +73,28 @@ def _arrived_reply(current, method: str) -> dict:
             "action": {"type": "arrived", "payload": {"stop_id": current.id}, "summary": speech}}
 
 
+_QUESTION = {"item_name": "어떤 물품을 회수했나요?", "qty": "몇 개인가요?", "return_place": "어디로 반납할까요?"}
+
+
+def _pending_turn(pending: dict | None) -> PendingTurn | None:
+    if not pending or pending.get("type") != "add_pickup":
+        return None
+    payload = dict(pending.get("payload") or {})
+    missing = next((k for k in ("item_name", "qty", "return_place") if not payload.get(k)), None)
+    return PendingTurn(_QUESTION.get(missing, "확인할 내용이 있습니다"), "add_pickup", payload)
+
+
+def _merge_pending(d: NoteDecision, turn: PendingTurn) -> NoteDecision:
+    """AI 가 대답에서 읽은 값을 우선하고, 말하지 않은 값은 앞서 정리된 초안 값을 쓴다."""
+    p = turn.payload
+    return d.model_copy(update={
+        "item_name": d.item_name or p.get("item_name"),
+        "item_kind": d.item_kind or p.get("kind"),
+        "qty": d.qty if d.qty is not None else p.get("qty"),
+        "return_place": d.return_place or p.get("return_place"),
+    })
+
+
 class AssistantService:
     def __init__(self, session: Session, note_ai: NoteAi | None = None):
         self.s = session
@@ -86,24 +108,40 @@ class AssistantService:
         place = self.repo.memo.relevant_place_memos(current.place_key, trip.id, actor) if current else []
         return [("vehicle", m) for m in vehicle] + [("current_place", m) for m in place]
 
-    def handle(self, trip_id: str, text: str, actor: str | None, pending: dict | None) -> dict:
+    def handle(self, trip_id: str, text: str, actor: str | None, pending: dict | None, pending_kind: str = "clarify") -> dict:
+        if pending and pending_kind == "confirm":
+            return self._confirm_answer(text, pending)
         ai_status = "not_configured" if self.note_ai is None else "ok"
-        # 재질문에 대한 답(pending)은 규칙 기반 흐름에서 이어 간다
-        if self.note_ai is not None and not pending:
+        if self.note_ai is not None:
             trip = self.trips.get_trip(trip_id)
             current = next((st for st in trip.stops if st.status == "pending"), None)
             notes = self._notes(trip, current, actor)
             context = [NoteContext(m.id, scope, m.category, m.body, m.location) for scope, m in notes]
+            turn = _pending_turn(pending)
             try:
                 facts = _facts(trip)
-                decision = self.note_ai.decide(text, context, current.label if current else None, facts)
+                decision = self.note_ai.decide(text, context, current.label if current else None, facts, turn)
             except NoteAiUnavailable:
                 ai_status = "unavailable"
             else:
+                if turn is not None and decision.action == "add_pickup":
+                    decision = _merge_pending(decision, turn)
                 reply = self._ai_reply(decision, trip, current, [m for _, m in notes], facts)
                 if reply is not None:
                     return {**reply, "ai_status": "ok"}
+        # AI 를 쓸 수 없거나 AI 가 판단하지 못한 말(other)은 규칙 기반으로 처리하고 ai_status 로 알린다
         return {**self._by_rules(trip_id, text, actor, pending), "ai_status": ai_status}
+
+    def _confirm_answer(self, text: str, pending: dict) -> dict:
+        """저장 확인 창에 대한 기사의 대답. 저장은 하지 않고 판단만 돌려준다. 앱이 yes 일 때 기존 API 로 저장한다 (R08)."""
+        base = {"kind": "confirm_answer", "speech": "", "display": "", "action": pending, "intent": "confirm_answer"}
+        if self.note_ai is None:
+            return {**base, "decision": "unclear", "method": METHOD, "ai_status": "not_configured"}
+        try:
+            d = self.note_ai.confirm(text, pending.get("summary") or "")
+        except NoteAiUnavailable:
+            return {**base, "decision": "unclear", "method": METHOD, "ai_status": "unavailable"}
+        return {**base, "decision": d.decision, "method": "ai", "ai_status": "ok"}
 
     @staticmethod
     def _ai_reply(d: NoteDecision, trip, current, notes: list, facts: list[Fact]) -> dict | None:

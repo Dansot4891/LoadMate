@@ -215,16 +215,18 @@
 
 ## 음성 해석 — 확정 (2026-11-08)
 
-`POST /assistant/interpret` `{trip_id, text, pending?}` (헤더 `X-Driver-Id`)
+`POST /assistant/interpret` `{trip_id, text, pending?, pending_kind?: "clarify" | "confirm"}` (헤더 `X-Driver-Id`)
 ```json
-{ "kind": "answer | confirm | clarify | unknown | ignore", "speech": "TTS 문장", "display": "화면 문장",
+{ "kind": "answer | confirm | clarify | unknown | ignore | confirm_answer", "speech": "TTS 문장", "display": "화면 문장",
   "action": null | { "type": "add_pickup | add_memo | update_memo | delete_memo | navigate_next | arrived", "payload": {...}, "summary": "..." },
-  "missing": ["return_place"], "intent": "...", "method": "ai | rule_based", "ai_status": "ok | unavailable | not_configured" }
+  "missing": ["return_place"], "intent": "...", "method": "ai | rule_based", "ai_status": "ok | unavailable | not_configured",
+  "decision": "yes | no | unclear" }
 ```
 - `arrived` 는 기사가 도착했다고 말한 경우다(예: "도착했어"). `kind: "answer"` 에 action 이 함께 오고 payload 는 `{stop_id}`. **서버는 아무것도 저장하지 않으며 배송 완료와 무관하다.** 앱은 적재 화면을 여는 데만 쓴다. 남은 방문지가 없으면 action 은 `null`.
 - 조회(`answer`)는 즉시 답한다. 변경은 `confirm` 으로 요약만 돌려주고 **서버는 저장하지 않는다.** 앱이 기사 확인 후 해당 API 를 `source: "voice"` 로 호출한다 (R08·F41).
-- `clarify` 는 부족한 항목만 묻는다(F40). 다음 발화를 `pending: <이전 action>` 과 함께 보낸다.
-- 모든 발화를 AI(`integrations/assistant/note_ai.py`, Google Gemini)가 먼저 한 번의 호출로 판단한다(메모 저장·찾기·수정·삭제, 방문지 물품·잔량·회수품 조회, 회수 기록, 내비 요청). 재질문의 답(`pending`)과 AI 가 `other` 로 판단한 말, AI 를 쓸 수 없을 때는 규칙 기반 해석기(`rule_based.py`)가 처리하고 `ai_status` 로 알린다.
+- `clarify` 는 부족한 항목만 묻는다(F40). 다음 발화를 `pending: <이전 action>`, `pending_kind: "clarify"`(기본값)와 함께 보낸다. AI 는 되물은 질문과 지금까지의 초안을 함께 받아 대답을 해석한다(음성 인식기가 "세 개"를 "세계"로 적는 것처럼 짧은 대답이 잘못 적혀도 질문 맥락으로 읽는다). 대답에 없는 값은 초안 값을 쓴다. 질문과 관계없는 소음이면 `ignore` 로 답하고, 앱은 질문을 유지한다.
+- **확인 창에 대한 음성 대답**(2026-11-15 추가): `confirm` 을 받은 뒤 기사의 다음 발화를 `pending: <confirm 의 action>`, `pending_kind: "confirm"` 으로 보낸다. 서버는 AI 로 판단만 해서 `kind: "confirm_answer"`, `decision`(`yes` 확인 · `no` 취소 · `unclear` 대답이 아님), `action`(보낸 pending 그대로)을 돌려준다. `speech`·`display` 는 빈 문자열이다. **서버는 저장하지 않는다.** 앱이 `yes` 일 때만 기존 API 로 저장한다(R08). AI 를 쓸 수 없으면 `unclear` 이고 기사는 화면 버튼으로 확인한다. 단어 목록으로 판정하지 않는다.
+- 모든 발화를 AI(`integrations/assistant/note_ai.py`, Google Gemini)가 먼저 한 번의 호출로 판단한다(메모 저장·찾기·수정·삭제, 방문지 물품·잔량·회수품 조회, 회수 기록, 내비 요청, 되물은 질문의 대답, 확인 대답). AI 가 `other` 로 판단한 말과 AI 를 쓸 수 없을 때만 규칙 기반 해석기(`rule_based.py`)가 처리하고 `ai_status` 로 알린다.
 - AI 의 답은 서버가 넘긴 사실·메모를 인용할 때만 쓴다. 인용이 없으면 `기록 없음`으로 답하고, 인용에 없는 숫자가 있으면 AI 문장 대신 인용한 사실을 읽는다. 확인 문구는 서버가 만든다.
 - `ignore` 는 기사가 앱에 말한 것이 아닌 소음·혼잣말·다른 사람과의 대화다. `speech`·`display` 는 빈 문자열이고 앱은 말하지 않고 다시 듣는다. 애매한 말은 `ignore` 로 보내지 않는다.
 - `update_memo` payload `{memo_id, body?, category?, location?}`, `delete_memo` payload `{memo_id}`. 앱이 기사 확인 후 각각 `PUT /memos/{id}`, `DELETE /memos/{id}` 를 호출한다. 문제가 고쳐졌다는 말("끈 새로 샀어")도 `delete_memo` 확인으로 답한다.
