@@ -32,7 +32,7 @@ fun VoicePanel(s: VoiceUiState, on: (VoiceUiAction) -> Unit) {
     val t = Pleos.type
     val confirming = s.reply?.kind == AssistantReply.Kind.CONFIRM
     PleosSystemPopup(
-        title = when (s.phase) {
+        title = if (confirming) "확인해 주세요" else when (s.phase) {
             VoicePhase.IDLE -> "말씀하세요"
             VoicePhase.LISTENING -> "듣는 중…"
             VoicePhase.PROCESSING -> "처리 중…"

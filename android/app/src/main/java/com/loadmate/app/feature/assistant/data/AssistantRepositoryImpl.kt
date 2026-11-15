@@ -8,12 +8,17 @@ import com.loadmate.app.feature.assistant.data.mapper.toDto
 import com.loadmate.app.feature.assistant.domain.AssistantAction
 import com.loadmate.app.feature.assistant.domain.AssistantReply
 import com.loadmate.app.feature.assistant.domain.AssistantRepository
+import com.loadmate.app.feature.assistant.domain.PendingKind
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 class AssistantRepositoryImpl(private val api: ApiClient) : AssistantRepository {
-    override suspend fun interpret(tripId: String, text: String, pending: AssistantAction?) =
-        api.postWaitingForAi("/assistant/interpret", json.encodeToString(InterpretRequestDto(tripId, text, pending?.toDto())), ::parse)
+    override suspend fun interpret(tripId: String, text: String, pending: AssistantAction?, pendingKind: PendingKind) =
+        api.postWaitingForAi(
+            "/assistant/interpret",
+            json.encodeToString(InterpretRequestDto(tripId, text, pending?.toDto(), pendingKind.name.lowercase())),
+            ::parse,
+        )
 
     companion object {
         private val json = Json { ignoreUnknownKeys = true }

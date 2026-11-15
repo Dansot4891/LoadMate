@@ -15,9 +15,15 @@ data class AssistantReply(
     val method: String,
     /** ok | unavailable | not_configured */
     val aiStatus: String = "not_configured",
+    /** CONFIRM_ANSWER 일 때 확인 창에 대한 기사의 대답 판단 */
+    val decision: Decision? = null,
 ) {
-    enum class Kind { ANSWER, CONFIRM, CLARIFY, UNKNOWN, IGNORE }
+    enum class Kind { ANSWER, CONFIRM, CLARIFY, UNKNOWN, IGNORE, CONFIRM_ANSWER }
+    enum class Decision { YES, NO, UNCLEAR }
 }
+
+/** 기사의 말이 어떤 질문에 대한 대답인지. 서버가 그 맥락으로 해석한다 */
+enum class PendingKind { CLARIFY, CONFIRM }
 
 data class AssistantAction(val type: String, val payload: AssistantPayload?, val summary: String?)
 
@@ -29,5 +35,5 @@ data class AssistantPayload(
 )
 
 interface AssistantRepository {
-    suspend fun interpret(tripId: String, text: String, pending: AssistantAction?): ApiResult<AssistantReply>
+    suspend fun interpret(tripId: String, text: String, pending: AssistantAction?, pendingKind: PendingKind = PendingKind.CLARIFY): ApiResult<AssistantReply>
 }

@@ -20,9 +20,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import com.loadmate.app.feature.assistant.domain.AssistantAction
+import com.loadmate.app.feature.assistant.domain.PendingKind
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -41,20 +44,23 @@ class VoiceViewModelTest {
         override fun stopListening() = Unit
         override fun release() = Unit
         fun say(text: String) { state.value = state.value.copy(listening = false, finalText = text) }
+        fun hearing(text: String) { state.value = state.value.copy(partial = text) }
     }
 
     private class FakeTts : SpeechOutput {
         val spoken = mutableListOf<String>()
         override val available: StateFlow<Boolean?> = MutableStateFlow(true)
-        override val speaking: StateFlow<Boolean> = MutableStateFlow(false)
+        override val speaking = MutableStateFlow(false)
         override fun speak(text: String) { spoken += text }
         override fun release() = Unit
     }
 
     private class FakeAssistant(val replies: ArrayDeque<String>) : AssistantRepository {
         val calls = mutableListOf<Pair<String, AssistantAction?>>()
-        override suspend fun interpret(tripId: String, text: String, pending: AssistantAction?): ApiResult<AssistantReply> {
+        val kinds = mutableListOf<PendingKind>()
+        override suspend fun interpret(tripId: String, text: String, pending: AssistantAction?, pendingKind: PendingKind): ApiResult<AssistantReply> {
             calls += text to pending
+            kinds += pendingKind
             return ApiResult.Success(AssistantRepositoryImpl.parse(replies.removeFirst()))
         }
     }
@@ -112,6 +118,33 @@ class VoiceViewModelTest {
     }
 
     @Test
+    fun `듣기 시간이 끝나도 말하는 중이면 끊지 않고 문장을 마저 듣는다`() = runTest(UnconfinedTestDispatcher().also { Dispatchers.setMain(it) }) {
+        val stt = FakeStt(); val tts = FakeTts()
+        val a = FakeAssistant(ArrayDeque(listOf(confirmJson)))
+        val v = vm(stt, tts, a)
+        v.onAction(VoiceUiAction.ToggleAlwaysListening)
+        advanceTimeBy(11_000)
+        stt.hearing("빈 용기 다섯 개")
+        advanceTimeBy(3_000)
+        assertTrue(a.calls.isEmpty())
+        stt.say("빈 용기 다섯 개 받았어 창고에 반납할 거야")
+        assertEquals("빈 용기 다섯 개 받았어 창고에 반납할 거야", a.calls.single().first)
+        v.onAction(VoiceUiAction.ToggleAlwaysListening)
+    }
+
+    @Test
+    fun `더 기다려도 최종 결과가 없으면 들은 데까지 처리한다`() = runTest(UnconfinedTestDispatcher().also { Dispatchers.setMain(it) }) {
+        val stt = FakeStt(); val tts = FakeTts()
+        val a = FakeAssistant(ArrayDeque(listOf(confirmJson)))
+        val v = vm(stt, tts, a)
+        v.onAction(VoiceUiAction.ToggleAlwaysListening)
+        stt.hearing("빈 용기 다섯 개 받았어")
+        advanceTimeBy(12_000 + 10_001)
+        assertEquals("빈 용기 다섯 개 받았어", a.calls.single().first)
+        v.onAction(VoiceUiAction.ToggleAlwaysListening)
+    }
+
+    @Test
     fun `상시 듣기에서 못 알아들은 말은 대꾸하지 않고 바로 다시 듣는다`() {
         val unknown = """{"kind":"unknown","speech":"잘 알아듣지 못했어요.","display":"잘 알아듣지 못했어요.","intent":"unknown","method":"rule_based"}"""
         val stt = FakeStt(); val tts = FakeTts()
@@ -137,7 +170,7 @@ class VoiceViewModelTest {
         assertEquals(VoicePhase.IDLE, v.state.value.phase)
         assertEquals(false, v.state.value.open)
         assertNull(v.state.value.reply)
-        assertEquals("A 도착 확인했습니다.", tts.spoken.last())
+        assertTrue("도착 안내 음성은 내비가 한다", tts.spoken.isEmpty())
         assertTrue(pickupCalls.isEmpty())
     }
 
@@ -222,5 +255,87 @@ class VoiceViewModelTest {
         assertNull(a.calls[0].second)
         assertEquals("add_pickup", a.calls[1].second!!.type)
         assertEquals(VoicePhase.CONFIRMING, v.state.value.phase)
+    }
+
+    private fun confirmAnswer(decision: String) =
+        """{"kind":"confirm_answer","speech":"","display":"","decision":"$decision","action":null,"intent":"confirm_answer","method":"ai","ai_status":"ok"}"""
+
+    @Test
+    fun `확인 창의 음성 대답은 확인 맥락으로 서버 AI 에 보내고, 그 판단대로 저장하거나 취소한다`() {
+        val stt = FakeStt(); val tts = FakeTts()
+        val a = FakeAssistant(ArrayDeque(listOf(confirmJson, confirmAnswer("yes"), confirmJson, confirmAnswer("no"))))
+        val v = vm(stt, tts, a)
+        v.onAction(VoiceUiAction.Open)
+        stt.say("빈 용기 두 개 회수했어 창고로 반납해")
+        v.onAction(VoiceUiAction.Listen)
+        stt.say("응 그렇게 해")
+        assertEquals(PendingKind.CONFIRM, a.kinds[1])
+        assertEquals("add_pickup", a.calls[1].second!!.type)
+        assertEquals(1, pickupCalls.size)
+        assertEquals("저장했습니다.", tts.spoken.last())
+
+        v.onAction(VoiceUiAction.Listen)
+        stt.say("빈 용기 두 개 회수했어 창고로 반납해")
+        v.onAction(VoiceUiAction.Listen)
+        stt.say("아니 세 개야")
+        assertEquals(1, pickupCalls.size)
+        assertEquals("취소했습니다.", tts.spoken.last())
+    }
+
+    @Test
+    fun `확인 대답인지 알 수 없으면 저장하지 않고 확인 창을 유지한다`() {
+        val stt = FakeStt(); val tts = FakeTts()
+        val v = vm(stt, tts, FakeAssistant(ArrayDeque(listOf(confirmJson, confirmAnswer("unclear")))))
+        v.onAction(VoiceUiAction.Open)
+        stt.say("빈 용기 두 개 회수했어 창고로 반납해")
+        v.onAction(VoiceUiAction.Listen)
+        stt.say("그래서")
+        assertTrue(pickupCalls.isEmpty())
+        assertEquals(VoicePhase.CONFIRMING, v.state.value.phase)
+        assertEquals(AssistantReply.Kind.CONFIRM, v.state.value.reply?.kind)
+    }
+
+    @Test
+    fun `되묻는 중 소음은 질문을 지우지 않는다`() {
+        val ignore = """{"kind":"ignore","speech":"","display":"","action":null,"intent":"ignore","method":"ai","ai_status":"ok"}"""
+        val stt = FakeStt(); val tts = FakeTts()
+        val a = FakeAssistant(ArrayDeque(listOf(clarifyJson, ignore, confirmJson)))
+        val v = vm(stt, tts, a)
+        v.onAction(VoiceUiAction.Open)
+        stt.say("빈 용기 두 개 회수했어")
+        v.onAction(VoiceUiAction.Listen)
+        stt.say("아 덥다")
+        assertEquals(VoicePhase.CLARIFYING, v.state.value.phase)
+        v.onAction(VoiceUiAction.Listen)
+        stt.say("창고")
+        assertEquals("add_pickup", a.calls[2].second!!.type)
+    }
+
+    @Test
+    fun `앱이 말하기 시작하면 듣기를 멈춘다 (자기 음성을 기사 말로 받지 않음)`() {
+        val stt = FakeStt(); val tts = FakeTts()
+        val a = FakeAssistant(ArrayDeque())
+        val v = vm(stt, tts, a)
+        v.onAction(VoiceUiAction.ToggleAlwaysListening)
+        assertEquals(VoicePhase.LISTENING, v.state.value.phase)
+        tts.speaking.value = true // 다른 화면의 뒷문 경고 등
+        stt.say("뒷문이 열려 있습니다")
+        assertTrue(a.calls.isEmpty())
+        assertEquals(VoicePhase.IDLE, v.state.value.phase)
+    }
+
+    @Test
+    fun `창을 닫으면 질문도 끝나 이후 말이 그 대답으로 붙지 않는다`() {
+        val stt = FakeStt(); val tts = FakeTts()
+        val a = FakeAssistant(ArrayDeque(listOf(clarifyJson, confirmJson)))
+        val v = vm(stt, tts, a)
+        v.onAction(VoiceUiAction.ToggleAlwaysListening)
+        v.onAction(VoiceUiAction.Open)
+        stt.say("빈 용기 두 개 회수했어")
+        v.onAction(VoiceUiAction.Close)
+        v.onAction(VoiceUiAction.Listen)
+        stt.say("빈 용기 두 개 창고로 반납해")
+        assertNull(a.calls[1].second)
+        assertEquals(PendingKind.CLARIFY, a.kinds[1])
     }
 }
